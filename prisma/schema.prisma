@@ -1,0 +1,57 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client"
+  output   = "../app/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public", "auth"]
+}
+
+enum Visibility {
+  PRIVATE @map("private")
+  PUBLIC  @map("public")
+
+  @@map("visibility")
+  @@schema("public")
+}
+
+model Player {
+  id          String     @id @db.Uuid
+  authUser    AuthUser   @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name        String
+  dateOfBirth DateTime   @map("date_of_birth") @db.Date
+  club        String
+  country     String
+  visibility  Visibility @default(PRIVATE)
+  createdAt   DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("players")
+  @@schema("public")
+}
+
+model Coach {
+  id              String   @id @db.Uuid
+  authUser        AuthUser @relation("CoachAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  accomplishments String[] @default([])
+  createdAt       DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("coaches")
+  @@schema("public")
+}
+
+model AuthUser {
+  id     String  @id @db.Uuid
+  player Player? @relation("PlayerAuthUser")
+  coach  Coach?  @relation("CoachAuthUser")
+
+  @@map("users")
+  @@schema("auth")
+}
