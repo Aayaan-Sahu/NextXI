@@ -10,7 +10,8 @@ export default defineConfig({
   schema: "prisma/schema.prisma",
   migrations: {
     path: "prisma/migrations",
-    initShadowDb: "create schema if not exists auth; create table if not exists auth.users (id uuid primary key);",
+    initShadowDb:
+      "create schema if not exists auth; create table if not exists auth.users (id uuid primary key); create schema if not exists storage; create table if not exists storage.buckets (id text primary key, name text not null, public boolean not null default false, file_size_limit bigint, allowed_mime_types text[]);",
   },
   tables: {
     external: [
