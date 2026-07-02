@@ -169,15 +169,19 @@ export async function completeOnboarding(formData: FormData) {
   }
 
   if (role === "coach") {
+    const name = text(formData, "name");
     const accomplishments = text(formData, "accomplishments")
       .split(/\r?\n|,/)
       .map((item) => item.trim())
       .filter(Boolean);
 
+    if (!name) redirect("/onboarding?error=Enter%20your%20name.");
+
     await prisma.coach.create({
       data: {
         accomplishments,
         id: user.id,
+        name,
       },
     });
 

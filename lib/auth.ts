@@ -46,7 +46,7 @@ export const getProfile = cache(async (userId: string) => {
     }),
     prisma.coach.findUnique({
       where: { id: userId },
-      select: { accomplishments: true },
+      select: { accomplishments: true, name: true },
     }),
   ]);
 

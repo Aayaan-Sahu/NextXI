@@ -34,6 +34,10 @@ export function CoachOnboardingPanel() {
       <Form action={completeOnboarding}>
         <input name="role" type="hidden" value="coach" />
         <Field>
+          Name
+          <TextInput name="name" required type="text" />
+        </Field>
+        <Field>
           Accomplishments
           <TextArea
             name="accomplishments"
