@@ -3,9 +3,12 @@
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { Visibility } from "@/app/generated/prisma/enums";
+import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
+
+const usernamePattern = /^[a-z0-9_]{3,30}$/;
 
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -26,6 +29,18 @@ function signupMessage(error: { code?: string; message: string }) {
 
 function resetError(message: string): never {
   redirect(`/auth/reset-password?error=${encodeURIComponent(message)}`);
+}
+
+function normalizeUsername(formData: FormData) {
+  return text(formData, "username").toLowerCase();
+}
+
+function onboardingError(message: string): never {
+  redirect(`/onboarding?error=${encodeURIComponent(message)}`);
+}
+
+function isUniqueError(error: unknown) {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
 async function origin() {
@@ -142,6 +157,11 @@ export async function completeOnboarding(formData: FormData) {
   if (existing.role) redirect("/dashboard");
 
   const role = text(formData, "role");
+  const username = normalizeUsername(formData);
+
+  if (!usernamePattern.test(username)) {
+    onboardingError("Use 3-30 letters, numbers, or underscores for username.");
+  }
 
   if (role === "player") {
     const name = text(formData, "name");
@@ -151,19 +171,31 @@ export async function completeOnboarding(formData: FormData) {
     const parsedDate = new Date(`${dateOfBirth}T00:00:00.000Z`);
 
     if (!name || !club || !country || Number.isNaN(parsedDate.getTime())) {
-      redirect("/onboarding?error=Complete%20all%20player%20fields.");
+      onboardingError("Complete all player fields.");
     }
 
-    await prisma.player.create({
-      data: {
-        club,
-        country,
-        dateOfBirth: parsedDate,
-        id: user.id,
-        name,
-        visibility: Visibility.PRIVATE,
-      },
-    });
+    let usernameTaken = false;
+
+    try {
+      await prisma.$transaction([
+        prisma.profile.create({ data: { id: user.id, username } }),
+        prisma.player.create({
+          data: {
+            club,
+            country,
+            dateOfBirth: parsedDate,
+            id: user.id,
+            name,
+            visibility: Visibility.PRIVATE,
+          },
+        }),
+      ]);
+    } catch (error) {
+      if (!isUniqueError(error)) throw error;
+      usernameTaken = true;
+    }
+
+    if (usernameTaken) onboardingError("Username is taken.");
 
     redirect("/dashboard");
   }
@@ -175,18 +207,30 @@ export async function completeOnboarding(formData: FormData) {
       .map((item) => item.trim())
       .filter(Boolean);
 
-    if (!name) redirect("/onboarding?error=Enter%20your%20name.");
+    if (!name) onboardingError("Enter your name.");
 
-    await prisma.coach.create({
-      data: {
-        accomplishments,
-        id: user.id,
-        name,
-      },
-    });
+    let usernameTaken = false;
+
+    try {
+      await prisma.$transaction([
+        prisma.profile.create({ data: { id: user.id, username } }),
+        prisma.coach.create({
+          data: {
+            accomplishments,
+            id: user.id,
+            name,
+          },
+        }),
+      ]);
+    } catch (error) {
+      if (!isUniqueError(error)) throw error;
+      usernameTaken = true;
+    }
+
+    if (usernameTaken) onboardingError("Username is taken.");
 
     redirect("/dashboard");
   }
 
-  redirect("/onboarding?error=Choose%20player%20or%20coach.");
+  onboardingError("Choose player or coach.");
 }

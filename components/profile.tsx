@@ -9,6 +9,7 @@ type Profile =
         visibility: string;
       };
       role: "player";
+      username: string | null;
     }
   | {
       coach: {
@@ -16,6 +17,7 @@ type Profile =
         name: string;
       };
       role: "coach";
+      username: string | null;
     };
 
 export function ProfilePanel({ profile }: { profile: Profile }) {
@@ -26,6 +28,10 @@ export function ProfilePanel({ profile }: { profile: Profile }) {
           <div className="grid gap-1 border-t border-stone-300 pt-3 dark:border-neutral-700">
             <dt className="text-[13px] text-stone-600 dark:text-neutral-300">Name</dt>
             <dd className="m-0">{profile.player.name}</dd>
+          </div>
+          <div className="grid gap-1 border-t border-stone-300 pt-3 dark:border-neutral-700">
+            <dt className="text-[13px] text-stone-600 dark:text-neutral-300">Username</dt>
+            <dd className="m-0">{profile.username ? `@${profile.username}` : "Not set"}</dd>
           </div>
           <div className="grid gap-1 border-t border-stone-300 pt-3 dark:border-neutral-700">
             <dt className="text-[13px] text-stone-600 dark:text-neutral-300">Club</dt>
@@ -46,6 +52,10 @@ export function ProfilePanel({ profile }: { profile: Profile }) {
             <div className="grid gap-1 border-t border-stone-300 pt-3 dark:border-neutral-700">
               <dt className="text-[13px] text-stone-600 dark:text-neutral-300">Name</dt>
               <dd className="m-0">{profile.coach.name}</dd>
+            </div>
+            <div className="grid gap-1 border-t border-stone-300 pt-3 dark:border-neutral-700">
+              <dt className="text-[13px] text-stone-600 dark:text-neutral-300">Username</dt>
+              <dd className="m-0">{profile.username ? `@${profile.username}` : "Not set"}</dd>
             </div>
           </dl>
           {profile.coach.accomplishments.length ? (

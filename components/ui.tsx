@@ -116,15 +116,19 @@ export function PrimaryButton(props: ComponentProps<"button">) {
   );
 }
 
+export function SecondaryButton(props: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className="cursor-pointer rounded-md border border-stone-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-950 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
+    />
+  );
+}
+
 export function SignOutButton() {
   return (
     <form action={signOut}>
-      <button
-        className="cursor-pointer rounded-md border border-stone-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-950 dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50"
-        type="submit"
-      >
-        Sign out
-      </button>
+      <SecondaryButton type="submit">Sign out</SecondaryButton>
     </form>
   );
 }

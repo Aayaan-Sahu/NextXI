@@ -33,7 +33,11 @@ export const getOnboardingStatus = cache(async (userId: string) => {
 });
 
 export const getProfile = cache(async (userId: string) => {
-  const [player, coach] = await Promise.all([
+  const [profile, player, coach] = await Promise.all([
+    prisma.profile.findUnique({
+      where: { id: userId },
+      select: { username: true },
+    }),
     prisma.player.findUnique({
       where: { id: userId },
       select: {
@@ -50,7 +54,7 @@ export const getProfile = cache(async (userId: string) => {
     }),
   ]);
 
-  if (player) return { player, role: "player" as const };
-  if (coach) return { coach, role: "coach" as const };
+  if (player) return { player, role: "player" as const, username: profile?.username ?? null };
+  if (coach) return { coach, role: "coach" as const, username: profile?.username ?? null };
   return { role: null };
 });

@@ -11,6 +11,16 @@ export function PlayerOnboardingPanel() {
           <TextInput name="name" required type="text" />
         </Field>
         <Field>
+          Username
+          <TextInput
+            name="username"
+            pattern="[A-Za-z0-9_]{3,30}"
+            required
+            title="Use 3-30 letters, numbers, or underscores."
+            type="text"
+          />
+        </Field>
+        <Field>
           Date of birth
           <TextInput name="dateOfBirth" required type="date" />
         </Field>
@@ -36,6 +46,16 @@ export function CoachOnboardingPanel() {
         <Field>
           Name
           <TextInput name="name" required type="text" />
+        </Field>
+        <Field>
+          Username
+          <TextInput
+            name="username"
+            pattern="[A-Za-z0-9_]{3,30}"
+            required
+            title="Use 3-30 letters, numbers, or underscores."
+            type="text"
+          />
         </Field>
         <Field>
           Accomplishments
