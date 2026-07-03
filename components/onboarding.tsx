@@ -32,6 +32,14 @@ export function PlayerOnboardingPanel() {
           Country
           <TextInput name="country" required type="text" />
         </Field>
+        <Field>
+          Height (cm)
+          <TextInput max={300} min={1} name="heightCm" placeholder="Optional" type="number" />
+        </Field>
+        <Field>
+          Weight (kg)
+          <TextInput max={500} min={1} name="weightKg" placeholder="Optional" type="number" />
+        </Field>
         <PrimaryButton type="submit">Create player profile</PrimaryButton>
       </Form>
     </Panel>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { signOut } from "@/app/auth/actions";
 
@@ -130,5 +131,16 @@ export function SignOutButton() {
     <form action={signOut}>
       <SecondaryButton type="submit">Sign out</SecondaryButton>
     </form>
+  );
+}
+
+const secondaryClasses =
+  "cursor-pointer rounded-md border border-stone-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-950 no-underline dark:border-neutral-700 dark:bg-neutral-900 dark:text-neutral-50";
+
+export function MessagesLink() {
+  return (
+    <Link className={secondaryClasses} href="/dashboard/messages">
+      Messages
+    </Link>
   );
 }

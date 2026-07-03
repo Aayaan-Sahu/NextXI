@@ -21,11 +21,20 @@ enum Visibility {
   @@schema("public")
 }
 
-enum CoachConnectionStatus {
+enum ConnectionStatus {
   PENDING  @map("pending")
   ACCEPTED @map("accepted")
 
-  @@map("coach_connection_status")
+  @@map("connection_status")
+  @@schema("public")
+}
+
+enum CoachStatus {
+  PENDING  @map("pending")
+  APPROVED @map("approved")
+  REJECTED @map("rejected")
+
+  @@map("coach_status")
   @@schema("public")
 }
 
@@ -38,30 +47,31 @@ enum PlayerVideoStatus {
 }
 
 model Player {
-  id               String            @id @db.Uuid
-  authUser         AuthUser          @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  coachConnections CoachConnection[]
-  videos           PlayerVideo[]
-  name             String
-  dateOfBirth      DateTime          @map("date_of_birth") @db.Date
-  club             String
-  country          String
-  visibility       Visibility        @default(PRIVATE)
-  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id          String        @id @db.Uuid
+  authUser    AuthUser      @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  videos      PlayerVideo[]
+  name        String
+  dateOfBirth DateTime      @map("date_of_birth") @db.Date
+  club        String
+  country     String
+  heightCm    Int?          @map("height_cm")
+  weightKg    Int?          @map("weight_kg")
+  visibility  Visibility    @default(PRIVATE)
+  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("players")
   @@schema("public")
 }
 
 model Coach {
-  id                 String            @id @db.Uuid
-  authUser           AuthUser          @relation("CoachAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  studentConnections CoachConnection[]
-  name               String
-  accomplishments    String[]          @default([])
-  createdAt          DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt          DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id              String      @id @db.Uuid
+  authUser        AuthUser    @relation("CoachAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name            String
+  accomplishments String[]    @default([])
+  status          CoachStatus @default(PENDING)
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("coaches")
   @@schema("public")
@@ -78,21 +88,38 @@ model Profile {
   @@schema("public")
 }
 
-model CoachConnection {
-  playerId      String                @map("player_id") @db.Uuid
-  coachId       String                @map("coach_id") @db.Uuid
-  requestedById String                @map("requested_by_id") @db.Uuid
-  status        CoachConnectionStatus @default(PENDING)
-  player        Player                @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  coach         Coach                 @relation(fields: [coachId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  requestedBy   AuthUser              @relation("CoachConnectionRequester", fields: [requestedById], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  createdAt     DateTime              @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime              @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+model Connection {
+  id            String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userAId       String           @map("user_a_id") @db.Uuid
+  userBId       String           @map("user_b_id") @db.Uuid
+  requestedById String           @map("requested_by_id") @db.Uuid
+  status        ConnectionStatus @default(PENDING)
+  userA         AuthUser         @relation("ConnectionUserA", fields: [userAId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  userB         AuthUser         @relation("ConnectionUserB", fields: [userBId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  requestedBy   AuthUser         @relation("ConnectionRequester", fields: [requestedById], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  messages      Message[]
+  createdAt     DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  @@id([playerId, coachId])
-  @@index([playerId, status], map: "coach_connections_player_status_idx")
-  @@index([coachId, status], map: "coach_connections_coach_status_idx")
-  @@map("coach_connections")
+  @@unique([userAId, userBId])
+  @@index([userAId, status], map: "connections_user_a_status_idx")
+  @@index([userBId, status], map: "connections_user_b_status_idx")
+  @@map("connections")
+  @@schema("public")
+}
+
+model Message {
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  connectionId String     @map("connection_id") @db.Uuid
+  senderId     String     @map("sender_id") @db.Uuid
+  connection   Connection @relation(fields: [connectionId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  sender       AuthUser   @relation("MessageSender", fields: [senderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  body         String
+  readAt       DateTime?  @map("read_at") @db.Timestamptz(6)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([connectionId, createdAt], map: "messages_connection_created_at_idx")
+  @@map("messages")
   @@schema("public")
 }
 
@@ -117,11 +144,14 @@ model PlayerVideo {
 }
 
 model AuthUser {
-  id                         String            @id @db.Uuid
-  player                     Player?           @relation("PlayerAuthUser")
-  coach                      Coach?            @relation("CoachAuthUser")
-  profile                    Profile?          @relation("ProfileAuthUser")
-  requestedCoachConnections  CoachConnection[] @relation("CoachConnectionRequester")
+  id                   String       @id @db.Uuid
+  player               Player?      @relation("PlayerAuthUser")
+  coach                Coach?       @relation("CoachAuthUser")
+  profile              Profile?     @relation("ProfileAuthUser")
+  connectionsAsUserA   Connection[] @relation("ConnectionUserA")
+  connectionsAsUserB   Connection[] @relation("ConnectionUserB")
+  requestedConnections Connection[] @relation("ConnectionRequester")
+  sentMessages         Message[]    @relation("MessageSender")
 
   @@map("users")
   @@schema("auth")

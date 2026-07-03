@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Visibility } from "@/app/generated/prisma/enums";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
-import { getOnboardingStatus, requireUser } from "@/lib/auth";
+import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
@@ -33,6 +33,18 @@ function resetError(message: string): never {
 
 function normalizeUsername(formData: FormData) {
   return text(formData, "username").toLowerCase();
+}
+
+const INVALID_NUMBER = Symbol("invalid-number");
+
+function optionalInt(formData: FormData, name: string, min: number, max: number) {
+  const raw = text(formData, name);
+  if (!raw) return null;
+
+  const value = Number(raw);
+  if (!Number.isInteger(value) || value < min || value > max) return INVALID_NUMBER;
+
+  return value;
 }
 
 function onboardingError(message: string): never {
@@ -89,6 +101,8 @@ export async function signIn(formData: FormData) {
 
   if (error) authError("sign-in", error.message);
   if (!data.user) authError("sign-in", "Sign in failed.");
+
+  if (isAdmin(data.user)) redirect("/dashboard/admin");
 
   await afterSignIn(data.user.id);
 }
@@ -169,9 +183,15 @@ export async function completeOnboarding(formData: FormData) {
     const club = text(formData, "club");
     const country = text(formData, "country");
     const parsedDate = new Date(`${dateOfBirth}T00:00:00.000Z`);
+    const heightCm = optionalInt(formData, "heightCm", 1, 300);
+    const weightKg = optionalInt(formData, "weightKg", 1, 500);
 
     if (!name || !club || !country || Number.isNaN(parsedDate.getTime())) {
       onboardingError("Complete all player fields.");
+    }
+
+    if (heightCm === INVALID_NUMBER || weightKg === INVALID_NUMBER) {
+      onboardingError("Enter a valid height and weight, or leave them blank.");
     }
 
     let usernameTaken = false;
@@ -184,9 +204,11 @@ export async function completeOnboarding(formData: FormData) {
             club,
             country,
             dateOfBirth: parsedDate,
+            heightCm,
             id: user.id,
             name,
             visibility: Visibility.PRIVATE,
+            weightKg,
           },
         }),
       ]);

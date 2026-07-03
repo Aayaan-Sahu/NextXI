@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CoachOnboardingPanel, PlayerOnboardingPanel } from "@/components/onboarding";
 import { Notice, PageHeader, PageShell, SignOutButton } from "@/components/ui";
-import { getOnboardingStatus, requireUser } from "@/lib/auth";
+import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { firstParam } from "@/lib/search-params";
 
 type SearchParams = Promise<{ error?: string | string[] }>;
@@ -12,6 +12,9 @@ export default async function OnboardingPage({
   searchParams: SearchParams;
 }) {
   const user = await requireUser();
+
+  if (isAdmin(user)) redirect("/dashboard/admin");
+
   const status = await getOnboardingStatus(user.id);
 
   if (status.role) redirect("/dashboard");

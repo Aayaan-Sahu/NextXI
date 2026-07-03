@@ -12,6 +12,9 @@ function PersonLine({ person }: { person: ConnectionPerson }) {
       {person.username ? (
         <span className="text-stone-600 dark:text-neutral-300"> @{person.username}</span>
       ) : null}
+      {person.role ? (
+        <span className="text-stone-600 dark:text-neutral-300"> · {person.role}</span>
+      ) : null}
     </span>
   );
 }
@@ -28,7 +31,7 @@ function PendingList({ people }: { people: ConnectionPerson[] }) {
       {people.map((person) => (
         <li
           className="border-t border-stone-300 pt-2 text-sm dark:border-neutral-700"
-          key={`${person.playerId}:${person.coachId}`}
+          key={person.connectionId}
         >
           <PersonLine person={person} />
         </li>
@@ -45,19 +48,17 @@ function IncomingList({ people }: { people: ConnectionPerson[] }) {
       {people.map((person) => (
         <li
           className="flex items-center justify-between gap-3 border-t border-stone-300 pt-3 text-sm dark:border-neutral-700"
-          key={`${person.playerId}:${person.coachId}`}
+          key={person.connectionId}
         >
           <PersonLine person={person} />
           <div className="flex gap-2">
             <form action={respondToConnectionRequest}>
-              <input name="playerId" type="hidden" value={person.playerId} />
-              <input name="coachId" type="hidden" value={person.coachId} />
+              <input name="connectionId" type="hidden" value={person.connectionId} />
               <input name="response" type="hidden" value="accept" />
               <PrimaryButton type="submit">Accept</PrimaryButton>
             </form>
             <form action={respondToConnectionRequest}>
-              <input name="playerId" type="hidden" value={person.playerId} />
-              <input name="coachId" type="hidden" value={person.coachId} />
+              <input name="connectionId" type="hidden" value={person.connectionId} />
               <input name="response" type="hidden" value="decline" />
               <SecondaryButton type="submit">Decline</SecondaryButton>
             </form>
@@ -78,7 +79,7 @@ export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
             <TextInput
               name="username"
               pattern="[A-Za-z0-9_]{3,30}"
-              placeholder={data.role === "player" ? "coach_username" : "player_username"}
+              placeholder="username"
               required
               title="Use 3-30 letters, numbers, or underscores."
               type="text"
@@ -98,9 +99,7 @@ export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
         </section>
 
         <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">
-            {data.role === "player" ? "Accepted coaches" : "Accepted players"}
-          </h3>
+          <h3 className="text-sm font-semibold">Accepted connections</h3>
           <PendingList people={data.accepted} />
         </section>
       </div>

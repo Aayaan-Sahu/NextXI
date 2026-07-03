@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { ConnectionsPanel } from "@/components/connections";
 import { ProfilePanel } from "@/components/profile";
-import { Notice, PageHeader, PageShell, SignOutButton } from "@/components/ui";
+import { MessagesLink, Notice, PageHeader, PageShell, SignOutButton } from "@/components/ui";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getConnectionPanelData } from "@/lib/connections";
@@ -26,7 +26,7 @@ export default async function PlayerDashboardPage({
   if (profile.role !== "player") redirect("/dashboard/coach");
 
   const [connectionData, videos] = await Promise.all([
-    getConnectionPanelData(user.id, "player"),
+    getConnectionPanelData(user.id),
     prisma.playerVideo.findMany({
       where: {
         playerId: user.id,
@@ -51,7 +51,12 @@ export default async function PlayerDashboardPage({
   return (
     <PageShell>
       <PageHeader
-        action={<SignOutButton />}
+        action={
+          <div className="flex items-center gap-2">
+            <MessagesLink />
+            <SignOutButton />
+          </div>
+        }
         subtitle={user.email}
         title={`Welcome ${profile.player.name}, player`}
       />
