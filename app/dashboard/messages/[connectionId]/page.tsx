@@ -21,8 +21,8 @@ export default async function ThreadPage({ params }: { params: Params }) {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-stone-300 px-4 py-3 dark:border-neutral-700">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">
+      <header className="flex items-center gap-3 border-b border-stone-300 px-4 py-3">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white">
           {thread.counterpart.name.charAt(0).toUpperCase()}
         </span>
         <div className="min-w-0">
@@ -30,7 +30,7 @@ export default async function ThreadPage({ params }: { params: Params }) {
             {thread.counterpart.name}
           </p>
           {subtitle ? (
-            <p className="truncate text-xs text-stone-600 dark:text-neutral-300">{subtitle}</p>
+            <p className="truncate text-xs text-stone-600">{subtitle}</p>
           ) : null}
         </div>
       </header>

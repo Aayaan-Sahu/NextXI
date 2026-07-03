@@ -10,17 +10,17 @@ function PersonLine({ person }: { person: ConnectionPerson }) {
     <span>
       {person.name}
       {person.username ? (
-        <span className="text-stone-600 dark:text-neutral-300"> @{person.username}</span>
+        <span className="text-stone-600"> @{person.username}</span>
       ) : null}
       {person.role ? (
-        <span className="text-stone-600 dark:text-neutral-300"> · {person.role}</span>
+        <span className="text-stone-600"> · {person.role}</span>
       ) : null}
     </span>
   );
 }
 
 function Empty({ children }: { children: string }) {
-  return <p className="text-sm text-stone-600 dark:text-neutral-300">{children}</p>;
+  return <p className="text-sm text-stone-600">{children}</p>;
 }
 
 function PendingList({ people }: { people: ConnectionPerson[] }) {
@@ -30,7 +30,7 @@ function PendingList({ people }: { people: ConnectionPerson[] }) {
     <ul className="grid gap-2">
       {people.map((person) => (
         <li
-          className="border-t border-stone-300 pt-2 text-sm dark:border-neutral-700"
+          className="border-t border-stone-300 pt-2 text-sm"
           key={person.connectionId}
         >
           <PersonLine person={person} />
@@ -47,7 +47,7 @@ function IncomingList({ people }: { people: ConnectionPerson[] }) {
     <ul className="grid gap-3">
       {people.map((person) => (
         <li
-          className="flex items-center justify-between gap-3 border-t border-stone-300 pt-3 text-sm dark:border-neutral-700"
+          className="flex items-center justify-between gap-3 border-t border-stone-300 pt-3 text-sm"
           key={person.connectionId}
         >
           <PersonLine person={person} />

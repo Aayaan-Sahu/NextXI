@@ -17,7 +17,7 @@ function formatDate(date: Date) {
 export function VideoGrid({ videos }: { videos: GridVideo[] }) {
   if (!videos.length) {
     return (
-      <p className="text-sm text-stone-600 dark:text-neutral-300">
+      <p className="text-sm text-stone-600">
         No videos yet. Upload your first video above.
       </p>
     );
@@ -28,7 +28,7 @@ export function VideoGrid({ videos }: { videos: GridVideo[] }) {
       {videos.map((video) => (
         <li key={video.id}>
           <Link
-            className="block overflow-hidden rounded-lg border border-stone-300 bg-white no-underline hover:border-neutral-950 dark:border-neutral-700 dark:bg-neutral-900 dark:hover:border-neutral-50"
+            className="block overflow-hidden rounded-lg border border-stone-300 bg-white no-underline hover:border-neutral-950"
             href={`/dashboard/player/videos/${video.id}`}
           >
             {video.thumbnailUrl ? (
@@ -36,19 +36,19 @@ export function VideoGrid({ videos }: { videos: GridVideo[] }) {
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt=""
-                className="aspect-video w-full bg-stone-100 object-cover dark:bg-neutral-800"
+                className="aspect-video w-full bg-stone-100 object-cover"
                 src={video.thumbnailUrl}
               />
             ) : (
-              <div className="flex aspect-video items-center justify-center bg-stone-100 text-2xl text-stone-600 dark:bg-neutral-800 dark:text-neutral-300">
+              <div className="flex aspect-video items-center justify-center bg-stone-100 text-2xl text-stone-600">
                 ▶
               </div>
             )}
             <div className="grid gap-1 p-3">
-              <span className="truncate text-sm font-medium text-neutral-950 dark:text-neutral-50">
+              <span className="truncate text-sm font-medium text-neutral-950">
                 {video.originalFilename}
               </span>
-              <span className="text-xs text-stone-600 dark:text-neutral-300">
+              <span className="text-xs text-stone-600">
                 {formatDate(video.uploadedAt ?? video.createdAt)} · {formatVideoSize(video.sizeBytes)}
               </span>
             </div>

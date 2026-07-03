@@ -15,18 +15,18 @@ export function CoachVideos({ videos }: { videos: CoachVideo[] }) {
         <ul className="grid gap-2">
           {videos.map((video) => (
             <li
-              className="flex justify-between gap-3 border-t border-stone-300 pt-2 text-sm dark:border-neutral-700"
+              className="flex justify-between gap-3 border-t border-stone-300 pt-2 text-sm"
               key={video.id}
             >
               <span className="min-w-0 truncate">{video.originalFilename}</span>
-              <span className="shrink-0 text-stone-600 dark:text-neutral-300">
+              <span className="shrink-0 text-stone-600">
                 {video.player.name}
               </span>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-stone-600 dark:text-neutral-300">No videos yet.</p>
+        <p className="text-sm text-stone-600">No videos yet.</p>
       )}
     </Panel>
   );

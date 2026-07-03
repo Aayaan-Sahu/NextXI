@@ -55,14 +55,14 @@ export default async function AdminDashboardPage({
           <ul className="grid gap-5">
             {pendingCoaches.map((coach) => (
               <li
-                className="grid gap-3 border-t border-stone-300 pt-4 first:border-t-0 first:pt-0 dark:border-neutral-700"
+                className="grid gap-3 border-t border-stone-300 pt-4 first:border-t-0 first:pt-0"
                 key={coach.id}
               >
                 <div>
                   <p className="font-semibold">
                     {coach.name}
                     {usernames.get(coach.id) ? (
-                      <span className="font-normal text-stone-600 dark:text-neutral-300">
+                      <span className="font-normal text-stone-600">
                         {" "}
                         @{usernames.get(coach.id)}
                       </span>
@@ -75,7 +75,7 @@ export default async function AdminDashboardPage({
                       ))}
                     </ul>
                   ) : (
-                    <p className="mt-2 text-sm text-stone-600 dark:text-neutral-300">
+                    <p className="mt-2 text-sm text-stone-600">
                       No accomplishments listed.
                     </p>
                   )}
@@ -94,7 +94,7 @@ export default async function AdminDashboardPage({
             ))}
           </ul>
         ) : (
-          <p className="text-sm text-stone-600 dark:text-neutral-300">
+          <p className="text-sm text-stone-600">
             No coaches awaiting review.
           </p>
         )}

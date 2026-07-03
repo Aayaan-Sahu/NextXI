@@ -35,10 +35,10 @@ export function ConversationSidebar({
     : conversations;
 
   return (
-    <aside className="flex w-72 shrink-0 flex-col border-r border-stone-300 dark:border-neutral-700 max-md:w-52">
-      <div className="border-b border-stone-300 p-3 dark:border-neutral-700">
+    <aside className="flex w-72 shrink-0 flex-col border-r border-stone-300 max-md:w-52">
+      <div className="border-b border-stone-300 p-3">
         <input
-          className="w-full rounded-full border border-stone-300 bg-stone-100 px-3.5 py-1.5 text-sm text-neutral-950 focus:border-neutral-950 focus:outline-none dark:border-neutral-700 dark:bg-neutral-800 dark:text-neutral-50 dark:focus:border-neutral-50"
+          className="w-full rounded-full border border-stone-300 bg-stone-100 px-3.5 py-1.5 text-sm text-neutral-950 focus:border-neutral-950 focus:outline-none"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search"
           type="search"
@@ -52,26 +52,26 @@ export function ConversationSidebar({
           return (
             <li key={conversation.connectionId}>
               <Link
-                className={`flex items-center gap-3 px-3 py-2.5 no-underline hover:bg-stone-50 dark:hover:bg-neutral-800 ${
-                  active ? "bg-stone-100 dark:bg-neutral-800" : ""
+                className={`flex items-center gap-3 px-3 py-2.5 no-underline hover:bg-stone-50 ${
+                  active ? "bg-stone-100" : ""
                 }`}
                 href={`/dashboard/messages/${conversation.connectionId}`}
               >
-                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">
+                <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white">
                   {conversation.counterpart.name.charAt(0).toUpperCase()}
                 </span>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium text-neutral-950 dark:text-neutral-50">
+                  <span className="block truncate text-sm font-medium text-neutral-950">
                     {conversation.counterpart.name}
                   </span>
-                  <span className="block truncate text-xs text-stone-600 dark:text-neutral-300">
+                  <span className="block truncate text-xs text-stone-600">
                     {conversation.lastMessage
                       ? `${conversation.lastMessage.fromMe ? "You: " : ""}${conversation.lastMessage.body}`
                       : "No messages yet."}
                   </span>
                 </span>
                 {conversation.unreadCount > 0 ? (
-                  <span className="shrink-0 rounded-full bg-neutral-950 px-2 py-0.5 text-xs font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">
+                  <span className="shrink-0 rounded-full bg-neutral-950 px-2 py-0.5 text-xs font-semibold text-white">
                     {conversation.unreadCount}
                   </span>
                 ) : null}
@@ -80,7 +80,7 @@ export function ConversationSidebar({
           );
         })}
         {!visible.length ? (
-          <li className="p-4 text-sm text-stone-600 dark:text-neutral-300">
+          <li className="p-4 text-sm text-stone-600">
             {conversations.length
               ? "No connections match your search."
               : "No conversations yet. Connect with someone to start messaging."}

@@ -156,7 +156,7 @@ export function MessageThread({
             return (
               <div className="flex flex-col gap-2" key={message.id}>
                 {showDivider ? (
-                  <p className="my-1 text-center text-[11px] text-stone-600 dark:text-neutral-400">
+                  <p className="my-1 text-center text-[11px] text-stone-600">
                     {formatDivider(message.createdAt)}
                   </p>
                 ) : null}
@@ -164,15 +164,15 @@ export function MessageThread({
                   <div
                     className={
                       message.fromMe
-                        ? "inline-block max-w-[420px] rounded-lg bg-neutral-950 px-3 py-2 text-sm text-white dark:bg-neutral-50 dark:text-neutral-950"
-                        : "inline-block max-w-[420px] rounded-lg bg-stone-100 px-3 py-2 text-sm text-neutral-950 dark:bg-neutral-800 dark:text-neutral-50"
+                        ? "inline-block max-w-[420px] rounded-lg bg-neutral-950 px-3 py-2 text-sm text-white"
+                        : "inline-block max-w-[420px] rounded-lg bg-stone-100 px-3 py-2 text-sm text-neutral-950"
                     }
                     title={formatDivider(message.createdAt)}
                   >
                     <p className="m-0 whitespace-pre-wrap break-words">{message.body}</p>
                   </div>
                   {message.id === lastOwnId ? (
-                    <p className="mt-1 text-[11px] text-stone-600 dark:text-neutral-400">
+                    <p className="mt-1 text-[11px] text-stone-600">
                       {receiptFor(message, isPending)}
                     </p>
                   ) : null}
@@ -181,7 +181,7 @@ export function MessageThread({
             );
           })
         ) : (
-          <p className="text-sm text-stone-600 dark:text-neutral-300">
+          <p className="text-sm text-stone-600">
             No messages yet. Say hello.
           </p>
         )}
@@ -189,18 +189,18 @@ export function MessageThread({
       </div>
 
       {error ? (
-        <p className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-neutral-950 dark:border-red-800 dark:bg-red-950/40 dark:text-neutral-50">
+        <p className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-neutral-950">
           {error}
         </p>
       ) : null}
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-stone-300 p-3 dark:border-neutral-700"
+        className="flex items-center gap-2 border-t border-stone-300 p-3"
       >
         <input
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm text-neutral-950 focus:border-neutral-950 focus:outline-none dark:border-neutral-700 dark:bg-neutral-950 dark:text-neutral-50 dark:focus:border-neutral-50"
+          className="min-w-0 flex-1 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm text-neutral-950 focus:border-neutral-950 focus:outline-none"
           maxLength={4000}
           name="body"
           onChange={(event) => setDraft(event.target.value)}

@@ -6,7 +6,7 @@ import { useState } from "react";
 import { signOut } from "@/app/auth/actions";
 
 const menuItemClasses =
-  "block w-full cursor-pointer px-3 py-2 text-left text-sm text-neutral-950 no-underline hover:bg-stone-100 dark:text-neutral-50 dark:hover:bg-neutral-800";
+  "block w-full cursor-pointer px-3 py-2 text-left text-sm text-neutral-950 no-underline hover:bg-stone-100";
 
 export function DashboardNav({ homeHref, initial }: { homeHref: string; initial: string }) {
   const pathname = usePathname();
@@ -19,9 +19,9 @@ export function DashboardNav({ homeHref, initial }: { homeHref: string; initial:
   ];
 
   return (
-    <header className="border-b border-stone-300 bg-white dark:border-neutral-700 dark:bg-neutral-900">
+    <header className="border-b border-stone-300 bg-white">
       <nav className="mx-auto flex w-full max-w-[960px] items-center gap-6 px-6 py-3">
-        <Link className="font-semibold text-neutral-950 no-underline dark:text-neutral-50" href={homeHref}>
+        <Link className="font-semibold text-neutral-950 no-underline" href={homeHref}>
           Cricket Platform
         </Link>
         <div className="flex flex-1 items-center gap-4 text-sm">
@@ -29,8 +29,8 @@ export function DashboardNav({ homeHref, initial }: { homeHref: string; initial:
             <Link
               className={
                 pathname.startsWith(link.href)
-                  ? "font-semibold text-neutral-950 no-underline dark:text-neutral-50"
-                  : "text-stone-600 no-underline hover:text-neutral-950 dark:text-neutral-300 dark:hover:text-neutral-50"
+                  ? "font-semibold text-neutral-950 no-underline"
+                  : "text-stone-600 no-underline hover:text-neutral-950"
               }
               href={link.href}
               key={link.href}
@@ -43,7 +43,7 @@ export function DashboardNav({ homeHref, initial }: { homeHref: string; initial:
           <button
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950"
+            className="flex size-9 cursor-pointer items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >
@@ -57,7 +57,7 @@ export function DashboardNav({ homeHref, initial }: { homeHref: string; initial:
                 onClick={() => setMenuOpen(false)}
                 type="button"
               />
-              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-stone-300 bg-white py-1 shadow-md dark:border-neutral-700 dark:bg-neutral-900">
+              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-stone-300 bg-white py-1 shadow-md">
                 <Link
                   className={menuItemClasses}
                   href="/dashboard/profile"

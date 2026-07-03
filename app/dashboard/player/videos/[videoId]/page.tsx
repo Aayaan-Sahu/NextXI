@@ -56,7 +56,7 @@ export default async function VideoPage({
   return (
     <PageShell>
       <Link
-        className="mb-4 inline-block text-sm text-neutral-950 underline-offset-2 hover:underline dark:text-neutral-50"
+        className="mb-4 inline-block text-sm text-neutral-950 underline-offset-2 hover:underline"
         href="/dashboard/player"
       >
         ← All videos
@@ -66,7 +66,7 @@ export default async function VideoPage({
         title={video.originalFilename}
       />
       <video
-        className="w-full rounded-lg border border-stone-300 bg-black dark:border-neutral-700"
+        className="w-full rounded-lg border border-stone-300 bg-black"
         controls
         preload="metadata"
         src={data.signedUrl}

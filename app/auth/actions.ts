@@ -47,8 +47,9 @@ function optionalInt(formData: FormData, name: string, min: number, max: number)
   return value;
 }
 
-function onboardingError(message: string): never {
-  redirect(`/onboarding?error=${encodeURIComponent(message)}`);
+function onboardingError(role: string, message: string): never {
+  const roleQuery = role === "player" || role === "coach" ? `role=${role}&` : "";
+  redirect(`/onboarding?${roleQuery}error=${encodeURIComponent(message)}`);
 }
 
 function isUniqueError(error: unknown) {
@@ -174,7 +175,7 @@ export async function completeOnboarding(formData: FormData) {
   const username = normalizeUsername(formData);
 
   if (!usernamePattern.test(username)) {
-    onboardingError("Use 3-30 letters, numbers, or underscores for username.");
+    onboardingError(role, "Use 3-30 letters, numbers, or underscores for username.");
   }
 
   if (role === "player") {
@@ -187,11 +188,11 @@ export async function completeOnboarding(formData: FormData) {
     const weightKg = optionalInt(formData, "weightKg", 1, 500);
 
     if (!name || !club || !country || Number.isNaN(parsedDate.getTime())) {
-      onboardingError("Complete all player fields.");
+      onboardingError(role, "Complete all player fields.");
     }
 
     if (heightCm === INVALID_NUMBER || weightKg === INVALID_NUMBER) {
-      onboardingError("Enter a valid height and weight, or leave them blank.");
+      onboardingError(role, "Enter a valid height and weight, or leave them blank.");
     }
 
     let usernameTaken = false;
@@ -217,7 +218,7 @@ export async function completeOnboarding(formData: FormData) {
       usernameTaken = true;
     }
 
-    if (usernameTaken) onboardingError("Username is taken.");
+    if (usernameTaken) onboardingError(role, "Username is taken.");
 
     redirect("/dashboard");
   }
@@ -229,7 +230,7 @@ export async function completeOnboarding(formData: FormData) {
       .map((item) => item.trim())
       .filter(Boolean);
 
-    if (!name) onboardingError("Enter your name.");
+    if (!name) onboardingError(role, "Enter your name.");
 
     let usernameTaken = false;
 
@@ -249,10 +250,10 @@ export async function completeOnboarding(formData: FormData) {
       usernameTaken = true;
     }
 
-    if (usernameTaken) onboardingError("Username is taken.");
+    if (usernameTaken) onboardingError(role, "Username is taken.");
 
     redirect("/dashboard");
   }
 
-  onboardingError("Choose player or coach.");
+  onboardingError(role, "Choose player or coach.");
 }

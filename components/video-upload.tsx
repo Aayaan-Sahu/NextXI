@@ -212,8 +212,8 @@ export function VideoUpload() {
     <section
       className={`grid justify-items-center gap-2 rounded-lg border-2 border-dashed p-8 text-center ${
         dragActive
-          ? "border-neutral-950 bg-stone-100 dark:border-neutral-50 dark:bg-neutral-800"
-          : "border-stone-300 bg-white dark:border-neutral-700 dark:bg-neutral-900"
+          ? "border-neutral-950 bg-stone-100"
+          : "border-stone-300 bg-white"
       }`}
       onDragLeave={() => setDragActive(false)}
       onDragOver={(event) => {
@@ -237,18 +237,18 @@ export function VideoUpload() {
 
       {uploading ? (
         <div className="grid w-full max-w-[420px] gap-2">
-          <div className="h-2 overflow-hidden rounded-sm bg-stone-200 dark:bg-neutral-800">
+          <div className="h-2 overflow-hidden rounded-sm bg-stone-200">
             <div
-              className="h-full bg-neutral-950 dark:bg-neutral-50"
+              className="h-full bg-neutral-950"
               style={{ width: `${progress}%` }}
             />
           </div>
-          <p className="text-sm text-stone-600 dark:text-neutral-300">{progress}% uploaded</p>
+          <p className="text-sm text-stone-600">{progress}% uploaded</p>
         </div>
       ) : (
         <>
           <p className="font-medium">Drag and drop a video to upload</p>
-          <p className="text-sm text-stone-600 dark:text-neutral-300">
+          <p className="text-sm text-stone-600">
             MP4, MOV, or WebM, up to 500 MB.
           </p>
           <SecondaryButton onClick={() => inputRef.current?.click()} type="button">
@@ -257,7 +257,7 @@ export function VideoUpload() {
         </>
       )}
 
-      {error ? <p className="text-sm text-red-700 dark:text-red-300">{error}</p> : null}
+      {error ? <p className="text-sm text-red-700">{error}</p> : null}
     </section>
   );
 }
