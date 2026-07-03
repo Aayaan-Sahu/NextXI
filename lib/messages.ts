@@ -21,6 +21,7 @@ export type ThreadMessage = {
   body: string;
   createdAt: string;
   fromMe: boolean;
+  readAt: string | null;
 };
 
 export type Thread = {
@@ -68,19 +69,18 @@ export async function getConversations(userId: string): Promise<ConversationSumm
 
   if (!connections.length) return [];
 
-  const people = await describeUsers(
-    connections.map((c) => (c.userAId === userId ? c.userBId : c.userAId)),
-  );
-
-  const unread = await prisma.message.groupBy({
-    by: ["connectionId"],
-    where: {
-      connectionId: { in: connections.map((c) => c.id) },
-      senderId: { not: userId },
-      readAt: null,
-    },
-    _count: true,
-  });
+  const [people, unread] = await Promise.all([
+    describeUsers(connections.map((c) => (c.userAId === userId ? c.userBId : c.userAId))),
+    prisma.message.groupBy({
+      by: ["connectionId"],
+      where: {
+        connectionId: { in: connections.map((c) => c.id) },
+        senderId: { not: userId },
+        readAt: null,
+      },
+      _count: true,
+    }),
+  ]);
   const unreadMap = new Map(unread.map((row) => [row.connectionId, row._count]));
 
   const summaries: ConversationSummary[] = connections.map((connection) => {
@@ -115,14 +115,15 @@ export async function getThread(userId: string, connectionId: string): Promise<T
   if (!connection) return null;
 
   const otherId = connection.userAId === userId ? connection.userBId : connection.userAId;
-  const people = await describeUsers([otherId]);
+  const [people, messages] = await Promise.all([
+    describeUsers([otherId]),
+    prisma.message.findMany({
+      where: { connectionId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, senderId: true, body: true, createdAt: true, readAt: true },
+    }),
+  ]);
   const info = people.get(otherId);
-
-  const messages = await prisma.message.findMany({
-    where: { connectionId },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, senderId: true, body: true, createdAt: true },
-  });
 
   return {
     connectionId,
@@ -137,6 +138,7 @@ export async function getThread(userId: string, connectionId: string): Promise<T
       body: message.body,
       createdAt: message.createdAt.toISOString(),
       fromMe: message.senderId === userId,
+      readAt: message.readAt?.toISOString() ?? null,
     })),
   };
 }

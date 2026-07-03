@@ -1,81 +1,66 @@
 import { redirect } from "next/navigation";
 import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
-import { ConnectionsPanel } from "@/components/connections";
-import { ProfilePanel } from "@/components/profile";
-import { MessagesLink, Notice, PageHeader, PageShell, SignOutButton } from "@/components/ui";
+import { PageHeader, PageShell } from "@/components/ui";
+import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
-import { getConnectionPanelData } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
-import { firstParam } from "@/lib/search-params";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { VIDEO_BUCKET } from "@/lib/videos";
 
-type SearchParams = Promise<{
-  connectionError?: string | string[];
-  connectionMessage?: string | string[];
-}>;
+const THUMBNAIL_URL_TTL_SECONDS = 60 * 60;
 
-export default async function PlayerDashboardPage({
-  searchParams,
-}: {
-  searchParams: SearchParams;
-}) {
+export default async function PlayerDashboardPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
 
   if (!profile.role) redirect("/onboarding");
   if (profile.role !== "player") redirect("/dashboard/coach");
 
-  const [connectionData, videos] = await Promise.all([
-    getConnectionPanelData(user.id),
-    prisma.playerVideo.findMany({
-      where: {
-        playerId: user.id,
-        status: PlayerVideoStatus.READY,
-      },
-      orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
-      select: {
-        contentType: true,
-        createdAt: true,
-        id: true,
-        originalFilename: true,
-        sizeBytes: true,
-        status: true,
-        uploadedAt: true,
-      },
-    }),
-  ]);
-  const params = await searchParams;
-  const connectionError = firstParam(params.connectionError);
-  const connectionMessage = firstParam(params.connectionMessage);
+  const videos = await prisma.playerVideo.findMany({
+    where: {
+      playerId: user.id,
+      status: PlayerVideoStatus.READY,
+    },
+    orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      createdAt: true,
+      id: true,
+      originalFilename: true,
+      sizeBytes: true,
+      thumbnailPath: true,
+      uploadedAt: true,
+    },
+  });
+
+  const thumbnailPaths = videos.flatMap((video) => video.thumbnailPath ?? []);
+  const { data: signedThumbnails } = thumbnailPaths.length
+    ? await createSupabaseAdminClient()
+        .storage.from(VIDEO_BUCKET)
+        .createSignedUrls(thumbnailPaths, THUMBNAIL_URL_TTL_SECONDS)
+    : { data: null };
+  const thumbnailUrlByPath = new Map(
+    (signedThumbnails ?? [])
+      .filter((signed) => !signed.error && signed.path)
+      .map((signed) => [signed.path, signed.signedUrl]),
+  );
 
   return (
     <PageShell>
       <PageHeader
-        action={
-          <div className="flex items-center gap-2">
-            <MessagesLink />
-            <SignOutButton />
-          </div>
-        }
-        subtitle={user.email}
-        title={`Welcome ${profile.player.name}, player`}
+        subtitle="Upload footage of your batting, bowling, and fielding for coaches and scouts to see."
+        title="Your videos"
       />
-      <Notice tone="error">{connectionError}</Notice>
-      <Notice>{connectionMessage}</Notice>
       <div className="grid gap-5">
-        <ProfilePanel profile={profile} />
-        <VideoUpload
-          initialVideos={videos.map((video) => ({
-            id: video.id,
-            originalFilename: video.originalFilename,
-            contentType: video.contentType,
-            sizeBytes: video.sizeBytes,
-            status: "READY" as const,
-            uploadedAt: video.uploadedAt?.toISOString() ?? null,
-            createdAt: video.createdAt.toISOString(),
+        <VideoUpload />
+        <VideoGrid
+          videos={videos.map((video) => ({
+            ...video,
+            thumbnailUrl: video.thumbnailPath
+              ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
+              : null,
           }))}
         />
-        <ConnectionsPanel data={connectionData} />
       </div>
     </PageShell>
   );

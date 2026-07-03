@@ -1,45 +1,69 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { authorizeConversation } from "@/lib/messages";
+import {
+  authorizeConversation,
+  markConversationRead,
+  type ThreadMessage,
+} from "@/lib/messages";
 
-function text(formData: FormData, name: string) {
-  const value = formData.get(name);
-  return typeof value === "string" ? value.trim() : "";
-}
+export type SendMessageResult =
+  | { ok: true; message: ThreadMessage }
+  | { ok: false; error: string };
 
-export async function sendMessage(formData: FormData) {
+export async function sendMessage(
+  connectionId: string,
+  body: string,
+): Promise<SendMessageResult> {
   const user = await requireUser();
-  const connectionId = text(formData, "connectionId");
-  const body = text(formData, "body");
 
-  if (!connectionId) redirect("/dashboard/messages");
-
-  const threadPath = `/dashboard/messages/${connectionId}`;
-
-  if (!body || body.length > 4000) {
-    redirect(`${threadPath}?error=${encodeURIComponent("Enter a message up to 4000 characters.")}`);
+  const trimmed = typeof body === "string" ? body.trim() : "";
+  if (typeof connectionId !== "string" || !connectionId) {
+    return { ok: false, error: "Conversation not found." };
+  }
+  if (!trimmed || trimmed.length > 4000) {
+    return { ok: false, error: "Enter a message up to 4000 characters." };
   }
 
   // Authorization: sender must be a participant of an accepted connection.
   const connection = await authorizeConversation(user.id, connectionId);
-  if (!connection) redirect("/dashboard/messages");
+  if (!connection) return { ok: false, error: "Conversation not found." };
 
   // A coach whose account is not approved cannot send messages.
   const coach = await prisma.coach.findUnique({
     where: { id: user.id },
     select: { status: true },
   });
-  if (coach && coach.status !== CoachStatus.APPROVED) redirect("/dashboard");
+  if (coach && coach.status !== CoachStatus.APPROVED) {
+    return { ok: false, error: "Your account is pending approval." };
+  }
 
-  await prisma.message.create({
-    data: { connectionId, senderId: user.id, body },
+  const message = await prisma.message.create({
+    data: { connectionId, senderId: user.id, body: trimmed },
   });
 
-  revalidatePath(threadPath);
-  redirect(threadPath);
+  return {
+    ok: true,
+    message: {
+      id: message.id,
+      body: message.body,
+      createdAt: message.createdAt.toISOString(),
+      fromMe: true,
+      readAt: null,
+    },
+  };
+}
+
+export async function markThreadRead(connectionId: string) {
+  const user = await requireUser();
+
+  if (typeof connectionId !== "string" || !connectionId) return;
+
+  // Authorization: only participants of an accepted connection may mark it read.
+  const connection = await authorizeConversation(user.id, connectionId);
+  if (!connection) return;
+
+  await markConversationRead(user.id, connectionId);
 }

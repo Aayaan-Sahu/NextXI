@@ -5,6 +5,7 @@ import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
   ALLOWED_VIDEO_TYPES,
   buildPlayerVideoPath,
+  buildPlayerVideoThumbnailPath,
   getSupabaseTusEndpoint,
   MAX_VIDEO_SIZE_BYTES,
   TUS_CHUNK_SIZE_BYTES,
@@ -86,6 +87,13 @@ export async function POST(request: Request) {
     return jsonError("Could not authorize upload.", 500);
   }
 
+  // Thumbnails are best-effort: the video upload proceeds even if signing fails.
+  const { data: thumbnailData } = await supabaseAdmin.storage
+    .from(VIDEO_BUCKET)
+    .createSignedUploadUrl(buildPlayerVideoThumbnailPath(auth.user.id, videoId), {
+      upsert: true,
+    });
+
   return Response.json(
     {
       video: {
@@ -102,6 +110,7 @@ export async function POST(request: Request) {
         chunkSize: TUS_CHUNK_SIZE_BYTES,
         cacheControl: VIDEO_CACHE_CONTROL,
       },
+      thumbnailUpload: thumbnailData ? { signedUrl: thumbnailData.signedUrl } : null,
     },
     { status: 201 },
   );

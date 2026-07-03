@@ -1,30 +1,17 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MessageThread } from "@/components/messaging";
-import { Notice, PageHeader, PageShell, SignOutButton } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
-import { getThread, markConversationRead } from "@/lib/messages";
-import { firstParam } from "@/lib/search-params";
+import { getThread } from "@/lib/messages";
 
 type Params = Promise<{ connectionId: string }>;
-type SearchParams = Promise<{ error?: string | string[] }>;
 
-export default async function ThreadPage({
-  params,
-  searchParams,
-}: {
-  params: Params;
-  searchParams: SearchParams;
-}) {
+export default async function ThreadPage({ params }: { params: Params }) {
   const user = await requireUser();
   const { connectionId } = await params;
 
   const thread = await getThread(user.id, connectionId);
   if (!thread) redirect("/dashboard/messages");
 
-  await markConversationRead(user.id, connectionId);
-
-  const error = firstParam((await searchParams).error);
   const subtitle = [
     thread.counterpart.username ? `@${thread.counterpart.username}` : null,
     thread.counterpart.role,
@@ -33,20 +20,25 @@ export default async function ThreadPage({
     .join(" · ");
 
   return (
-    <PageShell>
-      <PageHeader
-        action={<SignOutButton />}
-        subtitle={subtitle || undefined}
-        title={thread.counterpart.name}
+    <>
+      <header className="flex items-center gap-3 border-b border-stone-300 px-4 py-3 dark:border-neutral-700">
+        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white dark:bg-neutral-50 dark:text-neutral-950">
+          {thread.counterpart.name.charAt(0).toUpperCase()}
+        </span>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-semibold leading-tight">
+            {thread.counterpart.name}
+          </p>
+          {subtitle ? (
+            <p className="truncate text-xs text-stone-600 dark:text-neutral-300">{subtitle}</p>
+          ) : null}
+        </div>
+      </header>
+      <MessageThread
+        connectionId={connectionId}
+        currentUserId={user.id}
+        initialMessages={thread.messages}
       />
-      <Link
-        className="mb-4 inline-block text-sm text-neutral-950 underline-offset-2 hover:underline dark:text-neutral-50"
-        href="/dashboard/messages"
-      >
-        ← All conversations
-      </Link>
-      <Notice tone="error">{error}</Notice>
-      <MessageThread connectionId={connectionId} messages={thread.messages} />
-    </PageShell>
+    </>
   );
 }

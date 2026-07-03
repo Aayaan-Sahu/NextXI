@@ -12,6 +12,10 @@ export const ALLOWED_VIDEO_TYPES = {
 export type AllowedVideoType = keyof typeof ALLOWED_VIDEO_TYPES;
 export type VideoExtension = (typeof ALLOWED_VIDEO_TYPES)[AllowedVideoType];
 
+export function formatVideoSize(bytes: number) {
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export function getVideoExtension(contentType: string): VideoExtension | null {
   return contentType in ALLOWED_VIDEO_TYPES
     ? ALLOWED_VIDEO_TYPES[contentType as AllowedVideoType]
@@ -26,6 +30,10 @@ export function buildPlayerVideoPath(playerId: string, videoId: string, contentT
   }
 
   return `${playerId}/${videoId}/source.${extension}`;
+}
+
+export function buildPlayerVideoThumbnailPath(playerId: string, videoId: string) {
+  return `${playerId}/${videoId}/thumb.jpg`;
 }
 
 export function getSupabaseTusEndpoint() {

@@ -14,42 +14,34 @@ function text(formData: FormData, name: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function roleFor(userId: string) {
+async function coachStatusFor(userId: string) {
   const [player, coach] = await Promise.all([
     prisma.player.findUnique({ where: { id: userId }, select: { id: true } }),
     prisma.coach.findUnique({ where: { id: userId }, select: { id: true, status: true } }),
   ]);
 
-  if (player) return { role: "player" as const, coachStatus: null };
-  if (coach) return { role: "coach" as const, coachStatus: coach.status };
+  if (player) return null;
+  if (coach) return coach.status;
   redirect("/onboarding");
 }
 
-function refreshDashboards() {
-  revalidatePath("/dashboard/player");
-  revalidatePath("/dashboard/coach");
-}
-
-function done(
-  role: "player" | "coach",
-  key: "connectionError" | "connectionMessage",
-  message: string,
-): never {
-  redirect(`/dashboard/${role}?${key}=${encodeURIComponent(message)}`);
+function done(key: "connectionError" | "connectionMessage", message: string): never {
+  revalidatePath("/dashboard/connections");
+  redirect(`/dashboard/connections?${key}=${encodeURIComponent(message)}`);
 }
 
 export async function sendConnectionRequest(formData: FormData) {
   const user = await requireUser();
-  const { role, coachStatus } = await roleFor(user.id);
+  const coachStatus = await coachStatusFor(user.id);
 
-  if (role === "coach" && coachStatus !== CoachStatus.APPROVED) {
-    done(role, "connectionError", "Your coach account is still under review.");
+  if (coachStatus && coachStatus !== CoachStatus.APPROVED) {
+    done("connectionError", "Your coach account is still under review.");
   }
 
   const username = text(formData, "username").toLowerCase();
 
   if (!usernamePattern.test(username)) {
-    done(role, "connectionError", "Enter a valid username.");
+    done("connectionError", "Enter a valid username.");
   }
 
   const target = await prisma.profile.findUnique({
@@ -58,7 +50,7 @@ export async function sendConnectionRequest(formData: FormData) {
   });
 
   if (!target || target.id === user.id) {
-    done(role, "connectionError", "No user found for that username.");
+    done("connectionError", "No user found for that username.");
   }
 
   const targetCoach = await prisma.coach.findUnique({
@@ -67,7 +59,7 @@ export async function sendConnectionRequest(formData: FormData) {
   });
 
   if (targetCoach && targetCoach.status !== CoachStatus.APPROVED) {
-    done(role, "connectionError", "That coach is not available to connect yet.");
+    done("connectionError", "That coach is not available to connect yet.");
   }
 
   const [userAId, userBId] = orderedPair(user.id, target.id);
@@ -78,7 +70,6 @@ export async function sendConnectionRequest(formData: FormData) {
 
   if (existing) {
     done(
-      role,
       "connectionError",
       existing.status === ConnectionStatus.ACCEPTED
         ? "You are already connected."
@@ -95,23 +86,22 @@ export async function sendConnectionRequest(formData: FormData) {
     },
   });
 
-  refreshDashboards();
-  done(role, "connectionMessage", "Request sent.");
+  done("connectionMessage", "Request sent.");
 }
 
 export async function respondToConnectionRequest(formData: FormData) {
   const user = await requireUser();
-  const { role, coachStatus } = await roleFor(user.id);
+  const coachStatus = await coachStatusFor(user.id);
 
-  if (role === "coach" && coachStatus !== CoachStatus.APPROVED) {
-    done(role, "connectionError", "Your coach account is still under review.");
+  if (coachStatus && coachStatus !== CoachStatus.APPROVED) {
+    done("connectionError", "Your coach account is still under review.");
   }
 
   const connectionId = text(formData, "connectionId");
   const response = text(formData, "response");
 
   if (!connectionId || (response !== "accept" && response !== "decline")) {
-    done(role, "connectionError", "Invalid request.");
+    done("connectionError", "Invalid request.");
   }
 
   const connection = await prisma.connection.findUnique({
@@ -120,14 +110,14 @@ export async function respondToConnectionRequest(formData: FormData) {
   });
 
   if (!connection || connection.status !== ConnectionStatus.PENDING) {
-    done(role, "connectionError", "Pending request not found.");
+    done("connectionError", "Pending request not found.");
   }
 
   const isParticipant =
     connection.userAId === user.id || connection.userBId === user.id;
 
   if (!isParticipant || connection.requestedById === user.id) {
-    done(role, "connectionError", "Only the recipient can respond.");
+    done("connectionError", "Only the recipient can respond.");
   }
 
   if (response === "accept") {
@@ -139,6 +129,5 @@ export async function respondToConnectionRequest(formData: FormData) {
     await prisma.connection.delete({ where: { id: connectionId } });
   }
 
-  refreshDashboards();
-  done(role, "connectionMessage", response === "accept" ? "Request accepted." : "Request declined.");
+  done("connectionMessage", response === "accept" ? "Request accepted." : "Request declined.");
 }

@@ -17,12 +17,16 @@ export function isAdmin(user: Pick<User, "email"> | null | undefined) {
   return Boolean(email && ADMIN_EMAILS.has(email));
 }
 
-export const getCurrentUser = cache(async () => {
-  const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getUser();
+export type SessionUser = { id: string; email?: string };
 
-  if (error) return null;
-  return data.user;
+export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
+  const supabase = await createSupabaseServerClient();
+  // Verifies the session JWT locally (asymmetric keys + process-wide JWKS
+  // cache) instead of a network round-trip to the auth server per request.
+  const { data, error } = await supabase.auth.getClaims();
+
+  if (error || !data) return null;
+  return { id: data.claims.sub, email: data.claims.email };
 });
 
 export async function requireUser() {

@@ -2,6 +2,7 @@ import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { getApiPlayer, isUuid, jsonError } from "@/app/api/videos/utils";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { buildPlayerVideoThumbnailPath } from "@/lib/videos";
 
 export const runtime = "nodejs";
 
@@ -62,11 +63,18 @@ export async function POST(request: Request) {
     return jsonError("Could not verify upload.", 500);
   }
 
+  // Record the thumbnail only if the client actually uploaded one.
+  const thumbnailPath = buildPlayerVideoThumbnailPath(video.playerId, video.id);
+  const thumbnailInfo = await supabaseAdmin.storage
+    .from(video.storageBucket)
+    .info(thumbnailPath);
+
   const updated = await prisma.playerVideo.update({
     where: { id: video.id },
     data: {
       status: PlayerVideoStatus.READY,
       uploadedAt: new Date(),
+      thumbnailPath: thumbnailInfo.error ? null : thumbnailPath,
     },
     select: {
       id: true,
