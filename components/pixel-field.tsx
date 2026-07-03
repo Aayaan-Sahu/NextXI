@@ -7,13 +7,28 @@ const SKY_BANDS = ["#e3f1fc", "#d6eafa", "#c9e3f7"];
 const FIELD_GREENS = ["#a5d69b", "#9ccf92"];
 const BLADE_GREENS = ["#7dbf74", "#6fb367", "#8bc981"];
 
+// Spring-damper constants for blade bend (underdamped so blades wobble as they settle)
+const STIFFNESS = 120;
+const DAMPING = 7;
+const MAX_BEND = 3;
+const BASE_BREEZE = 0.4; // faint constant motion between gusts
+
 type Cloud = {
   x: number;
   y: number;
   speed: number;
   blocks: { dx: number; dy: number; w: number; h: number }[];
 };
-type Blade = { x: number; y: number; len: number; color: string };
+type Blade = {
+  x: number;
+  y: number;
+  len: number;
+  color: string;
+  response: number; // per-blade sensitivity to wind
+  bend: number;
+  vel: number;
+};
+type Gust = { born: number; intensity: number; decay: number };
 
 const rand = (min: number, max: number) => min + Math.random() * (max - min);
 const pick = <T,>(arr: T[]) => arr[Math.floor(Math.random() * arr.length)];
@@ -38,7 +53,41 @@ function makeBlades(w: number, fieldTop: number, h: number): Blade[] {
     y: Math.round(rand(fieldTop + 2, h - 1)),
     len: Math.round(rand(2, 4)),
     color: pick(BLADE_GREENS),
+    response: rand(0.6, 1.4),
+    bend: 0,
+    vel: 0,
   }));
+}
+
+function makeGust(t: number): Gust {
+  return {
+    born: t,
+    intensity: rand(1.5, 4), // roughly the peak bend in pixels
+    decay: rand(0.8, 1.6),
+  };
+}
+
+// Field-wide gust strength: near-instant attack, exponential die-down.
+function gustStrength(gusts: Gust[], t: number) {
+  let s = 0;
+  for (const g of gusts) {
+    const age = t - g.born;
+    s += g.intensity * (1 - Math.exp(-age * 10)) * Math.exp(-age / g.decay);
+  }
+  return s;
+}
+
+// Fast-moving turbulence ripples so the gust hits the field unevenly, never as one front.
+function turbulence(x: number, t: number) {
+  return 0.6 + 0.25 * Math.sin(x * 0.14 - t * 14) + 0.15 * Math.sin(x * 0.05 - t * 9 + 2);
+}
+
+function updateBlades(blades: Blade[], wind: number, t: number, dt: number) {
+  for (const b of blades) {
+    const force = wind * turbulence(b.x, t) * b.response * STIFFNESS;
+    b.vel += (force - STIFFNESS * b.bend - DAMPING * b.vel) * dt;
+    b.bend += b.vel * dt;
+  }
 }
 
 function drawScene(
@@ -74,12 +123,12 @@ function drawScene(
   }
 
   for (const blade of blades) {
-    const sway = Math.round(
-      Math.sin(blade.x * 0.25 - t * 2.4 + blade.y * 0.3),
-    );
+    const bend = Math.max(-MAX_BEND, Math.min(MAX_BEND, blade.bend));
     ctx.fillStyle = blade.color;
-    ctx.fillRect(blade.x, blade.y - blade.len + 1, 1, blade.len - 1);
-    ctx.fillRect(blade.x + sway, blade.y - blade.len, 1, 1);
+    for (let i = 0; i < blade.len; i++) {
+      const lean = Math.round(bend * (i / blade.len) ** 1.5); // base stays rooted, tip leans most
+      ctx.fillRect(blade.x + lean, blade.y - i, 1, 1);
+    }
   }
 }
 
@@ -93,6 +142,7 @@ export function PixelField() {
 
     let clouds: Cloud[] = [];
     let blades: Blade[] = [];
+    let gusts: Gust[] = [];
     let lastT = 0;
 
     const draw = (t: number) => {
@@ -111,8 +161,17 @@ export function PixelField() {
 
     let raf = 0;
     if (!matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      let nextGustAt = rand(0.5, 2); // first gust arrives quickly
       const loop = (ts: number) => {
-        draw(ts / 1000);
+        const t = ts / 1000;
+        const dt = Math.min(0.05, Math.max(0.001, t - lastT));
+        if (t >= nextGustAt) {
+          gusts.push(makeGust(t));
+          nextGustAt = t + rand(3, 5);
+        }
+        gusts = gusts.filter((g) => t - g.born < g.decay * 6);
+        updateBlades(blades, BASE_BREEZE + gustStrength(gusts, t), t, dt);
+        draw(t);
         raf = requestAnimationFrame(loop);
       };
       raf = requestAnimationFrame(loop);
