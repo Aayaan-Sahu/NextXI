@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { CoachStatus, ConnectionStatus } from "@/app/generated/prisma/enums";
+import { CoachStatus, ConnectionStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { orderedPair } from "@/lib/connections";
@@ -14,15 +14,25 @@ function text(formData: FormData, name: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
-async function coachStatusFor(userId: string) {
+async function accountStatusFor(userId: string) {
   const [player, coach] = await Promise.all([
-    prisma.player.findUnique({ where: { id: userId }, select: { id: true } }),
+    prisma.player.findUnique({ where: { id: userId }, select: { status: true } }),
     prisma.coach.findUnique({ where: { id: userId }, select: { id: true, status: true } }),
   ]);
 
-  if (player) return null;
-  if (coach) return coach.status;
+  if (player) return { coachStatus: null, playerStatus: player.status };
+  if (coach) return { coachStatus: coach.status, playerStatus: null };
   redirect("/onboarding");
+}
+
+function requireActiveAccount(status: Awaited<ReturnType<typeof accountStatusFor>>) {
+  if (status.coachStatus && status.coachStatus !== CoachStatus.APPROVED) {
+    done("connectionError", "Your coach account is still under review.");
+  }
+
+  if (status.playerStatus === PlayerStatus.PENDING_GUARDIAN) {
+    done("connectionError", "Your account needs guardian approval first.");
+  }
 }
 
 function done(key: "connectionError" | "connectionMessage", message: string): never {
@@ -32,11 +42,7 @@ function done(key: "connectionError" | "connectionMessage", message: string): ne
 
 export async function sendConnectionRequest(formData: FormData) {
   const user = await requireUser();
-  const coachStatus = await coachStatusFor(user.id);
-
-  if (coachStatus && coachStatus !== CoachStatus.APPROVED) {
-    done("connectionError", "Your coach account is still under review.");
-  }
+  requireActiveAccount(await accountStatusFor(user.id));
 
   const username = text(formData, "username").toLowerCase();
 
@@ -53,13 +59,24 @@ export async function sendConnectionRequest(formData: FormData) {
     done("connectionError", "No user found for that username.");
   }
 
-  const targetCoach = await prisma.coach.findUnique({
-    where: { id: target.id },
-    select: { status: true },
-  });
+  const [targetCoach, targetPlayer] = await Promise.all([
+    prisma.coach.findUnique({
+      where: { id: target.id },
+      select: { status: true },
+    }),
+    prisma.player.findUnique({
+      where: { id: target.id },
+      select: { status: true },
+    }),
+  ]);
 
   if (targetCoach && targetCoach.status !== CoachStatus.APPROVED) {
     done("connectionError", "That coach is not available to connect yet.");
+  }
+
+  // Child safety: unapproved minors are unreachable until a guardian signs off.
+  if (targetPlayer && targetPlayer.status !== PlayerStatus.ACTIVE) {
+    done("connectionError", "That player is not available to connect yet.");
   }
 
   const [userAId, userBId] = orderedPair(user.id, target.id);
@@ -91,11 +108,7 @@ export async function sendConnectionRequest(formData: FormData) {
 
 export async function respondToConnectionRequest(formData: FormData) {
   const user = await requireUser();
-  const coachStatus = await coachStatusFor(user.id);
-
-  if (coachStatus && coachStatus !== CoachStatus.APPROVED) {
-    done("connectionError", "Your coach account is still under review.");
-  }
+  requireActiveAccount(await accountStatusFor(user.id));
 
   const connectionId = text(formData, "connectionId");
   const response = text(formData, "response");

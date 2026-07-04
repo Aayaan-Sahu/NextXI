@@ -1,49 +1,38 @@
 import { redirect } from "next/navigation";
-import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
-import { PageHeader, PageShell } from "@/components/ui";
+import { PlayerStatus } from "@/app/generated/prisma/enums";
+import { PageHeader, PageShell, Panel } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
-import { prisma } from "@/lib/prisma";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { VIDEO_BUCKET } from "@/lib/videos";
-
-const THUMBNAIL_URL_TTL_SECONDS = 60 * 60;
+import { formatGuardianCode } from "@/lib/guardian-code";
+import { getReadyVideoGridItems } from "@/lib/videos.server";
 
 export default async function PlayerDashboardPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
 
   if (!profile.role) redirect("/onboarding");
-  if (profile.role !== "player") redirect("/dashboard/coach");
+  if (profile.role !== "player") redirect(`/dashboard/${profile.role}`);
 
-  const videos = await prisma.playerVideo.findMany({
-    where: {
-      playerId: user.id,
-      status: PlayerVideoStatus.READY,
-    },
-    orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
-    select: {
-      createdAt: true,
-      id: true,
-      originalFilename: true,
-      sizeBytes: true,
-      thumbnailPath: true,
-      uploadedAt: true,
-    },
-  });
+  if (profile.player.status === PlayerStatus.PENDING_GUARDIAN) {
+    return (
+      <PageShell>
+        <PageHeader subtitle={user.email} title={`Welcome ${profile.player.name}`} />
+        <Panel title="Guardian approval needed">
+          <p className="text-sm text-stone-600">
+            Because you&apos;re under 18, a parent or guardian needs to approve your
+            account before you can use the platform. Ask them to sign up, choose
+            &ldquo;I&apos;m a parent / guardian&rdquo;, and enter this code:
+          </p>
+          <p className="mt-4 font-mono text-2xl tracking-widest text-neutral-950">
+            {formatGuardianCode(profile.player.guardianCode ?? "")}
+          </p>
+        </Panel>
+      </PageShell>
+    );
+  }
 
-  const thumbnailPaths = videos.flatMap((video) => video.thumbnailPath ?? []);
-  const { data: signedThumbnails } = thumbnailPaths.length
-    ? await createSupabaseAdminClient()
-        .storage.from(VIDEO_BUCKET)
-        .createSignedUrls(thumbnailPaths, THUMBNAIL_URL_TTL_SECONDS)
-    : { data: null };
-  const thumbnailUrlByPath = new Map(
-    (signedThumbnails ?? [])
-      .filter((signed) => !signed.error && signed.path)
-      .map((signed) => [signed.path, signed.signedUrl]),
-  );
+  const videos = await getReadyVideoGridItems(user.id);
 
   return (
     <PageShell>
@@ -53,14 +42,7 @@ export default async function PlayerDashboardPage() {
       />
       <div className="grid gap-5">
         <VideoUpload />
-        <VideoGrid
-          videos={videos.map((video) => ({
-            ...video,
-            thumbnailUrl: video.thumbnailPath
-              ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
-              : null,
-          }))}
-        />
+        <VideoGrid videos={videos} />
       </div>
     </PageShell>
   );

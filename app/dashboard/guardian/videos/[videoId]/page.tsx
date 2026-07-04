@@ -4,7 +4,7 @@ import { isUuid } from "@/app/api/videos/utils";
 import { VideoDetail } from "@/components/video-detail";
 import { requireUser } from "@/lib/auth";
 
-export default async function VideoPage({
+export default async function GuardianVideoPage({
   params,
 }: {
   params: Promise<{ videoId: string }>;
@@ -16,10 +16,10 @@ export default async function VideoPage({
 
   return (
     <VideoDetail
-      backHref="/dashboard/player"
+      backHref="/dashboard/guardian"
       where={{
         id: videoId,
-        playerId: user.id,
+        player: { guardianId: user.id },
         status: PlayerVideoStatus.READY,
       }}
     />

@@ -1,17 +1,18 @@
 import { redirect } from "next/navigation";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
-import { CoachVideos } from "@/components/coach-videos";
 import { PageHeader, PageShell, Panel } from "@/components/ui";
+import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getAcceptedCounterpartIds } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
+import { getThumbnailUrlByPath } from "@/lib/videos.server";
 
 export default async function CoachDashboardPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
 
   if (!profile.role) redirect("/onboarding");
-  if (profile.role !== "coach") redirect("/dashboard/player");
+  if (profile.role !== "coach") redirect(`/dashboard/${profile.role}`);
 
   if (profile.coach.status !== CoachStatus.APPROVED) {
     const rejected = profile.coach.status === CoachStatus.REJECTED;
@@ -38,8 +39,12 @@ export default async function CoachDashboardPage() {
     },
     orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
     select: {
+      createdAt: true,
       id: true,
       originalFilename: true,
+      sizeBytes: true,
+      thumbnailPath: true,
+      uploadedAt: true,
       player: {
         select: {
           name: true,
@@ -48,13 +53,27 @@ export default async function CoachDashboardPage() {
     },
   });
 
+  const thumbnailUrlByPath = await getThumbnailUrlByPath(
+    videos.flatMap((video) => video.thumbnailPath ?? []),
+  );
+
   return (
     <PageShell>
       <PageHeader
         subtitle="Videos from players you are connected with."
         title={`Welcome ${profile.coach.name}, coach`}
       />
-      <CoachVideos videos={videos} />
+      <VideoGrid
+        emptyMessage="No videos yet. Videos from connected players will appear here."
+        linkBase="/dashboard/coach/videos"
+        videos={videos.map((video) => ({
+          ...video,
+          playerName: video.player.name,
+          thumbnailUrl: video.thumbnailPath
+            ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
+            : null,
+        }))}
+      />
     </PageShell>
   );
 }

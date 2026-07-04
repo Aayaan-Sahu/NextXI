@@ -23,7 +23,10 @@ export default async function OnboardingPage({
 
   const params = await searchParams;
   const roleParam = firstParam(params.role);
-  const role = roleParam === "player" || roleParam === "coach" ? roleParam : undefined;
+  const role =
+    roleParam === "player" || roleParam === "coach" || roleParam === "guardian"
+      ? roleParam
+      : undefined;
 
   return (
     <OnboardingPanel

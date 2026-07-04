@@ -2,10 +2,11 @@
 
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import { Visibility } from "@/app/generated/prisma/enums";
+import { PlayerStatus, Visibility } from "@/app/generated/prisma/enums";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
+import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
@@ -48,12 +49,22 @@ function optionalInt(formData: FormData, name: string, min: number, max: number)
 }
 
 function onboardingError(role: string, message: string): never {
-  const roleQuery = role === "player" || role === "coach" ? `role=${role}&` : "";
+  const roleQuery =
+    role === "player" || role === "coach" || role === "guardian" ? `role=${role}&` : "";
   redirect(`/onboarding?${roleQuery}error=${encodeURIComponent(message)}`);
 }
 
-function isUniqueError(error: unknown) {
+function isUniqueError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
+}
+
+// DOB is stored as UTC midnight, so compare against UTC "today" to avoid
+// timezone off-by-one on birthdays.
+function isUnder18(dob: string) {
+  const [y, m, d] = dob.split("-").map(Number);
+  const now = new Date();
+  const monthDay = (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
+  return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0) < 18;
 }
 
 async function origin() {
@@ -195,7 +206,8 @@ export async function completeOnboarding(formData: FormData) {
       onboardingError(role, "Enter a valid height and weight, or leave them blank.");
     }
 
-    let usernameTaken = false;
+    const minor = isUnder18(dateOfBirth);
+    let failure: string | null = null;
 
     try {
       await prisma.$transaction([
@@ -205,9 +217,11 @@ export async function completeOnboarding(formData: FormData) {
             club,
             country,
             dateOfBirth: parsedDate,
+            guardianCode: minor ? generateGuardianCode() : null,
             heightCm,
             id: user.id,
             name,
+            status: minor ? PlayerStatus.PENDING_GUARDIAN : PlayerStatus.ACTIVE,
             visibility: Visibility.PRIVATE,
             weightKg,
           },
@@ -215,10 +229,12 @@ export async function completeOnboarding(formData: FormData) {
       ]);
     } catch (error) {
       if (!isUniqueError(error)) throw error;
-      usernameTaken = true;
+      failure = String(error.meta?.target ?? "").includes("guardian_code")
+        ? "Something went wrong. Please try again."
+        : "Username is taken.";
     }
 
-    if (usernameTaken) onboardingError(role, "Username is taken.");
+    if (failure) onboardingError(role, failure);
 
     redirect("/dashboard");
   }
@@ -255,5 +271,52 @@ export async function completeOnboarding(formData: FormData) {
     redirect("/dashboard");
   }
 
-  onboardingError(role, "Choose player or coach.");
+  if (role === "guardian") {
+    const name = text(formData, "name");
+    const code = normalizeGuardianCode(text(formData, "childCode"));
+
+    if (!name) onboardingError(role, "Enter your name.");
+    if (!code) onboardingError(role, "Enter the code shown on your child's dashboard.");
+
+    const pendingChild = await prisma.player.findFirst({
+      where: { guardianCode: code, status: PlayerStatus.PENDING_GUARDIAN },
+      select: { id: true },
+    });
+
+    if (!pendingChild) {
+      onboardingError(role, "That code doesn't match a pending player account.");
+    }
+
+    const codeClaimed = "guardian-code-claimed";
+    let failure: string | null = null;
+
+    try {
+      await prisma.$transaction(async (tx) => {
+        await tx.profile.create({ data: { id: user.id, username } });
+        await tx.guardian.create({ data: { id: user.id, name } });
+        // The guarded updateMany is the atomic claim: if another guardian
+        // linked this code first, count is 0 and the transaction rolls back.
+        const linked = await tx.player.updateMany({
+          where: { guardianCode: code, status: PlayerStatus.PENDING_GUARDIAN },
+          data: { status: PlayerStatus.ACTIVE, guardianId: user.id, guardianCode: null },
+        });
+
+        if (linked.count === 0) throw new Error(codeClaimed);
+      });
+    } catch (error) {
+      if (isUniqueError(error)) {
+        failure = "Username is taken.";
+      } else if (error instanceof Error && error.message === codeClaimed) {
+        failure = "That code doesn't match a pending player account.";
+      } else {
+        throw error;
+      }
+    }
+
+    if (failure) onboardingError(role, failure);
+
+    redirect("/dashboard");
+  }
+
+  onboardingError(role, "Choose player, coach, or guardian.");
 }

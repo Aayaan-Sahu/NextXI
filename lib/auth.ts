@@ -50,18 +50,19 @@ export async function requireAdmin() {
 }
 
 export const getOnboardingStatus = cache(async (userId: string) => {
-  const [player, coach] = await Promise.all([
+  const [player, coach, guardian] = await Promise.all([
     prisma.player.findUnique({ where: { id: userId }, select: { id: true } }),
     prisma.coach.findUnique({ where: { id: userId }, select: { id: true } }),
+    prisma.guardian.findUnique({ where: { id: userId }, select: { id: true } }),
   ]);
 
   return {
-    role: player ? "player" : coach ? "coach" : null,
+    role: player ? "player" : coach ? "coach" : guardian ? "guardian" : null,
   };
 });
 
 export const getProfile = cache(async (userId: string) => {
-  const [profile, player, coach] = await Promise.all([
+  const [profile, player, coach, guardian] = await Promise.all([
     prisma.profile.findUnique({
       where: { id: userId },
       select: { username: true },
@@ -72,8 +73,10 @@ export const getProfile = cache(async (userId: string) => {
         club: true,
         country: true,
         dateOfBirth: true,
+        guardianCode: true,
         heightCm: true,
         name: true,
+        status: true,
         visibility: true,
         weightKg: true,
       },
@@ -82,9 +85,14 @@ export const getProfile = cache(async (userId: string) => {
       where: { id: userId },
       select: { accomplishments: true, name: true, status: true },
     }),
+    prisma.guardian.findUnique({
+      where: { id: userId },
+      select: { name: true },
+    }),
   ]);
 
   if (player) return { player, role: "player" as const, username: profile?.username ?? null };
   if (coach) return { coach, role: "coach" as const, username: profile?.username ?? null };
+  if (guardian) return { guardian, role: "guardian" as const, username: profile?.username ?? null };
   return { role: null };
 });

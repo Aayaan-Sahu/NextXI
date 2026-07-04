@@ -8,19 +8,24 @@ type GridVideo = {
   thumbnailUrl: string | null;
   uploadedAt: Date | null;
   createdAt: Date;
+  playerName?: string;
 };
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-export function VideoGrid({ videos }: { videos: GridVideo[] }) {
+export function VideoGrid({
+  videos,
+  linkBase = "/dashboard/player/videos",
+  emptyMessage = "No videos yet. Upload your first video above.",
+}: {
+  videos: GridVideo[];
+  linkBase?: string;
+  emptyMessage?: string;
+}) {
   if (!videos.length) {
-    return (
-      <p className="text-sm text-stone-600">
-        No videos yet. Upload your first video above.
-      </p>
-    );
+    return <p className="text-sm text-stone-600">{emptyMessage}</p>;
   }
 
   return (
@@ -29,7 +34,7 @@ export function VideoGrid({ videos }: { videos: GridVideo[] }) {
         <li key={video.id}>
           <Link
             className="block overflow-hidden rounded-lg border border-stone-300 bg-white no-underline hover:border-neutral-950"
-            href={`/dashboard/player/videos/${video.id}`}
+            href={`${linkBase}/${video.id}`}
           >
             {video.thumbnailUrl ? (
               // Signed, short-lived storage URL; next/image would need remote host config.
@@ -51,6 +56,9 @@ export function VideoGrid({ videos }: { videos: GridVideo[] }) {
               <span className="text-xs text-stone-600">
                 {formatDate(video.uploadedAt ?? video.createdAt)} · {formatVideoSize(video.sizeBytes)}
               </span>
+              {video.playerName && (
+                <span className="truncate text-xs text-stone-600">{video.playerName}</span>
+              )}
             </div>
           </Link>
         </li>

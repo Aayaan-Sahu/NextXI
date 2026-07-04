@@ -8,15 +8,25 @@ import { signOut } from "@/app/auth/actions";
 const menuItemClasses =
   "block w-full cursor-pointer px-3 py-2 text-left text-sm text-neutral-950 no-underline hover:bg-stone-100";
 
-export function DashboardNav({ homeHref, initial }: { homeHref: string; initial: string }) {
+export function DashboardNav({
+  homeHref,
+  initial,
+  limited = false,
+}: {
+  homeHref: string;
+  initial: string;
+  limited?: boolean;
+}) {
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
-  const links = [
-    { href: homeHref, label: "Home" },
-    { href: "/dashboard/connections", label: "Connections" },
-    { href: "/dashboard/messages", label: "Messages" },
-  ];
+  const links = limited
+    ? [{ href: homeHref, label: "Home" }]
+    : [
+        { href: homeHref, label: "Home" },
+        { href: "/dashboard/connections", label: "Connections" },
+        { href: "/dashboard/messages", label: "Messages" },
+      ];
 
   return (
     <header className="border-b border-stone-300 bg-white">
@@ -58,13 +68,15 @@ export function DashboardNav({ homeHref, initial }: { homeHref: string; initial:
                 type="button"
               />
               <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-stone-300 bg-white py-1 shadow-md">
-                <Link
-                  className={menuItemClasses}
-                  href="/dashboard/profile"
-                  onClick={() => setMenuOpen(false)}
-                >
-                  Edit profile
-                </Link>
+                {!limited && (
+                  <Link
+                    className={menuItemClasses}
+                    href="/dashboard/profile"
+                    onClick={() => setMenuOpen(false)}
+                  >
+                    Edit profile
+                  </Link>
+                )}
                 <form action={signOut}>
                   <button className={menuItemClasses} type="submit">
                     Sign out

@@ -55,6 +55,16 @@ export async function describeUsers(ids: string[]): Promise<Map<string, PersonIn
   return result;
 }
 
+/** Whether the two users have an accepted connection. */
+export async function hasAcceptedConnection(a: string, b: string): Promise<boolean> {
+  const [userAId, userBId] = orderedPair(a, b);
+  const row = await prisma.connection.findUnique({
+    where: { userAId_userBId: { userAId, userBId } },
+    select: { status: true },
+  });
+  return row?.status === ConnectionStatus.ACCEPTED;
+}
+
 /** Ids of users this user has an accepted connection with. */
 export async function getAcceptedCounterpartIds(userId: string): Promise<string[]> {
   const rows = await prisma.connection.findMany({

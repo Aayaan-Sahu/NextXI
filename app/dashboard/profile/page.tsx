@@ -21,6 +21,7 @@ export default async function ProfilePage({
   const profile = await getProfile(user.id);
 
   if (!profile.role) redirect("/onboarding");
+  if (profile.role === "guardian") redirect("/dashboard/guardian");
 
   const params = await searchParams;
   const error = firstParam(params.error);

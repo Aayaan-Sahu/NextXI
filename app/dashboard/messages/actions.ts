@@ -1,6 +1,6 @@
 "use server";
 
-import { CoachStatus } from "@/app/generated/prisma/enums";
+import { CoachStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import {
@@ -31,13 +31,22 @@ export async function sendMessage(
   const connection = await authorizeConversation(user.id, connectionId);
   if (!connection) return { ok: false, error: "Conversation not found." };
 
-  // A coach whose account is not approved cannot send messages.
-  const coach = await prisma.coach.findUnique({
-    where: { id: user.id },
-    select: { status: true },
-  });
+  // A coach under review or a player awaiting guardian approval cannot send messages.
+  const [coach, player] = await Promise.all([
+    prisma.coach.findUnique({
+      where: { id: user.id },
+      select: { status: true },
+    }),
+    prisma.player.findUnique({
+      where: { id: user.id },
+      select: { status: true },
+    }),
+  ]);
   if (coach && coach.status !== CoachStatus.APPROVED) {
     return { ok: false, error: "Your account is pending approval." };
+  }
+  if (player && player.status === PlayerStatus.PENDING_GUARDIAN) {
+    return { ok: false, error: "Your account is pending guardian approval." };
   }
 
   const message = await prisma.message.create({

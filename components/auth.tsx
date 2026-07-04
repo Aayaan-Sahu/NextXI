@@ -30,7 +30,7 @@ export function AuthPanel({
 
   return (
     <AuthShell>
-      {!isSignUp && <PixelField />}
+      <PixelField />
       <AuthCard
         footer={
           isSignUp ? (

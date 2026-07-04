@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { PlayerStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
 
@@ -15,11 +16,15 @@ export async function getApiPlayer() {
 
   const player = await prisma.player.findUnique({
     where: { id: user.id },
-    select: { id: true },
+    select: { id: true, status: true },
   });
 
   if (!player) {
     return { response: jsonError("Player account required.", 403) };
+  }
+
+  if (player.status !== PlayerStatus.ACTIVE) {
+    return { response: jsonError("Account pending guardian approval.", 403) };
   }
 
   return { player, user };

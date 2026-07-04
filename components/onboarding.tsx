@@ -12,7 +12,7 @@ import {
   TextLink,
 } from "@/components/ui";
 
-export type OnboardingRole = "player" | "coach";
+export type OnboardingRole = "player" | "coach" | "guardian";
 
 export function OnboardingPanel({
   email,
@@ -66,6 +66,11 @@ function RoleChoice() {
         href="/onboarding?role=coach"
         title="I'm a coach"
       />
+      <RoleOption
+        description="Approve and follow your child's player account."
+        href="/onboarding?role=guardian"
+        title="I'm a parent / guardian"
+      />
     </nav>
   );
 }
@@ -109,7 +114,13 @@ function RoleForm({ role }: { role: OnboardingRole }) {
             type="text"
           />
         </Field>
-        {role === "player" ? <PlayerFields /> : <CoachFields />}
+        {role === "player" ? (
+          <PlayerFields />
+        ) : role === "coach" ? (
+          <CoachFields />
+        ) : (
+          <GuardianFields />
+        )}
         <PrimaryButton type="submit">Create {role} profile</PrimaryButton>
       </Form>
       <p className="mt-4 text-sm">
@@ -145,6 +156,18 @@ function PlayerFields() {
         </Field>
       </div>
     </>
+  );
+}
+
+function GuardianFields() {
+  return (
+    <Field>
+      Child&apos;s approval code
+      <TextInput name="childCode" placeholder="e.g. ABCD-2345" required type="text" />
+      <span className="text-xs text-stone-600">
+        Shown on your child&apos;s dashboard after they sign up.
+      </span>
+    </Field>
   );
 }
 

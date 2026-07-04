@@ -38,6 +38,14 @@ enum CoachStatus {
   @@schema("public")
 }
 
+enum PlayerStatus {
+  ACTIVE           @map("active")
+  PENDING_GUARDIAN @map("pending_guardian")
+
+  @@map("player_status")
+  @@schema("public")
+}
+
 enum PlayerVideoStatus {
   PENDING_UPLOAD @map("pending_upload")
   READY          @map("ready")
@@ -47,20 +55,36 @@ enum PlayerVideoStatus {
 }
 
 model Player {
-  id          String        @id @db.Uuid
-  authUser    AuthUser      @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  videos      PlayerVideo[]
-  name        String
-  dateOfBirth DateTime      @map("date_of_birth") @db.Date
-  club        String
-  country     String
-  heightCm    Int?          @map("height_cm")
-  weightKg    Int?          @map("weight_kg")
-  visibility  Visibility    @default(PRIVATE)
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id           String        @id @db.Uuid
+  authUser     AuthUser      @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  videos       PlayerVideo[]
+  name         String
+  dateOfBirth  DateTime      @map("date_of_birth") @db.Date
+  club         String
+  country      String
+  heightCm     Int?          @map("height_cm")
+  weightKg     Int?          @map("weight_kg")
+  visibility   Visibility    @default(PRIVATE)
+  status       PlayerStatus  @default(ACTIVE)
+  guardianCode String?       @unique @map("guardian_code")
+  guardianId   String?       @map("guardian_id") @db.Uuid
+  guardian     Guardian?     @relation("PlayerGuardian", fields: [guardianId], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("players")
+  @@schema("public")
+}
+
+model Guardian {
+  id        String   @id @db.Uuid
+  authUser  AuthUser @relation("GuardianAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name      String
+  children  Player[] @relation("PlayerGuardian")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("guardians")
   @@schema("public")
 }
 
@@ -138,9 +162,27 @@ model PlayerVideo {
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  comments VideoComment[]
+
   @@index([playerId, createdAt(sort: Desc)], map: "player_videos_player_created_at_idx")
   @@index([playerId, status], map: "player_videos_player_status_idx")
   @@map("player_videos")
+  @@schema("public")
+}
+
+model VideoComment {
+  id             String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId        String      @map("video_id") @db.Uuid
+  video          PlayerVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  authorId       String      @map("author_id") @db.Uuid
+  author         AuthUser    @relation("VideoCommentAuthor", fields: [authorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  authorUsername String      @map("author_username")
+  authorName     String      @map("author_name")
+  body           String
+  createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@index([videoId, createdAt], map: "video_comments_video_created_at_idx")
+  @@map("video_comments")
   @@schema("public")
 }
 
@@ -148,11 +190,13 @@ model AuthUser {
   id                   String       @id @db.Uuid
   player               Player?      @relation("PlayerAuthUser")
   coach                Coach?       @relation("CoachAuthUser")
+  guardian             Guardian?    @relation("GuardianAuthUser")
   profile              Profile?     @relation("ProfileAuthUser")
   connectionsAsUserA   Connection[] @relation("ConnectionUserA")
   connectionsAsUserB   Connection[] @relation("ConnectionUserB")
   requestedConnections Connection[] @relation("ConnectionRequester")
-  sentMessages         Message[]    @relation("MessageSender")
+  sentMessages         Message[]      @relation("MessageSender")
+  videoComments        VideoComment[] @relation("VideoCommentAuthor")
 
   @@map("users")
   @@schema("auth")
