@@ -83,6 +83,14 @@ export async function POST(request: Request) {
     },
   });
 
+  // Reserve the coaching-report slot for the AI pipeline to fill in later.
+  // Idempotent: a repeated completion never creates a second report row.
+  await prisma.report.upsert({
+    where: { videoId: updated.id },
+    update: {},
+    create: { videoId: updated.id },
+  });
+
   return Response.json({
     video: {
       id: updated.id,
