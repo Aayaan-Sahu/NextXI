@@ -6,9 +6,13 @@ import * as tus from "tus-js-client";
 import { SecondaryButton } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
+  HANDEDNESS_LABELS,
   MAX_VIDEO_SIZE_BYTES,
   VIDEO_BUCKET,
   VIDEO_CACHE_CONTROL,
+  VIDEO_DISCIPLINES,
+  type HandednessOption,
+  type VideoDiscipline,
 } from "@/lib/videos";
 
 type InitiateUploadResponse = {
@@ -102,6 +106,9 @@ async function uploadThumbnail(thumbnail: Blob, signedUrl: string) {
   }
 }
 
+const selectStyles =
+  "rounded-md border border-stone-300 bg-white px-3 py-2.5 text-sm text-neutral-950 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-stone-100 disabled:text-stone-500";
+
 export function VideoUpload() {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -109,9 +116,17 @@ export function VideoUpload() {
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [discipline, setDiscipline] = useState<VideoDiscipline | "">("");
+  const [variation, setVariation] = useState("");
+  const [handedness, setHandedness] = useState<HandednessOption | "">("");
 
   async function handleFile(file: File | null | undefined) {
     if (!file || uploading) return;
+
+    if (!discipline || !variation || !handedness) {
+      setError("Choose a discipline, variation, and handedness before uploading.");
+      return;
+    }
 
     const validationError = validateFile(file);
     if (validationError) {
@@ -145,6 +160,9 @@ export function VideoUpload() {
           originalFilename: file.name,
           contentType: file.type,
           sizeBytes: file.size,
+          category: discipline,
+          variation,
+          handedness,
         }),
       });
 
@@ -209,55 +227,111 @@ export function VideoUpload() {
   }
 
   return (
-    <section
-      className={`grid justify-items-center gap-2 rounded-lg border-2 border-dashed p-8 text-center ${
-        dragActive
-          ? "border-neutral-950 bg-stone-100"
-          : "border-stone-300 bg-white"
-      }`}
-      onDragLeave={() => setDragActive(false)}
-      onDragOver={(event) => {
-        event.preventDefault();
-        setDragActive(true);
-      }}
-      onDrop={(event) => {
-        event.preventDefault();
-        setDragActive(false);
-        handleFile(event.dataTransfer.files[0]);
-      }}
-    >
-      <input
-        accept={acceptedTypes}
-        className="hidden"
-        disabled={uploading}
-        onChange={(event) => handleFile(event.target.files?.[0])}
-        ref={inputRef}
-        type="file"
-      />
+    <div className="grid gap-3">
+      <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
+        <label className="grid gap-1.5 text-sm font-medium">
+          Discipline
+          <select
+            className={selectStyles}
+            disabled={uploading}
+            onChange={(event) => {
+              setDiscipline(event.target.value as VideoDiscipline | "");
+              setVariation("");
+            }}
+            value={discipline}
+          >
+            <option value="">Select…</option>
+            {Object.entries(VIDEO_DISCIPLINES).map(([key, { label }]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+        <label className="grid gap-1.5 text-sm font-medium">
+          {discipline === "BATTING" ? "Shot" : "Variation"}
+          <select
+            className={selectStyles}
+            disabled={uploading || !discipline}
+            onChange={(event) => setVariation(event.target.value)}
+            value={variation}
+          >
+            <option value="">Select…</option>
+            {discipline &&
+              VIDEO_DISCIPLINES[discipline].variations.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+          </select>
+        </label>
+        <label className="grid gap-1.5 text-sm font-medium">
+          Handedness
+          <select
+            className={selectStyles}
+            disabled={uploading}
+            onChange={(event) => setHandedness(event.target.value as HandednessOption | "")}
+            value={handedness}
+          >
+            <option value="">Select…</option>
+            {Object.entries(HANDEDNESS_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
+      </div>
+      <section
+        className={`grid justify-items-center gap-2 rounded-lg border-2 border-dashed p-8 text-center ${
+          dragActive
+            ? "border-neutral-950 bg-stone-100"
+            : "border-stone-300 bg-white"
+        }`}
+        onDragLeave={() => setDragActive(false)}
+        onDragOver={(event) => {
+          event.preventDefault();
+          setDragActive(true);
+        }}
+        onDrop={(event) => {
+          event.preventDefault();
+          setDragActive(false);
+          handleFile(event.dataTransfer.files[0]);
+        }}
+      >
+        <input
+          accept={acceptedTypes}
+          className="hidden"
+          disabled={uploading}
+          onChange={(event) => handleFile(event.target.files?.[0])}
+          ref={inputRef}
+          type="file"
+        />
 
-      {uploading ? (
-        <div className="grid w-full max-w-[420px] gap-2">
-          <div className="h-2 overflow-hidden rounded-sm bg-stone-200">
-            <div
-              className="h-full bg-neutral-950"
-              style={{ width: `${progress}%` }}
-            />
+        {uploading ? (
+          <div className="grid w-full max-w-[420px] gap-2">
+            <div className="h-2 overflow-hidden rounded-sm bg-stone-200">
+              <div
+                className="h-full bg-neutral-950"
+                style={{ width: `${progress}%` }}
+              />
+            </div>
+            <p className="text-sm text-stone-600">{progress}% uploaded</p>
           </div>
-          <p className="text-sm text-stone-600">{progress}% uploaded</p>
-        </div>
-      ) : (
-        <>
-          <p className="font-medium">Drag and drop a video to upload</p>
-          <p className="text-sm text-stone-600">
-            MP4, MOV, or WebM, up to 500 MB.
-          </p>
-          <SecondaryButton onClick={() => inputRef.current?.click()} type="button">
-            Browse files
-          </SecondaryButton>
-        </>
-      )}
+        ) : (
+          <>
+            <p className="font-medium">Drag and drop a video to upload</p>
+            <p className="text-sm text-stone-600">
+              MP4, MOV, or WebM, up to 500 MB.
+            </p>
+            <SecondaryButton onClick={() => inputRef.current?.click()} type="button">
+              Browse files
+            </SecondaryButton>
+          </>
+        )}
 
-      {error ? <p className="text-sm text-red-700">{error}</p> : null}
-    </section>
+        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+      </section>
+    </div>
   );
 }

@@ -9,6 +9,7 @@ type GridVideo = {
   uploadedAt: Date | null;
   createdAt: Date;
   playerName?: string;
+  tagLabel?: string;
 };
 
 function formatDate(date: Date) {
@@ -56,6 +57,9 @@ export function VideoGrid({
               <span className="text-xs text-stone-600">
                 {formatDate(video.uploadedAt ?? video.createdAt)} · {formatVideoSize(video.sizeBytes)}
               </span>
+              {video.tagLabel && (
+                <span className="truncate text-xs text-stone-600">{video.tagLabel}</span>
+              )}
               {video.playerName && (
                 <span className="truncate text-xs text-stone-600">{video.playerName}</span>
               )}

@@ -54,6 +54,24 @@ enum PlayerVideoStatus {
   @@schema("public")
 }
 
+enum VideoCategory {
+  PACE     @map("pace")
+  OFF_SPIN @map("off_spin")
+  LEG_SPIN @map("leg_spin")
+  BATTING  @map("batting")
+
+  @@map("video_category")
+  @@schema("public")
+}
+
+enum Handedness {
+  RIGHT @map("right")
+  LEFT  @map("left")
+
+  @@map("handedness")
+  @@schema("public")
+}
+
 model Player {
   id           String        @id @db.Uuid
   authUser     AuthUser      @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -158,11 +176,15 @@ model PlayerVideo {
   contentType      String            @map("content_type")
   sizeBytes        Int               @map("size_bytes")
   status           PlayerVideoStatus @default(PENDING_UPLOAD)
+  category         VideoCategory?
+  variation        String?
+  handedness       Handedness?
   uploadedAt       DateTime?         @map("uploaded_at") @db.Timestamptz(6)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   comments VideoComment[]
+  views    VideoView[]
 
   @@index([playerId, createdAt(sort: Desc)], map: "player_videos_player_created_at_idx")
   @@index([playerId, status], map: "player_videos_player_status_idx")
@@ -186,6 +208,19 @@ model VideoComment {
   @@schema("public")
 }
 
+model VideoView {
+  videoId  String      @map("video_id") @db.Uuid
+  video    PlayerVideo @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  viewerId String      @map("viewer_id") @db.Uuid
+  viewer   AuthUser    @relation("VideoViewViewer", fields: [viewerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  viewedAt DateTime    @default(now()) @map("viewed_at") @db.Timestamptz(6)
+
+  @@id([videoId, viewerId])
+  @@index([viewerId], map: "video_views_viewer_idx")
+  @@map("video_views")
+  @@schema("public")
+}
+
 model AuthUser {
   id                   String       @id @db.Uuid
   player               Player?      @relation("PlayerAuthUser")
@@ -197,6 +232,7 @@ model AuthUser {
   requestedConnections Connection[] @relation("ConnectionRequester")
   sentMessages         Message[]      @relation("MessageSender")
   videoComments        VideoComment[] @relation("VideoCommentAuthor")
+  videoViews           VideoView[]    @relation("VideoViewViewer")
 
   @@map("users")
   @@schema("auth")

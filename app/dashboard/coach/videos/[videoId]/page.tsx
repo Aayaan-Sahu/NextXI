@@ -49,6 +49,13 @@ export default async function CoachVideoPage({
 
   if (!video || !(await hasAcceptedConnection(user.id, video.playerId))) notFound();
 
+  // Opening the video marks it viewed, dropping it from the coach's dashboard.
+  await prisma.videoView.upsert({
+    where: { videoId_viewerId: { videoId, viewerId: user.id } },
+    update: {},
+    create: { videoId, viewerId: user.id },
+  });
+
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.storage
     .from(video.storageBucket)

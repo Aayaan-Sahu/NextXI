@@ -1,4 +1,4 @@
-import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
+import { Handedness, PlayerVideoStatus, VideoCategory } from "@/app/generated/prisma/enums";
 import { getApiPlayer, jsonError } from "@/app/api/videos/utils";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -7,6 +7,9 @@ import {
   buildPlayerVideoPath,
   buildPlayerVideoThumbnailPath,
   getSupabaseTusEndpoint,
+  isHandedness,
+  isVariationOf,
+  isVideoDiscipline,
   MAX_VIDEO_SIZE_BYTES,
   TUS_CHUNK_SIZE_BYTES,
   VIDEO_BUCKET,
@@ -27,10 +30,13 @@ export async function POST(request: Request) {
     return jsonError("Invalid JSON body.", 400);
   }
 
-  const { contentType, originalFilename, sizeBytes } = body as {
+  const { category, contentType, handedness, originalFilename, sizeBytes, variation } = body as {
+    category?: unknown;
     contentType?: unknown;
+    handedness?: unknown;
     originalFilename?: unknown;
     sizeBytes?: unknown;
+    variation?: unknown;
   };
   const trimmedFilename =
     typeof originalFilename === "string" ? originalFilename.trim().slice(0, 255) : "";
@@ -47,6 +53,11 @@ export async function POST(request: Request) {
   ) {
     return jsonError("Invalid video size.", 400);
   }
+  if (!isVideoDiscipline(category)) return jsonError("Invalid discipline.", 400);
+  if (!isVariationOf(category, variation)) {
+    return jsonError("Invalid variation for this discipline.", 400);
+  }
+  if (!isHandedness(handedness)) return jsonError("Invalid handedness.", 400);
 
   const videoId = crypto.randomUUID();
   const storagePath = buildPlayerVideoPath(auth.user.id, videoId, contentType);
@@ -69,6 +80,9 @@ export async function POST(request: Request) {
       originalFilename: trimmedFilename,
       contentType,
       sizeBytes,
+      category: VideoCategory[category],
+      variation,
+      handedness: Handedness[handedness],
       status: PlayerVideoStatus.PENDING_UPLOAD,
     },
     select: {

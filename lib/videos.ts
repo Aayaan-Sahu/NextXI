@@ -12,6 +12,79 @@ export const ALLOWED_VIDEO_TYPES = {
 export type AllowedVideoType = keyof typeof ALLOWED_VIDEO_TYPES;
 export type VideoExtension = (typeof ALLOWED_VIDEO_TYPES)[AllowedVideoType];
 
+/** Keys match the Prisma VideoCategory enum names. */
+export const VIDEO_DISCIPLINES = {
+  PACE: {
+    label: "Pace bowling",
+    variations: ["Stock ball", "Yorker", "Bouncer", "Slower ball", "Leg cutter", "Off cutter"],
+  },
+  OFF_SPIN: {
+    label: "Off spin",
+    variations: ["Stock ball", "Arm ball", "Top spinner", "Carrom ball", "Doosra"],
+  },
+  LEG_SPIN: {
+    label: "Leg spin",
+    variations: ["Stock ball", "Googly", "Slider", "Top spinner", "Flipper"],
+  },
+  BATTING: {
+    label: "Batting",
+    variations: [
+      "Straight drive",
+      "Cover drive",
+      "On drive",
+      "Square drive",
+      "Cut",
+      "Pull",
+      "Hook",
+      "Sweep",
+      "Reverse sweep",
+      "Flick",
+    ],
+  },
+} as const;
+
+export type VideoDiscipline = keyof typeof VIDEO_DISCIPLINES;
+
+/** Keys match the Prisma Handedness enum names. */
+export const HANDEDNESS_LABELS = {
+  RIGHT: "Right",
+  LEFT: "Left",
+} as const;
+
+export type HandednessOption = keyof typeof HANDEDNESS_LABELS;
+
+export function isVideoDiscipline(value: unknown): value is VideoDiscipline {
+  return typeof value === "string" && value in VIDEO_DISCIPLINES;
+}
+
+export function isHandedness(value: unknown): value is HandednessOption {
+  return typeof value === "string" && value in HANDEDNESS_LABELS;
+}
+
+export function isVariationOf(discipline: VideoDiscipline, value: unknown): value is string {
+  return (
+    typeof value === "string" &&
+    (VIDEO_DISCIPLINES[discipline].variations as readonly string[]).includes(value)
+  );
+}
+
+/** One-line tag summary for video cards, e.g. "Pace bowling · Yorker · Right". */
+export function formatVideoTags(
+  category: string | null,
+  variation: string | null,
+  handedness: string | null,
+) {
+  if (!isVideoDiscipline(category)) return "Untagged";
+
+  return [
+    VIDEO_DISCIPLINES[category].label,
+    variation,
+    isHandedness(handedness) ? `${HANDEDNESS_LABELS[handedness]} handed` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export function formatVideoSize(bytes: number) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }

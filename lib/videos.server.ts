@@ -2,7 +2,7 @@ import "server-only";
 import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { VIDEO_BUCKET } from "@/lib/videos";
+import { formatVideoTags, VIDEO_BUCKET } from "@/lib/videos";
 
 const THUMBNAIL_URL_TTL_SECONDS = 60 * 60;
 
@@ -15,12 +15,15 @@ export async function getReadyVideoGridItems(playerId: string) {
     },
     orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
     select: {
+      category: true,
       createdAt: true,
+      handedness: true,
       id: true,
       originalFilename: true,
       sizeBytes: true,
       thumbnailPath: true,
       uploadedAt: true,
+      variation: true,
     },
   });
 
@@ -30,6 +33,7 @@ export async function getReadyVideoGridItems(playerId: string) {
 
   return videos.map((video) => ({
     ...video,
+    tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
     thumbnailUrl: video.thumbnailPath
       ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
       : null,
