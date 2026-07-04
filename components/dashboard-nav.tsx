@@ -20,10 +20,14 @@ export function DashboardNav({
   const pathname = usePathname();
   const [menuOpen, setMenuOpen] = useState(false);
 
+  // Progress is a player-only surface; `homeHref` encodes the signed-in role.
+  const isPlayer = homeHref === "/dashboard/player";
+
   const links = limited
     ? [{ href: homeHref, label: "Home" }]
     : [
         { href: homeHref, label: "Home" },
+        ...(isPlayer ? [{ href: "/dashboard/progress", label: "Progress" }] : []),
         { href: "/dashboard/connections", label: "Connections" },
         { href: "/dashboard/messages", label: "Messages" },
       ];
