@@ -1,5 +1,7 @@
 import { updateProfile } from "@/app/dashboard/profile/actions";
-import { Field, Form, Panel, PrimaryButton, TextArea, TextInput } from "@/components/ui";
+import type { PlayerRole } from "@/app/generated/prisma/enums";
+import { CheckboxChip, Field, Form, Panel, PrimaryButton, TextArea, TextInput } from "@/components/ui";
+import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
 function UsernameField({ username }: { username: string | null }) {
   return (
@@ -23,9 +25,10 @@ export function EditPlayerProfilePanel({
 }: {
   player: {
     club: string;
-    country: string;
+    county: string;
     heightCm: number | null;
     name: string;
+    roles: PlayerRole[];
     weightKg: number | null;
   };
   username: string | null;
@@ -43,8 +46,8 @@ export function EditPlayerProfilePanel({
           <TextInput defaultValue={player.club} name="club" required type="text" />
         </Field>
         <Field>
-          Country
-          <TextInput defaultValue={player.country} name="country" required type="text" />
+          County
+          <TextInput defaultValue={player.county} name="county" placeholder="e.g. Surrey" required type="text" />
         </Field>
         <Field>
           Height (cm)
@@ -67,6 +70,24 @@ export function EditPlayerProfilePanel({
             placeholder="Optional"
             type="number"
           />
+        </Field>
+        <Field>
+          Playing roles
+          <div className="flex flex-wrap gap-2">
+            {PLAYER_ROLE_OPTIONS.map((role) => (
+              <CheckboxChip
+                defaultChecked={player.roles.includes(role.value)}
+                key={role.value}
+                name="roles"
+                value={role.value}
+              >
+                {role.label}
+              </CheckboxChip>
+            ))}
+          </div>
+          <span className="text-xs font-normal text-stone-600">
+            Optional. Select any that apply.
+          </span>
         </Field>
         <PrimaryButton type="submit">Save changes</PrimaryButton>
       </Form>

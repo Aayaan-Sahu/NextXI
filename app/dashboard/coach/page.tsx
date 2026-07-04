@@ -41,9 +41,17 @@ export default async function CoachDashboardPage({
   const { discipline, variation, handedness } = await searchParams;
   const connectedIds = await getAcceptedCounterpartIds(user.id);
   const people = await describeUsers(connectedIds);
-  const players = connectedIds
-    .filter((id) => people.get(id)?.role === "player")
-    .map((id) => ({ id, name: people.get(id)?.name ?? "Unknown" }));
+  const playerIds = connectedIds.filter((id) => people.get(id)?.role === "player");
+  const playerRoles = await prisma.player.findMany({
+    where: { id: { in: playerIds } },
+    select: { id: true, roles: true },
+  });
+  const rolesById = new Map(playerRoles.map((player) => [player.id, player.roles]));
+  const players = playerIds.map((id) => ({
+    id,
+    name: people.get(id)?.name ?? "Unknown",
+    roles: rolesById.get(id) ?? [],
+  }));
 
   const videos = await prisma.playerVideo.findMany({
     where: {

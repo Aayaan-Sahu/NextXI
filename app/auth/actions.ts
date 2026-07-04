@@ -7,6 +7,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code";
+import { parsePlayerRoles } from "@/lib/players";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
@@ -193,12 +194,13 @@ export async function completeOnboarding(formData: FormData) {
     const name = text(formData, "name");
     const dateOfBirth = text(formData, "dateOfBirth");
     const club = text(formData, "club");
-    const country = text(formData, "country");
+    const county = text(formData, "county");
+    const roles = parsePlayerRoles(formData);
     const parsedDate = new Date(`${dateOfBirth}T00:00:00.000Z`);
     const heightCm = optionalInt(formData, "heightCm", 1, 300);
     const weightKg = optionalInt(formData, "weightKg", 1, 500);
 
-    if (!name || !club || !country || Number.isNaN(parsedDate.getTime())) {
+    if (!name || !club || !county || Number.isNaN(parsedDate.getTime())) {
       onboardingError(role, "Complete all player fields.");
     }
 
@@ -215,12 +217,13 @@ export async function completeOnboarding(formData: FormData) {
         prisma.player.create({
           data: {
             club,
-            country,
+            county,
             dateOfBirth: parsedDate,
             guardianCode: minor ? generateGuardianCode() : null,
             heightCm,
             id: user.id,
             name,
+            roles,
             status: minor ? PlayerStatus.PENDING_GUARDIAN : PlayerStatus.ACTIVE,
             visibility: Visibility.PRIVATE,
             weightKg,

@@ -1,10 +1,11 @@
 import { redirect } from "next/navigation";
 import { PlayerStatus } from "@/app/generated/prisma/enums";
-import { PageHeader, PageShell, Panel } from "@/components/ui";
+import { Badge, PageHeader, PageShell, Panel } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
 import { formatGuardianCode } from "@/lib/guardian-code";
+import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { getReadyVideoGridItems } from "@/lib/videos.server";
 
 export default async function PlayerDashboardPage() {
@@ -41,6 +42,13 @@ export default async function PlayerDashboardPage() {
         title="Your videos"
       />
       <div className="grid gap-5">
+        {profile.player.roles.length > 0 && (
+          <div className="flex flex-wrap gap-1.5">
+            {profile.player.roles.map((role) => (
+              <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
+            ))}
+          </div>
+        )}
         <VideoUpload />
         <VideoGrid videos={videos} />
       </div>
