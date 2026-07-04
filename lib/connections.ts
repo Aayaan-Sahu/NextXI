@@ -1,4 +1,4 @@
-import { ConnectionStatus } from "@/app/generated/prisma/enums";
+import { CoachStatus, ConnectionStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 export type PersonRole = "player" | "coach" | null;
@@ -118,4 +118,79 @@ export async function getConnectionPanelData(userId: string): Promise<Connection
   }
 
   return data;
+}
+
+/** Connection state of a directory row, from the viewer's perspective. */
+export type DirectoryConnectionState = "none" | "pending" | "accepted" | "revoked";
+
+export type CoachDirectoryEntry = {
+  id: string;
+  name: string;
+  username: string | null;
+  accomplishments: string[];
+  state: DirectoryConnectionState;
+};
+
+/**
+ * Browsable list of approved coaches for players to discover, with each
+ * coach's connection state relative to `viewerId` so the UI can render the
+ * right call to action ("Request to connect", "Requested", "Connected", or
+ * "Request again" for a revoked connection).
+ */
+export async function getCoachDirectory(
+  viewerId: string,
+  query?: string,
+): Promise<CoachDirectoryEntry[]> {
+  const trimmedQuery = query?.trim();
+
+  const coaches = await prisma.coach.findMany({
+    where: {
+      status: CoachStatus.APPROVED,
+      id: { not: viewerId },
+      ...(trimmedQuery ? { name: { contains: trimmedQuery, mode: "insensitive" } } : {}),
+    },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, accomplishments: true },
+  });
+
+  if (!coaches.length) return [];
+
+  const [profiles, viewerConnections] = await Promise.all([
+    prisma.profile.findMany({
+      where: { id: { in: coaches.map((coach) => coach.id) } },
+      select: { id: true, username: true },
+    }),
+    prisma.connection.findMany({
+      where: { OR: [{ userAId: viewerId }, { userBId: viewerId }] },
+      select: { userAId: true, userBId: true, status: true },
+    }),
+  ]);
+
+  const usernames = new Map(profiles.map((profile) => [profile.id, profile.username]));
+  const connectionByOtherId = new Map(
+    viewerConnections.map((row) => [
+      row.userAId === viewerId ? row.userBId : row.userAId,
+      row.status,
+    ]),
+  );
+
+  return coaches.map((coach) => {
+    const status = connectionByOtherId.get(coach.id);
+    const state: DirectoryConnectionState =
+      status === ConnectionStatus.ACCEPTED
+        ? "accepted"
+        : status === ConnectionStatus.REVOKED
+          ? "revoked"
+          : status === ConnectionStatus.PENDING
+            ? "pending"
+            : "none";
+
+    return {
+      id: coach.id,
+      name: coach.name,
+      username: usernames.get(coach.id) ?? null,
+      accomplishments: coach.accomplishments,
+      state,
+    };
+  });
 }

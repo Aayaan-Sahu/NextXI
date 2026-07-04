@@ -40,6 +40,82 @@ function done(key: "connectionError" | "connectionMessage", message: string): ne
   redirect(`/dashboard/connections?${key}=${encodeURIComponent(message)}`);
 }
 
+type ConnectionRequestOutcome = { message: string } | { error: string };
+
+/**
+ * Shared core for every "connect with this person" entry point (username
+ * lookup, coach directory). Validates eligibility, then either creates a new
+ * pending connection or, if the pair was previously revoked, reopens the
+ * existing row — the `[userAId, userBId]` unique constraint means a revoked
+ * pair can never be re-inserted.
+ */
+async function requestConnection(
+  requesterId: string,
+  targetId: string,
+): Promise<ConnectionRequestOutcome> {
+  if (targetId === requesterId) {
+    return { error: "You can't connect with yourself." };
+  }
+
+  const [targetCoach, targetPlayer] = await Promise.all([
+    prisma.coach.findUnique({
+      where: { id: targetId },
+      select: { status: true },
+    }),
+    prisma.player.findUnique({
+      where: { id: targetId },
+      select: { status: true },
+    }),
+  ]);
+
+  if (targetCoach && targetCoach.status !== CoachStatus.APPROVED) {
+    return { error: "That coach is not available to connect yet." };
+  }
+
+  // Child safety: unapproved minors are unreachable until a guardian signs off.
+  if (targetPlayer && targetPlayer.status !== PlayerStatus.ACTIVE) {
+    return { error: "That player is not available to connect yet." };
+  }
+
+  const [userAId, userBId] = orderedPair(requesterId, targetId);
+  const existing = await prisma.connection.findUnique({
+    where: { userAId_userBId: { userAId, userBId } },
+    select: { id: true, status: true },
+  });
+
+  if (existing?.status === ConnectionStatus.ACCEPTED) {
+    return { error: "You are already connected." };
+  }
+
+  if (existing?.status === ConnectionStatus.PENDING) {
+    return { error: "That request is already pending." };
+  }
+
+  if (existing) {
+    // Previously revoked: reopen the same row instead of inserting a new one.
+    await prisma.connection.update({
+      where: { id: existing.id },
+      data: { status: ConnectionStatus.PENDING, requestedById: requesterId },
+    });
+  } else {
+    await prisma.connection.create({
+      data: {
+        userAId,
+        userBId,
+        requestedById: requesterId,
+        status: ConnectionStatus.PENDING,
+      },
+    });
+  }
+
+  return { message: "Request sent." };
+}
+
+function finishConnectionRequest(outcome: ConnectionRequestOutcome): never {
+  if ("error" in outcome) done("connectionError", outcome.error);
+  done("connectionMessage", outcome.message);
+}
+
 export async function sendConnectionRequest(formData: FormData) {
   const user = await requireUser();
   requireActiveAccount(await accountStatusFor(user.id));
@@ -59,51 +135,53 @@ export async function sendConnectionRequest(formData: FormData) {
     done("connectionError", "No user found for that username.");
   }
 
-  const [targetCoach, targetPlayer] = await Promise.all([
-    prisma.coach.findUnique({
-      where: { id: target.id },
-      select: { status: true },
-    }),
-    prisma.player.findUnique({
-      where: { id: target.id },
-      select: { status: true },
-    }),
-  ]);
+  finishConnectionRequest(await requestConnection(user.id, target.id));
+}
 
-  if (targetCoach && targetCoach.status !== CoachStatus.APPROVED) {
-    done("connectionError", "That coach is not available to connect yet.");
+/** Connect action for the coach directory — same core as `sendConnectionRequest`. */
+export async function requestConnectionToCoach(formData: FormData) {
+  const user = await requireUser();
+  requireActiveAccount(await accountStatusFor(user.id));
+
+  const coachId = text(formData, "coachId");
+
+  if (!coachId) {
+    done("connectionError", "Coach not found.");
   }
 
-  // Child safety: unapproved minors are unreachable until a guardian signs off.
-  if (targetPlayer && targetPlayer.status !== PlayerStatus.ACTIVE) {
-    done("connectionError", "That player is not available to connect yet.");
+  finishConnectionRequest(await requestConnection(user.id, coachId));
+}
+
+export async function revokeConnection(formData: FormData) {
+  const user = await requireUser();
+
+  const connectionId = text(formData, "connectionId");
+
+  if (!connectionId) {
+    done("connectionError", "Connection not found.");
   }
 
-  const [userAId, userBId] = orderedPair(user.id, target.id);
-  const existing = await prisma.connection.findUnique({
-    where: { userAId_userBId: { userAId, userBId } },
-    select: { status: true },
+  const connection = await prisma.connection.findUnique({
+    where: { id: connectionId },
+    select: { userAId: true, userBId: true, status: true },
   });
 
-  if (existing) {
-    done(
-      "connectionError",
-      existing.status === ConnectionStatus.ACCEPTED
-        ? "You are already connected."
-        : "That request is already pending.",
-    );
+  const isParticipant =
+    !!connection && (connection.userAId === user.id || connection.userBId === user.id);
+
+  if (!connection || !isParticipant || connection.status !== ConnectionStatus.ACCEPTED) {
+    done("connectionError", "Connection not found.");
   }
 
-  await prisma.connection.create({
-    data: {
-      userAId,
-      userBId,
-      requestedById: user.id,
-      status: ConnectionStatus.PENDING,
-    },
+  await prisma.connection.update({
+    where: { id: connectionId },
+    data: { status: ConnectionStatus.REVOKED },
   });
 
-  done("connectionMessage", "Request sent.");
+  // Revoking drops the pair's access to messaging immediately; refresh the
+  // messages route too so a stale conversation doesn't linger in the sidebar.
+  revalidatePath("/dashboard/messages");
+  done("connectionMessage", "Connection revoked.");
 }
 
 export async function respondToConnectionRequest(formData: FormData) {
