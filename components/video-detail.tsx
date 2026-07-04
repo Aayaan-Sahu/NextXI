@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { ReportPanel } from "@/components/report-panel";
 import { PageHeader, PageShell } from "@/components/ui";
 import { VideoComments } from "@/components/video-comments";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoSize } from "@/lib/videos";
+import { getVideoReport } from "@/lib/videos.server";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
@@ -40,17 +42,20 @@ export async function VideoDetail({
     throw new Error("Could not create a playback link for this video.");
   }
 
-  const comments = await prisma.videoComment.findMany({
-    where: { videoId: video.id },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      authorName: true,
-      authorUsername: true,
-      body: true,
-      createdAt: true,
-    },
-  });
+  const [comments, report] = await Promise.all([
+    prisma.videoComment.findMany({
+      where: { videoId: video.id },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        authorName: true,
+        authorUsername: true,
+        body: true,
+        createdAt: true,
+      },
+    }),
+    getVideoReport(video.id),
+  ]);
 
   const uploadedAt = (video.uploadedAt ?? video.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -77,6 +82,7 @@ export async function VideoDetail({
           preload="metadata"
           src={data.signedUrl}
         />
+        <ReportPanel report={report} />
         <VideoComments comments={comments} />
       </div>
     </PageShell>

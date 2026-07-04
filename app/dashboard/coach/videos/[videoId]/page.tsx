@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
+import { ReportPanel } from "@/components/report-panel";
 import { PageHeader, PageShell } from "@/components/ui";
 import { CommentForm, VideoComments } from "@/components/video-comments";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -9,6 +10,7 @@ import { hasAcceptedConnection } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoSize } from "@/lib/videos";
+import { getVideoReport } from "@/lib/videos.server";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
@@ -65,17 +67,20 @@ export default async function CoachVideoPage({
     throw new Error("Could not create a playback link for this video.");
   }
 
-  const comments = await prisma.videoComment.findMany({
-    where: { videoId },
-    orderBy: { createdAt: "asc" },
-    select: {
-      id: true,
-      authorName: true,
-      authorUsername: true,
-      body: true,
-      createdAt: true,
-    },
-  });
+  const [comments, report] = await Promise.all([
+    prisma.videoComment.findMany({
+      where: { videoId },
+      orderBy: { createdAt: "asc" },
+      select: {
+        id: true,
+        authorName: true,
+        authorUsername: true,
+        body: true,
+        createdAt: true,
+      },
+    }),
+    getVideoReport(videoId),
+  ]);
 
   const uploadedAt = (video.uploadedAt ?? video.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -96,12 +101,15 @@ export default async function CoachVideoPage({
         title={video.originalFilename}
       />
       <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <video
-          className="w-full rounded-lg border border-stone-300 bg-black"
-          controls
-          preload="metadata"
-          src={data.signedUrl}
-        />
+        <div className="grid gap-5">
+          <video
+            className="w-full rounded-lg border border-stone-300 bg-black"
+            controls
+            preload="metadata"
+            src={data.signedUrl}
+          />
+          <ReportPanel report={report} />
+        </div>
         <VideoComments
           comments={comments}
           form={<CommentForm error={commentError} videoId={videoId} />}
