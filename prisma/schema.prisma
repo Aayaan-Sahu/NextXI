@@ -24,8 +24,30 @@ enum Visibility {
 enum ConnectionStatus {
   PENDING  @map("pending")
   ACCEPTED @map("accepted")
+  REVOKED  @map("revoked")
 
   @@map("connection_status")
+  @@schema("public")
+}
+
+enum ReportStatus {
+  PENDING @map("pending")
+  READY   @map("ready")
+  FAILED  @map("failed")
+
+  @@map("report_status")
+  @@schema("public")
+}
+
+enum PlayerRole {
+  BATTER       @map("batter")
+  PACE         @map("pace")
+  OFF_SPIN     @map("off_spin")
+  LEG_SPIN     @map("leg_spin")
+  WICKETKEEPER @map("wicketkeeper")
+  ALL_ROUNDER  @map("all_rounder")
+
+  @@map("player_role")
   @@schema("public")
 }
 
@@ -76,10 +98,14 @@ model Player {
   id           String        @id @db.Uuid
   authUser     AuthUser      @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   videos       PlayerVideo[]
+  statEntries  StatEntry[]
+  goals        Goal[]
+  reminders    Reminder[]
   name         String
   dateOfBirth  DateTime      @map("date_of_birth") @db.Date
   club         String
-  country      String
+  county       String
+  roles        PlayerRole[]  @default([])
   heightCm     Int?          @map("height_cm")
   weightKg     Int?          @map("weight_kg")
   visibility   Visibility    @default(PRIVATE)
@@ -185,10 +211,81 @@ model PlayerVideo {
 
   comments VideoComment[]
   views    VideoView[]
+  report   Report?
 
   @@index([playerId, createdAt(sort: Desc)], map: "player_videos_player_created_at_idx")
   @@index([playerId, status], map: "player_videos_player_status_idx")
   @@map("player_videos")
+  @@schema("public")
+}
+
+model Report {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  videoId       String       @unique @map("video_id") @db.Uuid
+  video         PlayerVideo  @relation(fields: [videoId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  status        ReportStatus @default(PENDING)
+  schemaVersion Int?         @map("schema_version")
+  payload       Json?
+  error         String?
+  modelVersion  String?      @map("model_version")
+  createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("reports")
+  @@schema("public")
+}
+
+model StatEntry {
+  id           String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId     String   @map("player_id") @db.Uuid
+  player       Player   @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  matchDate    DateTime @map("match_date") @db.Date
+  opponent     String?
+  // batting
+  runs         Int?
+  ballsFaced   Int?     @map("balls_faced")
+  dismissal    String?
+  // bowling
+  oversBowled  Decimal? @map("overs_bowled") @db.Decimal(4, 1)
+  wickets      Int?
+  runsConceded Int?     @map("runs_conceded")
+  createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt    DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([playerId, matchDate(sort: Desc)], map: "stat_entries_player_match_date_idx")
+  @@map("stat_entries")
+  @@schema("public")
+}
+
+model Goal {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId    String    @map("player_id") @db.Uuid
+  player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  title       String
+  metric      String?
+  target      Decimal?  @db.Decimal(10, 2)
+  horizonDate DateTime? @map("horizon_date") @db.Date
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([playerId, createdAt(sort: Desc)], map: "goals_player_created_at_idx")
+  @@map("goals")
+  @@schema("public")
+}
+
+model Reminder {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId    String    @map("player_id") @db.Uuid
+  player      Player    @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  text        String
+  dueAt       DateTime? @map("due_at") @db.Timestamptz(6)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(6)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([playerId, dueAt], map: "reminders_player_due_at_idx")
+  @@map("reminders")
   @@schema("public")
 }
 
