@@ -123,6 +123,25 @@ export function TextArea(props: ComponentProps<"textarea">) {
   return <textarea {...props} className={`resize-y ${inputStyles}`} />;
 }
 
+/** A checkbox rendered as a toggleable pill, for multi-select chip groups. */
+export function CheckboxChip({ children, ...props }: ComponentProps<"input">) {
+  return (
+    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-950 select-none has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-700 has-[:checked]:text-white">
+      <input {...props} className="sr-only" type="checkbox" />
+      {children}
+    </label>
+  );
+}
+
+/** A small rounded label for tags like player roles. */
+export function Badge({ children }: Children) {
+  return (
+    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+      {children}
+    </span>
+  );
+}
+
 export function PrimaryButton(props: ComponentProps<"button">) {
   return (
     <button

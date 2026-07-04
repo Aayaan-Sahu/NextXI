@@ -3,6 +3,7 @@ import { completeOnboarding, signOut } from "@/app/auth/actions";
 import {
   AuthCard,
   AuthShell,
+  CheckboxChip,
   Field,
   Form,
   Notice,
@@ -11,6 +12,7 @@ import {
   TextInput,
   TextLink,
 } from "@/components/ui";
+import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
 export type OnboardingRole = "player" | "coach" | "guardian";
 
@@ -142,8 +144,8 @@ function PlayerFields() {
         <TextInput name="club" required type="text" />
       </Field>
       <Field>
-        Country
-        <TextInput name="country" required type="text" />
+        County
+        <TextInput name="county" placeholder="e.g. Surrey" required type="text" />
       </Field>
       <div className="grid grid-cols-2 gap-4">
         <Field>
@@ -155,7 +157,24 @@ function PlayerFields() {
           <TextInput max={500} min={1} name="weightKg" placeholder="Optional" type="number" />
         </Field>
       </div>
+      <RolesField />
     </>
+  );
+}
+
+function RolesField() {
+  return (
+    <Field>
+      Playing roles
+      <div className="flex flex-wrap gap-2">
+        {PLAYER_ROLE_OPTIONS.map((role) => (
+          <CheckboxChip key={role.value} name="roles" value={role.value}>
+            {role.label}
+          </CheckboxChip>
+        ))}
+      </div>
+      <span className="text-xs font-normal text-stone-600">Optional. Select any that apply.</span>
+    </Field>
   );
 }
 

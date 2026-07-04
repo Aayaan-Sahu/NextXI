@@ -1,7 +1,8 @@
 import { redirect } from "next/navigation";
-import { PageHeader, PageShell, Panel } from "@/components/ui";
+import { Badge, PageHeader, PageShell, Panel } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
+import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { getReadyVideoGridItems } from "@/lib/videos.server";
 
@@ -17,10 +18,11 @@ export default async function GuardianDashboardPage() {
     select: {
       id: true,
       club: true,
-      country: true,
+      county: true,
       dateOfBirth: true,
       heightCm: true,
       name: true,
+      roles: true,
       weightKg: true,
     },
   });
@@ -48,7 +50,7 @@ export default async function GuardianDashboardPage() {
 
   const facts = [
     ["Club", child.club],
-    ["Country", child.country],
+    ["County", child.county],
     ["Date of birth", dateOfBirth],
     ["Height", child.heightCm ? `${child.heightCm} cm` : null],
     ["Weight", child.weightKg ? `${child.weightKg} kg` : null],
@@ -70,6 +72,13 @@ export default async function GuardianDashboardPage() {
               </div>
             ))}
           </dl>
+          {child.roles.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              {child.roles.map((role) => (
+                <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
+              ))}
+            </div>
+          )}
         </Panel>
         <VideoGrid
           emptyMessage="No videos yet. Videos your child uploads will appear here."
