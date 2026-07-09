@@ -165,7 +165,9 @@ function ReadyReport({ report }: { report: VideoReport }) {
 export function ReportPanel({ report }: { report: VideoReport | null }) {
   return (
     <Panel title="Coaching report">
-      {(!report || report.status === ReportStatus.PENDING) && (
+      {(!report ||
+        report.status === ReportStatus.PENDING ||
+        report.status === ReportStatus.PROCESSING) && (
         <p className="text-sm text-stone-600">Your coaching report is being prepared.</p>
       )}
 

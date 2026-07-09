@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { deleteVideo } from "@/app/dashboard/player/videos/actions";
 import { PlayerStatus } from "@/app/generated/prisma/enums";
 import { Badge, PageHeader, PageShell, Panel } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
@@ -50,7 +51,7 @@ export default async function PlayerDashboardPage() {
           </div>
         )}
         <VideoUpload />
-        <VideoGrid videos={videos} />
+        <VideoGrid deleteAction={deleteVideo} videos={videos} />
       </div>
     </PageShell>
   );

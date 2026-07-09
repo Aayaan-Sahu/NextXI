@@ -31,9 +31,10 @@ enum ConnectionStatus {
 }
 
 enum ReportStatus {
-  PENDING @map("pending")
-  READY   @map("ready")
-  FAILED  @map("failed")
+  PENDING    @map("pending")
+  PROCESSING @map("processing")
+  READY      @map("ready")
+  FAILED     @map("failed")
 
   @@map("report_status")
   @@schema("public")
