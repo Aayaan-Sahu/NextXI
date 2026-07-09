@@ -1,6 +1,6 @@
 import { updateProfile } from "@/app/dashboard/profile/actions";
 import type { PlayerRole } from "@/app/generated/prisma/enums";
-import { CheckboxChip, Field, Form, Panel, PrimaryButton, TextArea, TextInput } from "@/components/ui";
+import { CheckboxChip, Field, FieldGroup, Form, Panel, PrimaryButton, TextArea, TextInput } from "@/components/ui";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
 function UsernameField({ username }: { username: string | null }) {
@@ -71,7 +71,7 @@ export function EditPlayerProfilePanel({
             type="number"
           />
         </Field>
-        <Field>
+        <FieldGroup>
           Playing roles
           <div className="flex flex-wrap gap-2">
             {PLAYER_ROLE_OPTIONS.map((role) => (
@@ -88,7 +88,7 @@ export function EditPlayerProfilePanel({
           <span className="text-xs font-normal text-stone-600">
             Optional. Select any that apply.
           </span>
-        </Field>
+        </FieldGroup>
         <PrimaryButton type="submit">Save changes</PrimaryButton>
       </Form>
     </Panel>

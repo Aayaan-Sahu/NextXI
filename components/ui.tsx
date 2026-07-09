@@ -112,6 +112,16 @@ export function Field(props: ComponentProps<"label">) {
   return <label {...props} className="grid gap-2 text-sm font-medium" />;
 }
 
+/**
+ * Field styling without the <label> element, for wrapping groups of controls
+ * that carry their own labels (e.g. CheckboxChip). Nesting labels breaks
+ * checkbox toggling: the outer label re-activates the control the inner one
+ * just toggled.
+ */
+export function FieldGroup(props: ComponentProps<"div">) {
+  return <div {...props} className="grid gap-2 text-sm font-medium" />;
+}
+
 const inputStyles =
   "rounded-md border border-stone-300 bg-white px-3 py-2.5 text-neutral-950 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20";
 

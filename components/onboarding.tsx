@@ -5,6 +5,7 @@ import {
   AuthShell,
   CheckboxChip,
   Field,
+  FieldGroup,
   Form,
   Notice,
   PrimaryButton,
@@ -164,7 +165,7 @@ function PlayerFields() {
 
 function RolesField() {
   return (
-    <Field>
+    <FieldGroup>
       Playing roles
       <div className="flex flex-wrap gap-2">
         {PLAYER_ROLE_OPTIONS.map((role) => (
@@ -174,7 +175,7 @@ function RolesField() {
         ))}
       </div>
       <span className="text-xs font-normal text-stone-600">Optional. Select any that apply.</span>
-    </Field>
+    </FieldGroup>
   );
 }
 
