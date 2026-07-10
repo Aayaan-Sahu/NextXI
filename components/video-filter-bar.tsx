@@ -8,7 +8,7 @@ import {
 } from "@/lib/videos";
 
 const selectStyles =
-  "rounded-md border border-stone-300 bg-white px-3 py-2 text-sm text-neutral-950 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-stone-100 disabled:text-stone-500";
+  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-sm text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:bg-cream-100 disabled:text-sage-400";
 
 /** URL-driven tag filters; the page filters server-side from searchParams. */
 export function VideoFilterBar() {
@@ -32,7 +32,9 @@ export function VideoFilterBar() {
 
   return (
     <div className="flex flex-wrap items-center gap-3">
-      <span className="text-sm font-medium text-stone-600">Filter</span>
+      <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-ink-600 uppercase">
+        Filter
+      </span>
       <select
         aria-label="Discipline"
         className={selectStyles}

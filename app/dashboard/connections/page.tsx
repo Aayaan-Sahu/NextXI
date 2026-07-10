@@ -45,7 +45,7 @@ export default async function ConnectionsPage({
       />
       <Notice tone="error">{connectionError}</Notice>
       <Notice>{connectionMessage}</Notice>
-      <div className="grid gap-6">
+      <div className="grid items-start gap-6 lg:grid-cols-[1.25fr_1fr]">
         {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
         <ConnectionsPanel data={connectionData} />
       </div>

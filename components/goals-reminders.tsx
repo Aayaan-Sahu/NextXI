@@ -19,9 +19,9 @@ function formatDate(date: Date) {
 }
 
 const textButton =
-  "cursor-pointer text-sm font-medium text-emerald-700 hover:underline";
+  "cursor-pointer text-xs font-semibold whitespace-nowrap text-ink-600 hover:text-ink-900";
 const deleteButton =
-  "cursor-pointer text-sm font-medium text-stone-500 hover:text-red-700";
+  "cursor-pointer text-xs font-semibold whitespace-nowrap text-rust-600 hover:text-rust-700";
 
 function GoalMeta({ goal }: { goal: GoalItem }) {
   const parts: string[] = [];
@@ -30,24 +30,43 @@ function GoalMeta({ goal }: { goal: GoalItem }) {
   if (goal.horizonDate) parts.push(`by ${formatDate(goal.horizonDate)}`);
 
   if (!parts.length) return null;
-  return <p className="text-sm text-stone-600">{parts.join(" · ")}</p>;
+  return (
+    <p
+      className={
+        goal.completedAt !== null
+          ? "mt-[3px] text-xs text-sage-400"
+          : "mt-[3px] text-xs text-ink-600"
+      }
+    >
+      {parts.join(" · ")}
+    </p>
+  );
 }
 
 function GoalRow({ goal }: { goal: GoalItem }) {
   const completed = goal.completedAt !== null;
 
   return (
-    <li className="grid gap-1.5 border-t border-stone-200 pt-3 first:border-t-0 first:pt-0">
-      <div className="flex items-start justify-between gap-3">
+    <li className="flex items-start justify-between gap-3 border-t border-cream-400 py-[13px]">
+      <div>
         <p
           className={
             completed
-              ? "font-medium text-stone-500 line-through"
-              : "font-medium text-neutral-950"
+              ? "text-sm font-semibold text-sage-400 line-through"
+              : "text-sm font-semibold"
           }
         >
           {goal.title}
         </p>
+        <GoalMeta goal={goal} />
+      </div>
+      <div className="flex shrink-0 items-baseline gap-3">
+        <form action={toggleGoalComplete}>
+          <input name="id" type="hidden" value={goal.id} />
+          <button className={textButton} type="submit">
+            {completed ? "Reopen" : "Mark complete"}
+          </button>
+        </form>
         <form action={deleteGoal}>
           <input name="id" type="hidden" value={goal.id} />
           <button className={deleteButton} type="submit">
@@ -55,13 +74,6 @@ function GoalRow({ goal }: { goal: GoalItem }) {
           </button>
         </form>
       </div>
-      <GoalMeta goal={goal} />
-      <form action={toggleGoalComplete}>
-        <input name="id" type="hidden" value={goal.id} />
-        <button className={textButton} type="submit">
-          {completed ? "Reopen" : "Mark complete"}
-        </button>
-      </form>
     </li>
   );
 }
@@ -70,15 +82,36 @@ function ReminderRow({ reminder }: { reminder: ReminderItem }) {
   const completed = reminder.completedAt !== null;
 
   return (
-    <li className="grid gap-1.5 border-t border-stone-200 pt-3 first:border-t-0 first:pt-0">
-      <div className="flex items-start justify-between gap-3">
+    <li className="flex items-start justify-between gap-3 border-t border-cream-400 py-[13px]">
+      <div>
         <p
           className={
-            completed ? "text-stone-500 line-through" : "text-neutral-950"
+            completed
+              ? "text-sm font-semibold text-sage-400 line-through"
+              : "text-sm font-semibold"
           }
         >
           {reminder.text}
         </p>
+        {reminder.dueAt ? (
+          <p
+            className={
+              completed
+                ? "mt-[3px] text-xs text-sage-400"
+                : "mt-[3px] text-xs text-ink-600"
+            }
+          >
+            Due {formatDate(reminder.dueAt)}
+          </p>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-baseline gap-3">
+        <form action={toggleReminderComplete}>
+          <input name="id" type="hidden" value={reminder.id} />
+          <button className={textButton} type="submit">
+            {completed ? "Reopen" : "Mark done"}
+          </button>
+        </form>
         <form action={deleteReminder}>
           <input name="id" type="hidden" value={reminder.id} />
           <button className={deleteButton} type="submit">
@@ -86,15 +119,6 @@ function ReminderRow({ reminder }: { reminder: ReminderItem }) {
           </button>
         </form>
       </div>
-      {reminder.dueAt ? (
-        <p className="text-sm text-stone-600">Due {formatDate(reminder.dueAt)}</p>
-      ) : null}
-      <form action={toggleReminderComplete}>
-        <input name="id" type="hidden" value={reminder.id} />
-        <button className={textButton} type="submit">
-          {completed ? "Reopen" : "Mark done"}
-        </button>
-      </form>
     </li>
   );
 }
@@ -102,10 +126,10 @@ function ReminderRow({ reminder }: { reminder: ReminderItem }) {
 function GoalsPanel({ goals }: { goals: GoalItem[] }) {
   return (
     <Panel title="Goals">
-      <div className="grid gap-5">
-        <Form action={createGoal}>
-          <Field>
-            Goal
+      <Form action={createGoal}>
+        <div className="flex gap-2.5">
+          <label className="grid flex-1">
+            <span className="sr-only">Goal</span>
             <TextInput
               maxLength={200}
               name="title"
@@ -113,45 +137,45 @@ function GoalsPanel({ goals }: { goals: GoalItem[] }) {
               required
               type="text"
             />
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field>
-              Metric
-              <TextInput
-                maxLength={80}
-                name="metric"
-                placeholder="Optional"
-                type="text"
-              />
-            </Field>
-            <Field>
-              Target
-              <TextInput
-                min={0}
-                name="target"
-                placeholder="Optional"
-                step="any"
-                type="number"
-              />
-            </Field>
-            <Field>
-              Target date
-              <TextInput name="horizonDate" type="date" />
-            </Field>
-          </div>
+          </label>
           <PrimaryButton type="submit">Add goal</PrimaryButton>
-        </Form>
+        </div>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Field>
+            Metric
+            <TextInput
+              maxLength={80}
+              name="metric"
+              placeholder="Optional"
+              type="text"
+            />
+          </Field>
+          <Field>
+            Target
+            <TextInput
+              min={0}
+              name="target"
+              placeholder="Optional"
+              step="any"
+              type="number"
+            />
+          </Field>
+          <Field>
+            Target date
+            <TextInput name="horizonDate" type="date" />
+          </Field>
+        </div>
+      </Form>
 
-        {goals.length ? (
-          <ul className="grid gap-3">
-            {goals.map((goal) => (
-              <GoalRow goal={goal} key={goal.id} />
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-stone-600">No goals yet. Set one above.</p>
-        )}
-      </div>
+      {goals.length ? (
+        <ul className="mt-4">
+          {goals.map((goal) => (
+            <GoalRow goal={goal} key={goal.id} />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-ink-600">No goals yet. Set one above.</p>
+      )}
     </Panel>
   );
 }
@@ -159,10 +183,10 @@ function GoalsPanel({ goals }: { goals: GoalItem[] }) {
 function RemindersPanel({ reminders }: { reminders: ReminderItem[] }) {
   return (
     <Panel title="Reminders">
-      <div className="grid gap-5">
-        <Form action={createReminder}>
-          <Field>
-            Reminder
+      <Form action={createReminder}>
+        <div className="flex gap-2.5">
+          <label className="grid flex-1">
+            <span className="sr-only">Reminder</span>
             <TextInput
               maxLength={300}
               name="text"
@@ -170,24 +194,24 @@ function RemindersPanel({ reminders }: { reminders: ReminderItem[] }) {
               required
               type="text"
             />
-          </Field>
-          <Field>
-            Due date
-            <TextInput name="dueAt" type="date" />
-          </Field>
+          </label>
           <PrimaryButton type="submit">Add reminder</PrimaryButton>
-        </Form>
+        </div>
+        <Field>
+          Due date
+          <TextInput name="dueAt" type="date" />
+        </Field>
+      </Form>
 
-        {reminders.length ? (
-          <ul className="grid gap-3">
-            {reminders.map((reminder) => (
-              <ReminderRow key={reminder.id} reminder={reminder} />
-            ))}
-          </ul>
-        ) : (
-          <p className="text-sm text-stone-600">No reminders yet.</p>
-        )}
-      </div>
+      {reminders.length ? (
+        <ul className="mt-4">
+          {reminders.map((reminder) => (
+            <ReminderRow key={reminder.id} reminder={reminder} />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-4 text-sm text-ink-600">No reminders yet.</p>
+      )}
     </Panel>
   );
 }
@@ -200,7 +224,7 @@ export function GoalsReminders({
   reminders: ReminderItem[];
 }) {
   return (
-    <div className="grid gap-5 md:grid-cols-2">
+    <div className="grid gap-5">
       <GoalsPanel goals={goals} />
       <RemindersPanel reminders={reminders} />
     </div>

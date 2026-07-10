@@ -16,19 +16,19 @@ function formatOvers(overs: number) {
   return Number.isInteger(overs) ? `${overs}` : overs.toFixed(1);
 }
 
-function SectionHeading({ children }: { children: string }) {
-  return (
-    <h3 className="text-xs font-semibold uppercase tracking-wide text-stone-500">
-      {children}
-    </h3>
-  );
-}
-
 export function StatEntryForm() {
   return (
-    <Panel title="Log a match">
-      <Form action={addStatEntry}>
-        <div className="grid gap-4 sm:grid-cols-2">
+    <Panel>
+      <div className="flex items-baseline justify-between gap-4 max-md:flex-col">
+        <h2 className="font-display text-xl leading-tight font-semibold uppercase">
+          Log a match
+        </h2>
+        <p className="text-[12.5px] text-ink-600">
+          Fill in the batting or bowling details (or both) for the match.
+        </p>
+      </div>
+      <Form action={addStatEntry} className="mt-[18px]">
+        <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
           <Field>
             Match date
             <TextInput name="matchDate" required type="date" />
@@ -44,82 +44,72 @@ export function StatEntryForm() {
           </Field>
         </div>
 
-        <section className="grid gap-3 rounded-md border border-stone-200 bg-stone-50 p-4">
-          <SectionHeading>Batting</SectionHeading>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field>
-              Runs
-              <TextInput
-                max={1000}
-                min={0}
-                name="runs"
-                placeholder="Optional"
-                type="number"
-              />
-            </Field>
-            <Field>
-              Balls faced
-              <TextInput
-                max={2000}
-                min={0}
-                name="ballsFaced"
-                placeholder="Optional"
-                type="number"
-              />
-            </Field>
-            <Field>
-              Dismissal
-              <TextInput
-                maxLength={60}
-                name="dismissal"
-                placeholder="e.g. bowled, not out"
-                type="text"
-              />
-            </Field>
-          </div>
-        </section>
+        <div className="grid gap-4 sm:grid-cols-3 lg:grid-cols-6">
+          <Field>
+            Runs
+            <TextInput
+              max={1000}
+              min={0}
+              name="runs"
+              placeholder="Optional"
+              type="number"
+            />
+          </Field>
+          <Field>
+            Balls faced
+            <TextInput
+              max={2000}
+              min={0}
+              name="ballsFaced"
+              placeholder="Optional"
+              type="number"
+            />
+          </Field>
+          <Field>
+            Dismissal
+            <TextInput
+              maxLength={60}
+              name="dismissal"
+              placeholder="e.g. bowled, not out"
+              type="text"
+            />
+          </Field>
+          <Field>
+            Overs
+            <TextInput
+              inputMode="decimal"
+              name="oversBowled"
+              pattern="\d{1,3}(\.[0-5])?"
+              placeholder="e.g. 4.3"
+              title="Whole overs, optionally .1–.5 for extra balls (e.g. 4.3)."
+              type="text"
+            />
+          </Field>
+          <Field>
+            Wickets
+            <TextInput
+              max={10}
+              min={0}
+              name="wickets"
+              placeholder="Optional"
+              type="number"
+            />
+          </Field>
+          <Field>
+            Runs conceded
+            <TextInput
+              max={1000}
+              min={0}
+              name="runsConceded"
+              placeholder="Optional"
+              type="number"
+            />
+          </Field>
+        </div>
 
-        <section className="grid gap-3 rounded-md border border-stone-200 bg-stone-50 p-4">
-          <SectionHeading>Bowling</SectionHeading>
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Field>
-              Overs
-              <TextInput
-                inputMode="decimal"
-                name="oversBowled"
-                pattern="\d{1,3}(\.[0-5])?"
-                placeholder="e.g. 4.3"
-                title="Whole overs, optionally .1–.5 for extra balls (e.g. 4.3)."
-                type="text"
-              />
-            </Field>
-            <Field>
-              Wickets
-              <TextInput
-                max={10}
-                min={0}
-                name="wickets"
-                placeholder="Optional"
-                type="number"
-              />
-            </Field>
-            <Field>
-              Runs conceded
-              <TextInput
-                max={1000}
-                min={0}
-                name="runsConceded"
-                placeholder="Optional"
-                type="number"
-              />
-            </Field>
-          </div>
-        </section>
-
-        <p className="text-sm text-stone-600">
-          Fill in the batting or bowling details (or both) for the match.
-        </p>
-        <PrimaryButton type="submit">Save match</PrimaryButton>
+        <div className="mt-0.5">
+          <PrimaryButton type="submit">Save match</PrimaryButton>
+        </div>
       </Form>
     </Panel>
   );
@@ -131,15 +121,11 @@ function BattingLine({ entry }: { entry: StatEntryItem }) {
   }
 
   return (
-    <p className="text-sm text-neutral-950">
-      <span className="text-stone-500">Batting: </span>
-      <span className="font-medium">{entry.runs ?? "–"}</span>
-      {entry.ballsFaced !== null ? (
-        <span className="text-stone-600"> ({entry.ballsFaced} balls)</span>
-      ) : null}
-      {entry.dismissal ? (
-        <span className="text-stone-600"> · {entry.dismissal}</span>
-      ) : null}
+    <p className="mt-[5px] text-[13px] text-ink-600">
+      <span>Batting: </span>
+      <span>{entry.runs ?? "–"}</span>
+      {entry.ballsFaced !== null ? <span> ({entry.ballsFaced} balls)</span> : null}
+      {entry.dismissal ? <span> · {entry.dismissal}</span> : null}
     </p>
   );
 }
@@ -150,13 +136,13 @@ function BowlingLine({ entry }: { entry: StatEntryItem }) {
   }
 
   return (
-    <p className="text-sm text-neutral-950">
-      <span className="text-stone-500">Bowling: </span>
-      <span className="font-medium">
+    <p className="mt-0.5 text-[13px] text-ink-600">
+      <span>Bowling: </span>
+      <span>
         {entry.wickets ?? "–"}/{entry.runsConceded ?? "–"}
       </span>
       {entry.oversBowled !== null ? (
-        <span className="text-stone-600"> ({formatOvers(entry.oversBowled)} ov)</span>
+        <span> ({formatOvers(entry.oversBowled)} ov)</span>
       ) : null}
     </p>
   );
@@ -166,28 +152,26 @@ export function MatchLog({ entries }: { entries: StatEntryItem[] }) {
   return (
     <Panel title="Match log">
       {entries.length ? (
-        <ul className="grid gap-3">
+        <ul>
           {entries.map((entry) => (
             <li
-              className="flex items-start justify-between gap-4 border-t border-stone-200 pt-3 first:border-t-0 first:pt-0"
+              className="flex items-start justify-between gap-4 border-t border-cream-400 py-4"
               key={entry.id}
             >
-              <div className="grid gap-1">
-                <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                  <span className="font-semibold text-neutral-950">
-                    {formatDate(entry.matchDate)}
-                  </span>
+              <div>
+                <p className="text-sm font-bold">
+                  {formatDate(entry.matchDate)}
                   {entry.opponent ? (
-                    <span className="text-stone-600">vs {entry.opponent}</span>
+                    <span className="font-medium text-ink-600"> vs {entry.opponent}</span>
                   ) : null}
-                </div>
+                </p>
                 <BattingLine entry={entry} />
                 <BowlingLine entry={entry} />
               </div>
               <form action={deleteStatEntry}>
                 <input name="id" type="hidden" value={entry.id} />
                 <button
-                  className="cursor-pointer text-sm font-medium text-stone-500 hover:text-red-700"
+                  className="cursor-pointer text-[12.5px] font-semibold text-rust-600 hover:text-rust-700"
                   type="submit"
                 >
                   Delete
@@ -197,7 +181,7 @@ export function MatchLog({ entries }: { entries: StatEntryItem[] }) {
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-stone-600">
+        <p className="text-sm text-ink-600">
           No matches logged yet. Add your first match above to start tracking.
         </p>
       )}

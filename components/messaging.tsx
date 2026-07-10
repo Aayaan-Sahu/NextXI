@@ -143,7 +143,7 @@ export function MessageThread({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto p-4">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-cream-200 p-6">
         {messages.length ? (
           messages.map((message, index) => {
             const previous = messages[index - 1];
@@ -154,25 +154,29 @@ export function MessageThread({
             const isPending = message.id.startsWith("pending-");
 
             return (
-              <div className="flex flex-col gap-2" key={message.id}>
+              <div className="flex flex-col gap-3" key={message.id}>
                 {showDivider ? (
-                  <p className="my-1 text-center text-[11px] text-stone-600">
+                  <p className="my-1 text-center font-mono text-[11px] text-sage-400">
                     {formatDivider(message.createdAt)}
                   </p>
                 ) : null}
-                <div className={message.fromMe ? "self-end text-right" : "self-start"}>
+                <div
+                  className={
+                    message.fromMe ? "max-w-[60%] self-end text-right" : "max-w-[60%] self-start"
+                  }
+                >
                   <div
                     className={
                       message.fromMe
-                        ? "inline-block max-w-[420px] rounded-lg bg-neutral-950 px-3 py-2 text-sm text-white"
-                        : "inline-block max-w-[420px] rounded-lg bg-stone-100 px-3 py-2 text-sm text-neutral-950"
+                        ? "inline-block rounded-[14px] rounded-br-[4px] bg-pitch-900 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-cream-200"
+                        : "inline-block rounded-[14px] rounded-bl-[4px] border border-cream-400 bg-cream-100 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-ink-900"
                     }
                     title={formatDivider(message.createdAt)}
                   >
                     <p className="m-0 whitespace-pre-wrap break-words">{message.body}</p>
                   </div>
                   {message.id === lastOwnId ? (
-                    <p className="mt-1 text-[11px] text-stone-600">
+                    <p className="mt-1 font-mono text-[10.5px] text-sage-400">
                       {receiptFor(message, isPending)}
                     </p>
                   ) : null}
@@ -181,7 +185,7 @@ export function MessageThread({
             );
           })
         ) : (
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-ink-600">
             No messages yet. Say hello.
           </p>
         )}
@@ -189,18 +193,18 @@ export function MessageThread({
       </div>
 
       {error ? (
-        <p className="border-t border-red-200 bg-red-50 px-4 py-2 text-sm text-neutral-950">
+        <p className="border-t border-rust-600/30 bg-rust-600/10 px-6 py-2 text-sm text-rust-700">
           {error}
         </p>
       ) : null}
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-2 border-t border-stone-300 p-3"
+        className="flex items-center gap-3 border-t border-cream-400 bg-cream-100 px-6 py-4"
       >
         <input
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-full border border-stone-300 bg-white px-4 py-2 text-sm text-neutral-950 focus:border-neutral-950 focus:outline-none"
+          className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none"
           maxLength={4000}
           name="body"
           onChange={(event) => setDraft(event.target.value)}

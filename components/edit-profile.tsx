@@ -1,7 +1,17 @@
+import type { ReactNode } from "react";
 import { updateProfile } from "@/app/dashboard/profile/actions";
 import type { PlayerRole } from "@/app/generated/prisma/enums";
-import { CheckboxChip, Field, FieldGroup, Form, Panel, PrimaryButton, TextArea, TextInput } from "@/components/ui";
+import { CheckboxChip, Field, FieldGroup, Form, Kicker, PrimaryButton, TextArea, TextInput } from "@/components/ui";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
+
+function ProfileCard({ children, kicker }: { children: ReactNode; kicker: string }) {
+  return (
+    <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-8">
+      <Kicker>{kicker}</Kicker>
+      <div className="mt-5">{children}</div>
+    </section>
+  );
+}
 
 function UsernameField({ username }: { username: string | null }) {
   return (
@@ -34,43 +44,45 @@ export function EditPlayerProfilePanel({
   username: string | null;
 }) {
   return (
-    <Panel title="Player profile">
+    <ProfileCard kicker="Player profile">
       <Form action={updateProfile}>
-        <Field>
-          Name
-          <TextInput defaultValue={player.name} name="name" required type="text" />
-        </Field>
-        <UsernameField username={username} />
-        <Field>
-          Club
-          <TextInput defaultValue={player.club} name="club" required type="text" />
-        </Field>
-        <Field>
-          County
-          <TextInput defaultValue={player.county} name="county" placeholder="e.g. Surrey" required type="text" />
-        </Field>
-        <Field>
-          Height (cm)
-          <TextInput
-            defaultValue={player.heightCm ?? ""}
-            max={300}
-            min={1}
-            name="heightCm"
-            placeholder="Optional"
-            type="number"
-          />
-        </Field>
-        <Field>
-          Weight (kg)
-          <TextInput
-            defaultValue={player.weightKg ?? ""}
-            max={500}
-            min={1}
-            name="weightKg"
-            placeholder="Optional"
-            type="number"
-          />
-        </Field>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            Name
+            <TextInput defaultValue={player.name} name="name" required type="text" />
+          </Field>
+          <UsernameField username={username} />
+          <Field>
+            Club
+            <TextInput defaultValue={player.club} name="club" required type="text" />
+          </Field>
+          <Field>
+            County
+            <TextInput defaultValue={player.county} name="county" placeholder="e.g. Surrey" required type="text" />
+          </Field>
+          <Field>
+            Height (cm)
+            <TextInput
+              defaultValue={player.heightCm ?? ""}
+              max={300}
+              min={1}
+              name="heightCm"
+              placeholder="Optional"
+              type="number"
+            />
+          </Field>
+          <Field>
+            Weight (kg)
+            <TextInput
+              defaultValue={player.weightKg ?? ""}
+              max={500}
+              min={1}
+              name="weightKg"
+              placeholder="Optional"
+              type="number"
+            />
+          </Field>
+        </div>
         <FieldGroup>
           Playing roles
           <div className="flex flex-wrap gap-2">
@@ -85,13 +97,15 @@ export function EditPlayerProfilePanel({
               </CheckboxChip>
             ))}
           </div>
-          <span className="text-xs font-normal text-stone-600">
+          <span className="text-xs font-normal text-ink-600">
             Optional. Select any that apply.
           </span>
         </FieldGroup>
-        <PrimaryButton type="submit">Save changes</PrimaryButton>
+        <div className="mt-1.5">
+          <PrimaryButton type="submit">Save changes</PrimaryButton>
+        </div>
       </Form>
-    </Panel>
+    </ProfileCard>
   );
 }
 
@@ -106,13 +120,15 @@ export function EditCoachProfilePanel({
   username: string | null;
 }) {
   return (
-    <Panel title="Coach profile">
+    <ProfileCard kicker="Coach profile">
       <Form action={updateProfile}>
-        <Field>
-          Name
-          <TextInput defaultValue={coach.name} name="name" required type="text" />
-        </Field>
-        <UsernameField username={username} />
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Field>
+            Name
+            <TextInput defaultValue={coach.name} name="name" required type="text" />
+          </Field>
+          <UsernameField username={username} />
+        </div>
         <Field>
           Accomplishments
           <TextArea
@@ -122,8 +138,10 @@ export function EditCoachProfilePanel({
             rows={8}
           />
         </Field>
-        <PrimaryButton type="submit">Save changes</PrimaryButton>
+        <div className="mt-1.5">
+          <PrimaryButton type="submit">Save changes</PrimaryButton>
+        </div>
       </Form>
-    </Panel>
+    </ProfileCard>
   );
 }

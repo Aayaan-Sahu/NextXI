@@ -29,14 +29,19 @@ export default async function ProfilePage({
 
   return (
     <PageShell>
-      <PageHeader subtitle={user.email} title="Edit profile" />
-      <Notice tone="error">{error}</Notice>
-      <Notice>{message}</Notice>
-      {profile.role === "player" ? (
-        <EditPlayerProfilePanel player={profile.player} username={profile.username} />
-      ) : (
-        <EditCoachProfilePanel coach={profile.coach} username={profile.username} />
-      )}
+      <div className="mx-auto max-w-[760px]">
+        <PageHeader
+          subtitle={<span className="font-mono text-[12.5px]">{user.email}</span>}
+          title="Edit profile"
+        />
+        <Notice tone="error">{error}</Notice>
+        <Notice>{message}</Notice>
+        {profile.role === "player" ? (
+          <EditPlayerProfilePanel player={profile.player} username={profile.username} />
+        ) : (
+          <EditCoachProfilePanel coach={profile.coach} username={profile.username} />
+        )}
+      </div>
     </PageShell>
   );
 }

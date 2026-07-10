@@ -7,37 +7,32 @@ import {
   sendConnectionRequest,
 } from "@/app/dashboard/connections/actions";
 import type { ConnectionPanelData, ConnectionPerson } from "@/lib/connections";
-import { Field, Form, Panel, PrimaryButton, SecondaryButton, TextInput } from "@/components/ui";
+import { Kicker, Panel, PrimaryButton, SecondaryButton, TextInput } from "@/components/ui";
 
-function PersonLine({ person }: { person: ConnectionPerson }) {
-  return (
-    <span>
-      {person.name}
-      {person.username ? (
-        <span className="text-stone-600"> @{person.username}</span>
-      ) : null}
-      {person.role ? (
-        <span className="text-stone-600"> · {person.role}</span>
-      ) : null}
-    </span>
-  );
+const smallGoldButton =
+  "cursor-pointer rounded-md bg-gold-500 px-3.5 py-[7px] text-[12.5px] font-bold text-pitch-900 hover:bg-gold-600";
+const smallOutlineButton =
+  "cursor-pointer rounded-md border border-cream-500 bg-transparent px-3.5 py-[7px] text-[12.5px] font-semibold text-ink-900 hover:bg-cream-200";
+
+function Username({ username }: { username: string | null }) {
+  if (!username) return null;
+  return <span className="font-mono text-xs font-medium text-ink-600"> @{username}</span>;
 }
 
 function Empty({ children }: { children: string }) {
-  return <p className="text-sm text-stone-600">{children}</p>;
+  return <p className="mt-3 text-sm text-ink-600">{children}</p>;
 }
 
 function PendingList({ people }: { people: ConnectionPerson[] }) {
   if (!people.length) return <Empty>None.</Empty>;
 
   return (
-    <ul className="grid gap-2">
+    <ul className="mt-3 grid gap-2.5">
       {people.map((person) => (
-        <li
-          className="border-t border-stone-300 pt-2 text-sm"
-          key={person.connectionId}
-        >
-          <PersonLine person={person} />
+        <li className="text-sm font-semibold" key={person.connectionId}>
+          {person.name}
+          <Username username={person.username} />{" "}
+          <span className="text-xs font-normal text-sage-400">· Pending</span>
         </li>
       ))}
     </ul>
@@ -48,23 +43,35 @@ function IncomingList({ people }: { people: ConnectionPerson[] }) {
   if (!people.length) return <Empty>None.</Empty>;
 
   return (
-    <ul className="grid gap-3">
+    <ul className="mt-3 grid gap-3">
       {people.map((person) => (
         <li
-          className="flex items-center justify-between gap-3 border-t border-stone-300 pt-3 text-sm"
+          className="flex items-center justify-between gap-3"
           key={person.connectionId}
         >
-          <PersonLine person={person} />
-          <div className="flex gap-2">
+          <div className="min-w-0">
+            <p className="text-sm font-bold">
+              {person.name}
+              <Username username={person.username} />
+            </p>
+            {person.role ? (
+              <p className="mt-0.5 text-xs text-ink-600 capitalize">{person.role}</p>
+            ) : null}
+          </div>
+          <div className="flex shrink-0 gap-2">
             <form action={respondToConnectionRequest}>
               <input name="connectionId" type="hidden" value={person.connectionId} />
               <input name="response" type="hidden" value="accept" />
-              <PrimaryButton type="submit">Accept</PrimaryButton>
+              <button className={smallGoldButton} type="submit">
+                Accept
+              </button>
             </form>
             <form action={respondToConnectionRequest}>
               <input name="connectionId" type="hidden" value={person.connectionId} />
               <input name="response" type="hidden" value="decline" />
-              <SecondaryButton type="submit">Decline</SecondaryButton>
+              <button className={smallOutlineButton} type="submit">
+                Decline
+              </button>
             </form>
           </div>
         </li>
@@ -84,18 +91,22 @@ function RevokeButton({ person }: { person: ConnectionPerson }) {
 
   return (
     <>
-      <SecondaryButton onClick={() => setConfirming(true)} type="button">
+      <button
+        className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-3.5 py-[7px] text-[12.5px] font-semibold text-rust-600 hover:bg-cream-200"
+        onClick={() => setConfirming(true)}
+        type="button"
+      >
         Revoke
-      </SecondaryButton>
+      </button>
       {confirming ? (
         <div
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/40 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-950/60 p-4"
           role="alertdialog"
         >
-          <div className="w-full max-w-[380px] rounded-lg bg-white p-5 shadow-xl ring-1 ring-stone-950/5">
+          <div className="w-full max-w-[380px] rounded-[10px] border border-cream-400 bg-cream-100 p-5 shadow-2xl shadow-black/40">
             <p className="font-semibold">Revoke this connection?</p>
-            <p className="mt-2 text-sm text-stone-600">{warning}</p>
+            <p className="mt-2 text-sm text-ink-600">{warning}</p>
             <div className="mt-4 flex justify-end gap-2">
               <SecondaryButton onClick={() => setConfirming(false)} type="button">
                 Cancel
@@ -116,13 +127,16 @@ function AcceptedList({ people }: { people: ConnectionPerson[] }) {
   if (!people.length) return <Empty>None.</Empty>;
 
   return (
-    <ul className="grid gap-3">
+    <ul className="mt-3 grid gap-3">
       {people.map((person) => (
         <li
-          className="flex items-center justify-between gap-3 border-t border-stone-300 pt-3 text-sm"
+          className="flex items-center justify-between gap-3"
           key={person.connectionId}
         >
-          <PersonLine person={person} />
+          <p className="text-sm font-semibold">
+            {person.name}
+            <Username username={person.username} />
+          </p>
           <RevokeButton person={person} />
         </li>
       ))}
@@ -132,38 +146,45 @@ function AcceptedList({ people }: { people: ConnectionPerson[] }) {
 
 export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
   return (
-    <Panel title="Connections">
-      <div className="grid gap-5">
-        <Form action={sendConnectionRequest}>
-          <Field>
-            Username
+    <div className="grid content-start gap-5">
+      <Panel title="Send a request">
+        <form action={sendConnectionRequest} className="flex gap-2.5">
+          <div className="grid min-w-0 flex-1">
             <TextInput
+              aria-label="Username"
               name="username"
               pattern="[A-Za-z0-9_]{3,30}"
-              placeholder="username"
+              placeholder="Username"
               required
               title="Use 3-30 letters, numbers, or underscores."
               type="text"
             />
-          </Field>
-          <PrimaryButton type="submit">Send request</PrimaryButton>
-        </Form>
+          </div>
+          <button
+            className="shrink-0 cursor-pointer rounded-md bg-gold-500 px-4 py-2 text-[13px] font-bold whitespace-nowrap text-pitch-900 hover:bg-gold-600"
+            type="submit"
+          >
+            Send request
+          </button>
+        </form>
+      </Panel>
 
-        <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">Incoming pending</h3>
+      <Panel>
+        <section>
+          <Kicker>Incoming requests</Kicker>
           <IncomingList people={data.incomingPending} />
         </section>
 
-        <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">Outgoing pending</h3>
+        <section className="mt-4 border-t border-cream-400 pt-4">
+          <Kicker>Outgoing requests</Kicker>
           <PendingList people={data.outgoingPending} />
         </section>
 
-        <section className="grid gap-2">
-          <h3 className="text-sm font-semibold">Accepted connections</h3>
+        <section className="mt-4 border-t border-cream-400 pt-4">
+          <Kicker>Connected</Kicker>
           <AcceptedList people={data.accepted} />
         </section>
-      </div>
-    </Panel>
+      </Panel>
+    </div>
   );
 }

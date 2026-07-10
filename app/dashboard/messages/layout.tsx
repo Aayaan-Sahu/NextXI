@@ -17,11 +17,9 @@ export default async function MessagesLayout({
 
   return (
     <MessagesRealtime connectionIds={conversations.map((c) => c.connectionId)}>
-      <main className="mx-auto flex w-full max-w-[960px] flex-1 flex-col px-6 py-8">
-        <div className="flex min-h-0 flex-1 overflow-hidden rounded-lg border border-stone-300 bg-white">
-          <ConversationSidebar conversations={conversations} />
-          <section className="flex min-w-0 flex-1 flex-col">{children}</section>
-        </div>
+      <main className="flex h-[calc(100dvh-4rem)] w-full">
+        <ConversationSidebar conversations={conversations} />
+        <section className="flex min-w-0 flex-1 flex-col bg-cream-200">{children}</section>
       </main>
     </MessagesRealtime>
   );

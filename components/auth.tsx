@@ -5,7 +5,6 @@ import {
   signUp,
   updatePassword,
 } from "@/app/auth/actions";
-import { PixelField } from "@/components/pixel-field";
 import {
   AuthCard,
   AuthShell,
@@ -30,7 +29,6 @@ export function AuthPanel({
 
   return (
     <AuthShell>
-      <PixelField />
       <AuthCard
         footer={
           isSignUp ? (
@@ -40,7 +38,7 @@ export function AuthPanel({
             </>
           ) : (
             <>
-              New to Cricket Platform?{" "}
+              New to NextXI?{" "}
               <TextLink href="/auth?mode=sign-up">Create account</TextLink>
             </>
           )

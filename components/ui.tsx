@@ -6,9 +6,41 @@ type Children = {
   children: ReactNode;
 };
 
+/** The NextXI wordmark. `tone` picks the "Next" color for dark or light surfaces. */
+export function Wordmark({ tone = "dark" }: { tone?: "dark" | "light" }) {
+  return (
+    <span
+      className={`font-display text-xl font-bold tracking-[.06em] uppercase ${
+        tone === "dark" ? "text-cream-200" : "text-pitch-900"
+      }`}
+    >
+      Next<span className="text-gold-500">XI</span>
+    </span>
+  );
+}
+
+/** Small monospace section label, e.g. "Coaching report". */
+export function Kicker({
+  children,
+  tone = "light",
+}: Children & { tone?: "light" | "dark" }) {
+  return (
+    <div
+      className={`font-mono text-[11px] font-semibold tracking-[.2em] uppercase ${
+        tone === "dark" ? "text-gold-500" : "text-rust-600"
+      }`}
+    >
+      {children}
+    </div>
+  );
+}
+
 export function AuthShell({ children }: Children) {
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden p-6">
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-pitch-stripes p-6">
+      <div className="absolute top-8 left-6 sm:left-12">
+        <Wordmark tone="dark" />
+      </div>
       {children}
     </main>
   );
@@ -25,14 +57,16 @@ export function AuthCard({
   title: string;
 }) {
   return (
-    <section className="relative w-full max-w-[420px] overflow-hidden rounded-2xl bg-white shadow-xl shadow-stone-950/10 ring-1 ring-stone-950/5">
-      <div className="p-8">
-        <h1 className="text-xl font-semibold leading-tight">{title}</h1>
-        {description && <p className="mt-2 text-sm text-stone-600">{description}</p>}
+    <section className="relative w-full max-w-[400px] overflow-hidden rounded-xl bg-cream-100 text-ink-900 shadow-2xl shadow-black/45">
+      <div className="p-9">
+        <h1 className="font-display text-[26px] leading-tight font-bold uppercase">
+          {title}
+        </h1>
+        {description && <p className="mt-2 text-sm text-ink-600">{description}</p>}
         {children}
       </div>
       {footer && (
-        <footer className="border-t border-stone-200 bg-stone-50 px-8 py-4 text-center text-sm text-stone-600">
+        <footer className="border-t border-cream-400 px-9 py-4 text-center text-[13.5px] text-ink-600">
           {footer}
         </footer>
       )}
@@ -44,7 +78,7 @@ export function TextLink(props: ComponentProps<typeof Link>) {
   return (
     <Link
       {...props}
-      className="font-medium text-emerald-700 underline-offset-2 hover:underline"
+      className="font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
     />
   );
 }
@@ -62,8 +96,8 @@ export function Notice({
     <p
       className={
         tone === "error"
-          ? "mt-4 rounded-md border border-red-200 bg-red-50 px-3 py-2.5 text-sm text-red-800"
-          : "mt-4 rounded-md border border-stone-200 bg-stone-100 px-3 py-2.5 text-sm text-stone-700"
+          ? "mt-4 rounded-md border border-rust-600/30 bg-rust-600/10 px-3 py-2.5 text-sm text-rust-700"
+          : "mt-4 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm text-ink-600"
       }
     >
       {children}
@@ -72,7 +106,7 @@ export function Notice({
 }
 
 export function PageShell({ children }: Children) {
-  return <main className="mx-auto w-full max-w-[960px] px-6 py-8">{children}</main>;
+  return <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12">{children}</main>;
 }
 
 export function PageHeader({
@@ -85,20 +119,26 @@ export function PageHeader({
   title: string;
 }) {
   return (
-    <header className="mb-6 flex items-center justify-between gap-4 max-md:flex-col max-md:items-start">
+    <header className="mb-8 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
       <div>
-        <h1 className="text-[28px] font-semibold leading-tight">{title}</h1>
-        {subtitle && <p className="mt-2 text-stone-600">{subtitle}</p>}
+        <h1 className="font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase">
+          {title}
+        </h1>
+        {subtitle && <p className="mt-2 text-[14.5px] text-ink-600">{subtitle}</p>}
       </div>
       {action}
     </header>
   );
 }
 
-export function Panel({ children, title }: Children & { title: string }) {
+export function Panel({ children, title }: Children & { title?: string }) {
   return (
-    <section className="rounded-lg border border-stone-300 bg-white p-5">
-      <h2 className="mb-4 text-lg font-semibold leading-tight">{title}</h2>
+    <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-6">
+      {title && (
+        <h2 className="mb-4 font-display text-xl leading-tight font-semibold uppercase">
+          {title}
+        </h2>
+      )}
       {children}
     </section>
   );
@@ -108,8 +148,8 @@ export function Form({ className = "", ...props }: ComponentProps<"form">) {
   return <form {...props} className={`grid gap-4 ${className}`} />;
 }
 
-export function Field(props: ComponentProps<"label">) {
-  return <label {...props} className="grid gap-2 text-sm font-medium" />;
+export function Field({ className = "", ...props }: ComponentProps<"label">) {
+  return <label {...props} className={`grid gap-1.5 text-xs font-bold ${className}`} />;
 }
 
 /**
@@ -118,12 +158,12 @@ export function Field(props: ComponentProps<"label">) {
  * checkbox toggling: the outer label re-activates the control the inner one
  * just toggled.
  */
-export function FieldGroup(props: ComponentProps<"div">) {
-  return <div {...props} className="grid gap-2 text-sm font-medium" />;
+export function FieldGroup({ className = "", ...props }: ComponentProps<"div">) {
+  return <div {...props} className={`grid gap-1.5 text-xs font-bold ${className}`} />;
 }
 
 const inputStyles =
-  "rounded-md border border-stone-300 bg-white px-3 py-2.5 text-neutral-950 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20";
+  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
 
 export function TextInput(props: ComponentProps<"input">) {
   return <input {...props} className={inputStyles} />;
@@ -136,7 +176,7 @@ export function TextArea(props: ComponentProps<"textarea">) {
 /** A checkbox rendered as a toggleable pill, for multi-select chip groups. */
 export function CheckboxChip({ children, ...props }: ComponentProps<"input">) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-stone-300 bg-white px-3 py-1.5 text-sm font-medium text-neutral-950 select-none has-[:checked]:border-emerald-600 has-[:checked]:bg-emerald-700 has-[:checked]:text-white">
+    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-cream-500 px-4 py-[7px] text-[13px] font-semibold text-ink-900 select-none has-[:checked]:border-pitch-900 has-[:checked]:bg-pitch-900 has-[:checked]:text-cream-200">
       <input {...props} className="sr-only" type="checkbox" />
       {children}
     </label>
@@ -146,7 +186,7 @@ export function CheckboxChip({ children, ...props }: ComponentProps<"input">) {
 /** A small rounded label for tags like player roles. */
 export function Badge({ children }: Children) {
   return (
-    <span className="inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-800 ring-1 ring-inset ring-emerald-600/20">
+    <span className="inline-flex items-center rounded-full border border-cream-400 bg-cream-100 px-3 py-1 text-xs font-semibold text-ink-900">
       {children}
     </span>
   );
@@ -156,7 +196,7 @@ export function PrimaryButton(props: ComponentProps<"button">) {
   return (
     <button
       {...props}
-      className="cursor-pointer rounded-md bg-emerald-700 px-3.5 py-2.5 text-sm font-semibold text-white hover:bg-emerald-600"
+      className="cursor-pointer rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600"
     />
   );
 }
@@ -165,7 +205,7 @@ export function SecondaryButton(props: ComponentProps<"button">) {
   return (
     <button
       {...props}
-      className="cursor-pointer rounded-md border border-stone-300 bg-white px-3.5 py-2.5 text-sm font-semibold text-neutral-950 hover:bg-stone-50"
+      className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-900 hover:bg-cream-100"
     />
   );
 }
@@ -174,7 +214,7 @@ export function Spinner() {
   return (
     <span
       aria-label="Loading"
-      className="inline-block size-5 animate-spin rounded-full border-2 border-stone-300 border-t-neutral-950"
+      className="inline-block size-5 animate-spin rounded-full border-2 border-cream-500 border-t-pitch-900"
       role="status"
     />
   );

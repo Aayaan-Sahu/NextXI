@@ -12,25 +12,26 @@ export default async function ThreadPage({ params }: { params: Params }) {
   const thread = await getThread(user.id, connectionId);
   if (!thread) redirect("/dashboard/messages");
 
+  const role = thread.counterpart.role;
   const subtitle = [
     thread.counterpart.username ? `@${thread.counterpart.username}` : null,
-    thread.counterpart.role,
+    role ? role.charAt(0).toUpperCase() + role.slice(1) : null,
   ]
     .filter(Boolean)
     .join(" · ");
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-stone-300 px-4 py-3">
-        <span className="flex size-10 shrink-0 items-center justify-center rounded-full bg-neutral-950 text-sm font-semibold text-white">
+      <header className="flex items-center gap-3 border-b border-cream-400 bg-cream-100 px-6 py-3.5">
+        <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-pitch-900 text-[15px] font-bold text-gold-500">
           {thread.counterpart.name.charAt(0).toUpperCase()}
         </span>
         <div className="min-w-0">
-          <p className="truncate text-sm font-semibold leading-tight">
+          <p className="truncate text-[15px] leading-tight font-bold">
             {thread.counterpart.name}
           </p>
           {subtitle ? (
-            <p className="truncate text-xs text-stone-600">{subtitle}</p>
+            <p className="truncate font-mono text-[11.5px] text-ink-600">{subtitle}</p>
           ) : null}
         </div>
       </header>

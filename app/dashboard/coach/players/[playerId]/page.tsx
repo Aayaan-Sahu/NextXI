@@ -38,7 +38,7 @@ export default async function CoachPlayerVideosPage({
   return (
     <PageShell>
       <Link
-        className="mb-4 inline-block text-sm text-neutral-950 underline-offset-2 hover:underline"
+        className="mb-4 inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
         href="/dashboard/coach"
       >
         ← Dashboard

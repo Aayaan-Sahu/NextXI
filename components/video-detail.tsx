@@ -2,32 +2,38 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Prisma } from "@/app/generated/prisma/client";
 import { ReportPanel } from "@/components/report-panel";
-import { PageHeader, PageShell } from "@/components/ui";
+import { Badge, PageShell } from "@/components/ui";
 import { VideoComments } from "@/components/video-comments";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { formatVideoSize } from "@/lib/videos";
+import { formatVideoSize, formatVideoTags } from "@/lib/videos";
 import { getVideoReport } from "@/lib/videos.server";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export async function VideoDetail({
   backHref,
+  reportTone = "light",
   where,
 }: {
   backHref: string;
+  /** Report card style; the player detail uses the dark scoreboard. */
+  reportTone?: "light" | "dark";
   where: Prisma.PlayerVideoWhereInput;
 }) {
   const video = await prisma.playerVideo.findFirst({
     where,
     select: {
       id: true,
+      category: true,
       createdAt: true,
+      handedness: true,
       originalFilename: true,
       sizeBytes: true,
       storageBucket: true,
       storagePath: true,
       uploadedAt: true,
+      variation: true,
     },
   });
 
@@ -66,24 +72,33 @@ export async function VideoDetail({
   return (
     <PageShell>
       <Link
-        className="mb-4 inline-block text-sm text-neutral-950 underline-offset-2 hover:underline"
+        className="inline-block text-[13px] font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
         href={backHref}
       >
         ← All videos
       </Link>
-      <PageHeader
-        subtitle={`Uploaded ${uploadedAt} · ${formatVideoSize(video.sizeBytes)}`}
-        title={video.originalFilename}
-      />
-      <div className="grid gap-5">
-        <video
-          className="w-full rounded-lg border border-stone-300 bg-black"
-          controls
-          preload="metadata"
-          src={data.signedUrl}
-        />
-        <ReportPanel report={report} />
-        <VideoComments comments={comments} />
+      <header className="mt-[18px] mb-[22px] flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
+        <div>
+          <h1 className="font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase">
+            {video.originalFilename}
+          </h1>
+          <p className="mt-1.5 font-mono text-xs text-ink-600">
+            Uploaded {uploadedAt} · {formatVideoSize(video.sizeBytes)}
+          </p>
+        </div>
+        <Badge>{formatVideoTags(video.category, video.variation, video.handedness)}</Badge>
+      </header>
+      <div className="grid grid-cols-[1.55fr_1fr] items-start gap-7 max-lg:grid-cols-1">
+        <div className="grid gap-6">
+          <video
+            className="aspect-video w-full rounded-[10px] bg-pitch-950"
+            controls
+            preload="metadata"
+            src={data.signedUrl}
+          />
+          <VideoComments comments={comments} />
+        </div>
+        <ReportPanel report={report} subtitle={video.originalFilename} tone={reportTone} />
       </div>
     </PageShell>
   );
