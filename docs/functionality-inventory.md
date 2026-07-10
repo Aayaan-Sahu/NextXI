@@ -1,0 +1,453 @@
+# Cricket Platform — Complete Functionality Inventory
+
+This document catalogs **every piece of functionality** in the app, organized by view. It describes structure, controls, states, and behavior — not current styling — so it can be used as the input to a design pass.
+
+---
+
+## 0. Global Structure & Cross-Cutting Patterns
+
+### Roles
+Four roles: **Player**, **Coach**, **Guardian**, **Admin** (admin is an email allowlist, not an onboarded role). Every dashboard page is server-guarded:
+
+- Unauthenticated → `/auth`
+- Admin email → `/dashboard/admin` (admins never see the normal dashboard)
+- Authenticated but no role yet → `/onboarding`
+- Has a role → `/dashboard/{role}`; visiting another role's page redirects to your own
+
+### Dashboard shell (every signed-in view)
+A top navigation bar with:
+
+- **Brand link** "Cricket Platform" → role home
+- **Nav tabs**: Home · Progress (player-only) · Connections · Messages. Active tab = current path prefix, visually emphasized.
+- **Limited mode** (guardians, and players stuck in `PENDING_GUARDIAN` status): only "Home" is shown; "Edit profile" is hidden too.
+- **Avatar button** (right): circle with the user's first initial. Opens a dropdown menu (`aria-haspopup="menu"`) containing **Edit profile** (hidden in limited mode) and **Sign out**. An invisible full-screen backdrop closes it on outside click.
+
+**Route-level loading**: a centered spinner (`role="status"`, aria-label "Loading") during navigation on dashboard routes.
+
+### Feedback pattern (important for design)
+Almost every form is a server action that redirects back with `?error=` / `?message=` query params, rendered as one **error banner** and/or one **info banner** at the top of the page. Consequences the design should address:
+
+- **No inline field-level server errors** — everything is a top-of-page banner after a full page reload.
+- **No pending/disabled/spinner states on buttons** during submission (the only exception is the message composer, which is optimistic).
+- **No confirmation dialogs on any Delete** (videos, stat entries, goals, reminders) — the only confirmation modal in the app is "Revoke connection".
+- **No toasts** anywhere.
+
+Client-side, HTML-native validation (`required`, `pattern`, `min`/`max`, email type) fires before submit.
+
+---
+
+## 1. Authentication View
+
+All auth screens share a centered single card: title, optional description, form, notices below the form, and an optional footer separated by a divider. Behind the card on `/auth` is a decorative animated pixel-art cricket field (aria-hidden, non-interactive, respects `prefers-reduced-motion`).
+
+### 1.1 Landing (`/`)
+Pure router — no UI. Redirects: signed-out → `/auth`; admin → `/dashboard/admin`; has role → `/dashboard`; no role → `/onboarding`.
+
+### 1.2 Auth panel (`/auth`) — Sign in / Sign up
+One screen, two modes toggled by a **footer link** (URL param `?mode=sign-up`), not tabs. Already-signed-in users are bounced away.
+
+**Sign in mode**
+- Title: "Sign in to your account"
+- Fields: **Email** (email type, required, autocomplete) · **Password** (required, minLength 6, `current-password`)
+- Inline "**Forgot your password?**" link next to the Password label → `/auth/reset-password`
+- Button: "Sign in"
+- Footer: "New to Cricket Platform? **Create account**"
+- Errors: "Enter your email and password." · raw Supabase error · "Sign in failed."
+- Success: admin → admin dashboard; else role → `/dashboard`, no role → `/onboarding`
+
+**Sign up mode**
+- Title: "Create your account"
+- Same fields (`new-password` autocomplete); no forgot-password link
+- Button: "Create account"
+- Footer: "Already have an account? **Sign in**"
+- Errors: "Enter an email and a password with at least 6 characters." · "That account already exists. Sign in or reset your password." · raw Supabase error
+- Success: redirect to `/auth/check-email?email=…` (no session until email confirmed)
+
+### 1.3 Check email (`/auth/check-email`)
+- Title: "Check your email". Description: "If this is a new account, confirm it from the verification email. If the account already exists, sign in or reset your password."
+- Field: **Email** (required, pre-filled from query param, editable)
+- Button: "**Resend verification email**". Success info notice: "Verification email sent." Error: "Enter the email address you used." or Supabase error.
+- Footer link: "Back to sign in"
+
+### 1.4 Email confirmation (`/auth/confirm`)
+No UI — GET route handler that verifies the email token (signup or recovery), sets the session, and redirects to `next` (default `/onboarding`; recovery → `/auth/reset-password`). Errors bounce to `/auth?error=…`. The `next` param is sanitized against open redirects.
+
+### 1.5 Reset password (`/auth/reset-password`)
+One screen, two modes decided by **whether a session exists**:
+
+**Mode A — signed out (request reset)**
+- Title: "Reset your password". Description: "We will send you a link to reset your password."
+- Field: **Email** (required). Button: "**Send reset email**".
+- Success: "Password reset email sent." Error: "Enter your email address." or Supabase error.
+- Footer: "Back to sign in"
+
+**Mode B — signed in (arrived via recovery link)**
+- Title: "Set a new password". Description: "Enter a new password for your account."
+- Field: **New password** (required, minLength 6). Button: "**Update password**".
+- Error: "Use at least 6 characters." Success → `/dashboard`.
+
+---
+
+## 2. Onboarding View (`/onboarding`)
+
+Two-step, URL-driven flow (deep-linkable; no client wizard state). Users who already have a role are bounced to `/dashboard`. Footer on both steps: "Signed in as {email} · **Sign out**".
+
+### Step 1 — Role choice (no `role` param)
+- Title: "How will you use Cricket Platform?" Description: "Choose a role to finish setting up your account."
+- Three tappable link-cards (nav labeled "Choose your role"):
+  - **"I'm a player"** — "Build your profile and share videos of your game with coaches."
+  - **"I'm a coach"** — "Discover players and review their videos."
+  - **"I'm a parent / guardian"** — "Approve and follow your child's player account."
+
+### Step 2 — Role form (`?role=player|coach|guardian`)
+- Title: "Set up your {role} profile". Description: "Tell us a bit about yourself to finish setting up."
+- Back link below the form: "← Choose a different role"
+- On any server validation error, the user returns to this same role form with an error banner (role preserved).
+
+**Common fields (all roles)**
+- **Name** — text, required
+- **Username** — text, required, pattern `[A-Za-z0-9_]{3,30}`, tooltip "Use 3-30 letters, numbers, or underscores." Lowercased server-side. Collision → "Username is taken."
+- Submit button: "Create {role} profile"
+
+**Player fields**
+- **Date of birth** — date, required
+- **Club** — text, required
+- **County** — text, required, placeholder "e.g. Surrey"
+- **Height (cm)** — number, optional, 1–300, placeholder "Optional"
+- **Weight (kg)** — number, optional, 1–500, placeholder "Optional" (height/weight in a 2-col row)
+- **Playing roles** — multi-select checkbox **chips**, optional, helper "Optional. Select any that apply." Options: Batter, Pace bowler, Off spin, Leg spin, Wicketkeeper, All-rounder
+- Errors: "Complete all player fields." · "Enter a valid height and weight, or leave them blank."
+- **Under-18 branch**: DOB under 18 → account created with status `PENDING_GUARDIAN` and a **guardian code** generated; 18+ → `ACTIVE`.
+
+**Coach fields**
+- **Accomplishments** — textarea, 6 rows, optional, placeholder "One accomplishment per line" (split on newlines and commas). Error: "Enter your name."
+- New coaches start **PENDING** (must be admin-approved before the platform unlocks).
+
+**Guardian fields**
+- **Child's approval code** — text, required, placeholder "e.g. ABCD-2345", helper "Shown on your child's dashboard after they sign up."
+- Errors: "Enter the code shown on your child's dashboard." · "That code doesn't match a pending player account."
+- Success atomically claims the pending child: player becomes ACTIVE, guardian linked, code cleared (race-safe — two guardians can't claim the same child).
+
+### Guardian code mechanics
+- 8 chars from a look-alike-free alphabet (no I, L, O, U, 0, 1), cryptographically random.
+- Displayed hyphenated: `ABCD-2345`. Entry is normalized (case/spaces/hyphens ignored).
+- Single-use; cleared once claimed.
+
+---
+
+## 3. Player View
+
+### 3.1 Home tab — pending-guardian gate
+If the player is under 18 and unapproved (`PENDING_GUARDIAN`), the entire home page is replaced with:
+- Header: "Welcome {name}" + email subtitle
+- Panel "**Guardian approval needed**": explains a parent/guardian must sign up, choose the guardian role, and enter the code — then displays the **guardian code** large, monospace, letter-spaced.
+- Nav is limited to "Home" only; no Edit profile; no other functionality anywhere.
+
+### 3.2 Home tab — active player ("Your videos")
+Top-to-bottom:
+1. Header: title "Your videos", subtitle "Upload footage of your batting, bowling, and fielding for coaches and scouts to see."
+2. **Role badges** (display-only pills for the player's playing roles, if any)
+3. **Video upload widget**
+4. **Video grid** of the player's own READY videos (newest first)
+
+### 3.3 Video upload flow
+**Three required dropdowns** (in a row; all disabled while uploading):
+1. **Discipline** — "Select…" default; options: Pace bowling, Off spin, Leg spin, Batting. Changing it resets Variation.
+2. **Variation / Shot** — label reads "**Shot**" when Batting, else "**Variation**". Disabled until a discipline is chosen. Options by discipline:
+   - Pace: Stock ball, Yorker, Bouncer, Slower ball, Leg cutter, Off cutter
+   - Off spin: Stock ball, Arm ball, Top spinner, Carrom ball, Doosra
+   - Leg spin: Stock ball, Googly, Slider, Top spinner, Flipper
+   - Batting: Straight drive, Cover drive, On drive, Square drive, Cut, Pull, Hook, Sweep, Reverse sweep, Flick
+3. **Handedness** — "Select…" default; Right / Left.
+
+**Drop zone** (dashed border, drag-active visual state):
+- Idle: heading "Drag and drop a video to upload", helper "MP4, MOV, or WebM, up to 500 MB.", and a "**Browse files**" button (file picker). Drag-drop or browse; first file only.
+- Uploading: idle content is replaced by a **progress bar** + "{n}% uploaded" label (live, chunked resumable upload with automatic retries).
+
+**Constraints & pre-checks (inline error text below the zone):**
+- Dropdowns not all set → "Choose a discipline, variation, and handedness before uploading."
+- Type not MP4/MOV/WebM → "Choose an MP4, MOV, or WebM file."
+- Size 0 or > 500 MB → "Videos must be larger than 0 bytes and no more than 500 MB."
+- Undecodable codec (thumbnail capture fails) → "This video uses a codec browsers cannot play. Re-export it as an H.264 MP4 and try again."
+
+**Pipeline (invisible to user beyond the progress bar):** client captures a JPEG thumbnail from ~1s in → server creates the video row and signed upload URLs → chunked tus upload (6 MB chunks) → best-effort thumbnail PUT → completion call marks the video READY and **auto-creates an AI report slot**. On success the page refreshes and the new video appears in the grid. Server errors are shown verbatim (e.g. "Upload has not finished.", "Could not verify upload.", "Account pending guardian approval.").
+
+### 3.4 Video grid (player's own)
+Responsive 3 → 2 → 1 column grid. **Empty state:** "No videos yet. Upload your first video above."
+
+Each card (links to the video detail page):
+- **Thumbnail** (16:9) or a placeholder tile with a ▶ glyph
+- **Filename** (truncated)
+- Meta line: "{date} · {size}" (e.g. "Jan 5, 2026 · 12.3 MB")
+- **Tag label**: "Pace bowling · Yorker · Right handed" (or "Untagged")
+- **Delete button** — trash icon at bottom-right, aria-label "Delete {filename}". Deletes immediately (no confirmation, no toast); cascades the report, comments, and views; grid refreshes.
+
+No view-count badges, no "new comment" indicators, no status badges, and **no filter/sort controls** on the player's own grid (only coaches get the filter bar).
+
+### 3.5 Video detail page (player)
+Player can open only their **own READY** videos (anything else 404s).
+
+- Back link: "← All videos"
+- Header: filename; subtitle "Uploaded {date} · {size}"
+- **Native HTML5 video player** (browser controls, signed URL with 1-hour TTL). No custom controls, no annotation overlay, no report-timestamp seeking.
+- **Coaching report panel** (below the player) — see 3.6
+- **Feedback panel** (comments) — read-only for players; **players cannot comment**. No delete button on the detail page (deletion lives only on the grid card).
+
+### 3.6 AI Coaching report panel ("Coaching report")
+Reports are generated **automatically** — no "request report" button anywhere; a slot is created on upload completion and filled by a background pipeline. No live polling — users must reload to see a report arrive.
+
+States (exact copy):
+- Pending / processing / no row yet: "Your coaching report is being prepared."
+- Failed: "We couldn't complete the analysis for this video. We'll retry automatically — please check back later." (no manual retry control)
+- Ready — renders, in order, whichever are present:
+  1. **Overall score** — big number "/ 100 overall" (clamped 0–100)
+  2. **Metrics** — each with name, rounded score, horizontal score bar, optional comment
+  3. **Coach feedback** — free-text section, line breaks preserved
+  4. **Timeline notes** — list of `m:ss` timestamp chips + note text (display-only; do not seek the video)
+  5. **Raw report data** — collapsible `<details>` of pretty-printed JSON (shown if the payload has unrecognized keys or nothing parseable)
+  6. Footer: "Generated by {modelVersion}" (if present)
+- Ready but malformed payload: "Your coaching report is ready, but it arrived in an unexpected format." + raw data.
+
+### 3.7 Feedback / comments panel ("Feedback")
+- Comments ordered oldest → newest. Each: author name (bold), "@username", date (day granularity, e.g. "Jan 5, 2026"), body with line breaks preserved.
+- Empty state: "No feedback yet."
+- **Only approved, connected coaches can post** (form appears only on the coach's video page). Players and guardians are read-only.
+
+### 3.8 Player permissions summary
+| Capability | Player |
+|---|---|
+| Upload own videos with discipline/variation/handedness tags | Yes |
+| View/delete own READY videos | Yes (delete = grid only, no confirm) |
+| See AI coaching report | Read-only |
+| Request/retry a report | No (automatic) |
+| Read coach comments | Yes |
+| Post comments | No |
+| Filter/sort own grid | No |
+| See other players' videos | No |
+| Anything while `PENDING_GUARDIAN` | No — code screen only |
+
+---
+
+## 4. Progress Tab (player-only)
+
+Access: players only; pending-guardian players are bounced back to the player home. Header: "Progress" / "Log your matches, watch your trends, and set goals to work towards." Feedback via top-of-page error/info banners (full-reload pattern, no inline errors, no pending states, no delete confirmations).
+
+Vertical stack of four sections:
+
+### 4.1 Trends (charts)
+**Global empty state** (no entries at all): dashed callout — heading "No stats yet", body "Log your first match below and your batting and bowling trends will appear here."
+
+Otherwise a 2-col (desktop) / 1-col grid of **four charts**, each a titled card with an SVG (fixed 180px height, horizontally scrollable, width grows 48px per data point). Data is full history, chronological. No time-range selectors, filters, or aggregation controls.
+
+1. **Runs per match** — bar chart, one bar per entry with runs. Value labels above bars when ≤16 bars; date labels ("5/7") under bars when ≤10. Y-axis max labeled. Empty: "No batting logged yet."
+2. **Wickets per match** — same bar rules. Empty: "No bowling logged yet."
+3. **Batting average** — line chart of running cumulative average (cumulative runs ÷ dismissals; "not out"/retired-style dismissals don't count as outs). Dots per point; first/last points labeled with value + date. Empty: "Log a completed innings to track your average."
+4. **Bowling economy** — line chart of running economy (runs conceded ÷ overs, cricket `.1–.5` over notation converted properly). Empty: "Log some overs to track your economy."
+
+### 4.2 Log a match (stat entry form)
+Title "Log a match", submit button "**Save match**", helper "Fill in the batting or bowling details (or both) for the match." Success banner: "Match logged."
+
+- **Match date** — date, **required**. Invalid → "Enter a valid match date."
+- **Opponent** — text, optional, max 120 ("Opponent name is too long.")
+- **Batting** (3-up): **Runs** (0–1000) · **Balls faced** (0–2000) · **Dismissal** (text, max 60, placeholder "e.g. bowled, not out")
+- **Bowling** (3-up): **Overs** (cricket notation, pattern `\d{1,3}(\.[0-5])?`, placeholder "e.g. 4.3", error "Overs must use .1–.5 notation, e.g. 4.3.") · **Wickets** (0–10) · **Runs conceded** (0–1000)
+- Bad numbers → "Check the batting and bowling numbers you entered."
+- Must include batting OR bowling → "Add batting or bowling details for this match."
+
+No edit capability — entries are create + delete only.
+
+### 4.3 Match log (history)
+Newest first. Empty: "No matches logged yet. Add your first match above to start tracking."
+
+Each row:
+- Header: "{5 Jul 2024}" + "vs {opponent}" if set
+- Batting line (if any batting data): "Batting: {runs or –} ({balls} balls) · {dismissal}"
+- Bowling line (if any bowling data): "Bowling: {wickets or –}/{conceded or –} ({overs} ov)"
+- **Delete** button — immediate, no confirm. Success: "Match removed."
+
+### 4.4 Goals panel
+Create form: **Goal** (text, required, max 200, placeholder "e.g. Improve strike rate") · **Metric** (optional, max 80) · **Target** (optional number, decimals ok) · **Target date** (optional date). Button "**Add goal**", success "Goal added."
+
+List (open goals first, then most recent). Empty: "No goals yet. Set one above." Each row:
+- Title (strikethrough when completed)
+- Meta line joined with " · ": metric, "target {n}", "by {date}"
+- **Mark complete** / **Reopen** toggle (banners: "Goal completed." / "Goal reopened.")
+- **Delete** (no confirm; "Goal removed.")
+
+Goal progress is a manual binary toggle — no automatic tracking against logged stats.
+
+### 4.5 Reminders panel
+Create form: **Reminder** (text, required, max 300, placeholder "e.g. Book a net session") · **Due date** (optional). Button "**Add reminder**", success "Reminder added."
+
+List (open first, then soonest due, nulls last). Empty: "No reminders yet." Each row: text (strikethrough when done), "Due {date}" if set, **Mark done**/**Reopen** toggle, **Delete** (no confirm). No notifications, badges, or overdue highlighting — reminders surface only in this list.
+
+---
+
+## 5. Connections Tab (`/dashboard/connections`)
+
+Header: "Connections" / "Find players and coaches by username and manage your requests." Error + info banners from query params.
+
+**Role differences:** Players see the "Find a coach" directory **plus** the Connections panel. Coaches and guardians see only the Connections panel.
+
+### 5.1 "Find a coach" directory (players only)
+- **Search form** (GET): search input "Search coaches by name" + "Search" button; case-insensitive name substring filter, persisted in `?q=`.
+- Lists **approved coaches only**, sorted by name. Each row: name + " @username", below it accomplishments joined with " · " (or "No accomplishments listed.").
+- Per-row action by connection state:
+  - none → "**Request to connect**" button
+  - revoked → "**Request again**" button
+  - pending → static text "Requested"
+  - accepted → static text "Connected"
+- Empty states: "No coaches match your search." (with query) · "No approved coaches yet." (no coaches)
+
+### 5.2 Connections panel (all roles)
+**Send request by username form:** one **Username** field (required, pattern `[A-Za-z0-9_]{3,30}`) + "**Send request**" button.
+
+**Three lists** (each with empty state "None."):
+1. **Incoming pending** — rows show name / @username / role; actions **Accept** (primary) and **Decline** (secondary). Decline deletes the request entirely.
+2. **Outgoing pending** — display-only rows. **There is no cancel/withdraw control** for outgoing requests.
+3. **Accepted connections** — rows with a "**Revoke**" button that opens the app's only confirmation modal (alertdialog): heading "Revoke this connection?", warning "This coach will lose access to your videos." (coach counterpart) or "You will lose access to this person's videos and messages.", buttons **Cancel** / **Revoke**. Revoking also removes the conversation from Messages immediately.
+
+### 5.3 Rules & exact messages
+- Eligibility gates (sending/responding): unapproved coach → "Your coach account is still under review."; pending-guardian player → "Your account needs guardian approval first."
+- Request outcomes: "You can't connect with yourself." · "No user found for that username." · "That coach is not available to connect yet." · "That player is not available to connect yet." (child-safety: can't connect to unapproved minors) · "You are already connected." · "That request is already pending." · success "Request sent." (a revoked pair is re-opened to pending)
+- Respond: only the recipient can act ("Only the recipient can respond."); accept → "Request accepted."; decline → "Request declined."
+- Revoke: success "Connection revoked."; stale → "Connection not found."
+- Statuses: PENDING / ACCEPTED / REVOKED, one row per user pair, initiator recorded.
+
+---
+
+## 6. Messages Tab (`/dashboard/messages`)
+
+Two-pane layout: fixed-width **conversation sidebar** left, thread right (sidebar narrows on smaller screens). Conversations exist only for **accepted connections**.
+
+### 6.1 Index & loading states
+- No conversation selected: centered "**Your messages**" / "Select a conversation to start chatting."
+- Thread loading: centered spinner in the right pane.
+
+### 6.2 Conversation sidebar
+- **Search input** at top (placeholder "Search") — client-side fuzzy filter (query characters must appear in order in the counterpart's name or username).
+- **Rows** (link to thread): avatar circle with first initial · counterpart name (truncated) · last-message preview (truncated, prefixed "You: " for own messages, or "No messages yet.") · **unread count pill** when > 0. Active conversation visually marked.
+- Ordered by most recent message; empty conversations sink to the bottom.
+- Empty states: "No connections match your search." · "No conversations yet. Connect with someone to start messaging."
+
+### 6.3 Conversation thread
+- **Header:** avatar initial, counterpart name, subtitle "@username · role" (parts omitted when absent).
+- **Messages:** ascending by time. Bubbles aligned by sender side (own vs counterpart); no in-thread name labels; line breaks preserved.
+- **Timestamp dividers:** centered "Mar 5, 09:14"-style line above the first message and whenever >15 minutes elapsed since the previous message. Each bubble carries a hover tooltip with the same timestamp.
+- **Receipts** (only under your most recent own message): "Sending…" (in flight) → "Sent" → "Read {hh:mm}".
+- **Auto-scroll** to bottom on new messages. Empty state: "No messages yet. Say hello."
+- **Read marking:** incoming messages are marked read when the thread is open and the tab is visible (also on focus regain).
+- **Realtime:** one websocket subscribed to all conversations; new messages and read-status updates appear live in the open thread; sidebar previews/badges refresh (debounced ~800ms).
+
+### 6.4 Composer
+- Single-line input, placeholder "Message...", max 4000 chars, + "**Send**" button.
+- **Optimistic send:** the message appears immediately with "Sending…", input clears; on failure the placeholder is removed, an error banner appears above the composer, and the draft is restored for retry.
+- Server rules: "Conversation not found." · "Enter a message up to 4000 characters." · "Your account is pending approval." (unapproved coach) · "Your account is pending guardian approval." (pending player)
+- Any accepted pair can message; revoking the connection removes access and the conversation.
+
+---
+
+## 7. Edit Profile (`/dashboard/profile`)
+
+Only players and coaches (guardians are redirected to their home; no guardian profile editing exists). Header: "Edit profile" + email subtitle. Banner-based success/error ("Profile updated." / errors).
+
+### Player panel ("Player profile")
+Fields, all pre-filled: **Name** (required) · **Username** (required, pattern, "Username is taken." on collision) · **Club** (required) · **County** (required, "e.g. Surrey") · **Height (cm)** (optional, 1–300) · **Weight (kg)** (optional, 1–500) · **Playing roles** multi-select chips (Batter, Pace bowler, Off spin, Leg spin, Wicketkeeper, All-rounder). Button "**Save changes**".
+Errors: "Enter your name." · "Complete all player fields." · "Enter a valid height and weight, or leave them blank."
+Not editable: date of birth, visibility, status, guardian link.
+
+### Coach panel ("Coach profile")
+**Name** (required) · **Username** (required) · **Accomplishments** textarea (8 rows, "One accomplishment per line", split on newlines/commas). Button "**Save changes**".
+
+---
+
+## 8. Coach View
+
+### 8.1 Approval gate (replaces the entire dashboard)
+New coaches are **PENDING** until an admin acts. Header always: "Welcome {name}, coach" + email.
+
+- **Pending:** single panel "Account under review" — "Thanks for signing up. To keep the platform safe for young athletes, an administrator reviews every coach before activation. You'll gain full access once you're approved."
+- **Rejected:** panel "Account not approved" — "Your coach account was not approved. If you believe this is a mistake, please contact support."
+- No other UI in either state (no roster, videos, or filters). Connections/messaging actions also refuse unapproved coaches.
+
+### 8.2 Coach Home (approved) — the review queue
+Subtitle: "New videos from players you are connected with. Open a video to mark it as reviewed." Stack: Players panel → Filter bar → Video grid.
+
+**Players panel** ("Players"): chips for every accepted-connection player — name + role badges — each linking to that player's detail page. Empty: "No connected players yet."
+
+**Filter bar** (URL-driven, instant, no submit button):
+- **Discipline** select — "All disciplines" + the four disciplines; changing resets Variation
+- **Variation or shot** select — "All variations" + the chosen discipline's list; disabled until a discipline is picked
+- **Handedness** select — "Any hand" / "Right handed" / "Left handed"
+- Filters persist in the URL (shareable, survives reload). No sort control (fixed newest-first).
+
+**Video grid — unviewed feed:** only READY videos from connected players **the coach has not yet opened**, filtered by the bar. Cards = thumbnail/placeholder, filename, date · size, tag label, **plus the player's name**. No delete button. Empty: "No unviewed videos. Visit a player from the Players panel to rewatch their videos."
+
+### 8.3 Coach → Player detail page
+Guard: must have an accepted connection with the player (else 404).
+- Back link "← Dashboard"
+- Header: player name; subtitle "All of this player's videos, including ones you have already reviewed."
+- Player **role badges** (if any). No physical stats shown (club/county/DOB/height/weight are guardian-view only).
+- **No filter bar.** Grid of ALL the player's READY videos (viewed and unviewed), no player-name line, no delete. Empty: "This player has not uploaded any videos yet."
+
+### 8.4 Coach video detail
+Guard: video READY + accepted connection (else 404). **Opening the page marks the video as viewed** — it drops off the coach's home feed (this is the "mark as reviewed" mechanic; there is no explicit button).
+
+- Back link "← All videos" → coach home
+- Header: filename; subtitle "{player name} · Uploaded {date} · {size}"
+- Two-column layout (large screens): main = video player + **Coaching report** panel (identical display-only states as the player view); sidebar = **Feedback** panel with the comment form.
+
+**Comment form (coach-only writing surface):**
+- Error notice slot + required textarea (aria-label "Leave feedback", max 2000, 4 rows, placeholder "Leave feedback for this player…") + "**Post feedback**" button.
+- Errors: "Enter feedback up to 2000 characters." · "Complete your profile before leaving feedback." (no username)
+- Coach cannot: delete the video, edit/delete comments (theirs or others'), or request/regenerate reports.
+
+---
+
+## 9. Guardian View
+
+Guardians are read-only observers of exactly one linked child. Limited nav (Home only, no Edit profile). Guardians can use Connections (panel only) and Messages.
+
+### 9.1 Guardian Home
+- **No linked player:** header "Welcome {name}" + email; panel "No linked player" — "Your account isn't linked to a player. If you believe this is a mistake, please contact support." Nothing else.
+- **Linked:** header "{child name}'s player account"; subtitle "You approved this account and can review everything your child shares."
+  - **Profile panel**: definition list showing only populated facts — Club, County, Date of birth, Height ("{n} cm"), Weight ("{n} kg") — plus the child's role badges.
+  - **Video grid**: all the child's READY videos, newest first (thumbnail, filename, date · size, tag label). No filters, no delete, no player-name line. Empty: "No videos yet. Videos your child uploads will appear here."
+
+### 9.2 Guardian video detail
+Only their own child's READY videos (else 404). Back link "← All videos". Single-column: video player → Coaching report panel (same states) → Feedback panel **without a comment form** (read-only comments; empty state "No feedback yet."). Opening does **not** mark anything viewed. No delete, no report controls.
+
+---
+
+## 10. Admin View (`/dashboard/admin`)
+
+A single-purpose **coach review console**. Admin is determined by email allowlist; admins are redirected here from everywhere else.
+
+- Header: "Admin — coach review", subtitle = admin email, header action = **Sign out** button.
+- Error/info banners from query params.
+- **Pending coaches panel** — title with live count "Pending coaches ({n})", oldest first.
+  - Empty: "No coaches awaiting review."
+  - Each row: coach name + "@username", a bulleted list of accomplishments (or "No accomplishments listed."), and two buttons: **Approve** (primary) / **Reject** (secondary).
+  - Outcomes: "Coach approved." / "Coach rejected." · stale race → "That coach is no longer pending." · bad request → "Invalid request."
+- Admin **cannot**: re-review already-actioned coaches, manage players/guardians, moderate videos/comments/reports, or edit anything else. Approve/reject pending coaches is the entire admin surface.
+
+---
+
+## 11. Reference
+
+### Vocabulary / enums
+- **Playing roles:** Batter, Pace bowler, Off spin, Leg spin, Wicketkeeper, All-rounder
+- **Video disciplines & variations:** see §3.3
+- **Handedness:** Right, Left
+- **Player status:** ACTIVE / PENDING_GUARDIAN · **Coach status:** PENDING / APPROVED / REJECTED · **Connection status:** PENDING / ACCEPTED / REVOKED · **Video status:** PENDING_UPLOAD / READY · **Report status:** PENDING / PROCESSING / READY / FAILED
+- **Date formats in use:** "Jan 5, 2026" (videos/comments) · "5 Jul 2024" (progress, en-GB UTC) · "5/7" (chart ticks) · "Mar 5, 09:14" (message dividers) · `m:ss` (report timestamps)
+
+### Known UX gaps (opportunities for the design pass)
+1. All server feedback is top-of-page banners after full page reloads — no inline field errors, no toasts.
+2. No button pending/disabled states during submission (except the optimistic message composer).
+3. No delete confirmations anywhere except connection revoke (videos, matches, goals, reminders all delete instantly).
+4. No edit flows for stat entries, goals, or reminders (create/delete/toggle only).
+5. Reports require a manual reload to appear (no polling); report timeline timestamps don't seek the video.
+6. No cancel control for outgoing connection requests.
+7. No overdue treatment for reminders; no notifications of any kind (comments, reports, requests) outside the messages unread badge.
+8. Charts have no time-range or filter controls; values always span full history.
