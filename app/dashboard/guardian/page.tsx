@@ -18,7 +18,7 @@ export default async function GuardianDashboardPage() {
     select: {
       id: true,
       club: true,
-      county: true,
+      country: true,
       dateOfBirth: true,
       heightCm: true,
       name: true,
@@ -50,7 +50,7 @@ export default async function GuardianDashboardPage() {
 
   const facts = [
     ["Club", child.club],
-    ["County", child.county],
+    ["Country", child.country],
     ["Date of birth", dateOfBirth],
     ["Height", child.heightCm ? `${child.heightCm} cm` : null],
     ["Weight", child.weightKg ? `${child.weightKg} kg` : null],

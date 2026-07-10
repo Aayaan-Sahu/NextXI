@@ -5,7 +5,7 @@ import { redirect } from "next/navigation";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { parsePlayerRoles } from "@/lib/players";
+import { isCountry, parsePlayerRoles } from "@/lib/players";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
 const INVALID_NUMBER = Symbol("invalid-number");
@@ -52,19 +52,23 @@ export async function updateProfile(formData: FormData) {
 
   if (player) {
     const club = text(formData, "club");
-    const county = text(formData, "county");
+    const country = text(formData, "country");
     const roles = parsePlayerRoles(formData);
     const heightCm = optionalInt(formData, "heightCm", 1, 300);
     const weightKg = optionalInt(formData, "weightKg", 1, 500);
 
-    if (!club || !county) profileError("Complete all player fields.");
-    if (heightCm === INVALID_NUMBER || weightKg === INVALID_NUMBER) {
-      profileError("Enter a valid height and weight, or leave them blank.");
+    if (!club) profileError("Complete all player fields.");
+    if (!isCountry(country)) profileError("Select a valid country.");
+    if (heightCm === null || heightCm === INVALID_NUMBER) {
+      profileError("Enter a valid height.");
+    }
+    if (weightKg === INVALID_NUMBER) {
+      profileError("Enter a valid weight, or leave it blank.");
     }
 
     roleUpdate = prisma.player.update({
       where: { id: user.id },
-      data: { club, county, heightCm, name, roles, weightKg },
+      data: { club, country, heightCm, name, roles, weightKg },
     });
   } else if (coach) {
     const accomplishments = text(formData, "accomplishments")

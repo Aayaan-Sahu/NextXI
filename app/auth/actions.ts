@@ -7,7 +7,7 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code";
-import { parsePlayerRoles } from "@/lib/players";
+import { isCountry, parsePlayerRoles } from "@/lib/players";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
@@ -194,18 +194,25 @@ export async function completeOnboarding(formData: FormData) {
     const name = text(formData, "name");
     const dateOfBirth = text(formData, "dateOfBirth");
     const club = text(formData, "club");
-    const county = text(formData, "county");
     const roles = parsePlayerRoles(formData);
+    const country = text(formData, "country");
     const parsedDate = new Date(`${dateOfBirth}T00:00:00.000Z`);
     const heightCm = optionalInt(formData, "heightCm", 1, 300);
     const weightKg = optionalInt(formData, "weightKg", 1, 500);
 
-    if (!name || !club || !county || Number.isNaN(parsedDate.getTime())) {
+    if (!name || !club || Number.isNaN(parsedDate.getTime())) {
       onboardingError(role, "Complete all player fields.");
     }
 
-    if (heightCm === INVALID_NUMBER || weightKg === INVALID_NUMBER) {
-      onboardingError(role, "Enter a valid height and weight, or leave them blank.");
+    if (!isCountry(country)) {
+      onboardingError(role, "Select a valid country.");
+    }
+
+    if (heightCm === null || heightCm === INVALID_NUMBER) {
+      onboardingError(role, "Enter a valid height.");
+    }
+    if (weightKg === INVALID_NUMBER) {
+      onboardingError(role, "Enter a valid weight, or leave it blank.");
     }
 
     const minor = isUnder18(dateOfBirth);
@@ -217,7 +224,7 @@ export async function completeOnboarding(formData: FormData) {
         prisma.player.create({
           data: {
             club,
-            county,
+            country,
             dateOfBirth: parsedDate,
             guardianCode: minor ? generateGuardianCode() : null,
             heightCm,

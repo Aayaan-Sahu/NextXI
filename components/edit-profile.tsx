@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import { updateProfile } from "@/app/dashboard/profile/actions";
 import type { PlayerRole } from "@/app/generated/prisma/enums";
+import { CountrySelect } from "@/components/country-select";
 import { CheckboxChip, Field, FieldGroup, Form, Kicker, PrimaryButton, TextArea, TextInput } from "@/components/ui";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
@@ -35,8 +36,8 @@ export function EditPlayerProfilePanel({
 }: {
   player: {
     club: string;
-    county: string;
-    heightCm: number | null;
+    country: string;
+    heightCm: number;
     name: string;
     roles: PlayerRole[];
     weightKg: number | null;
@@ -56,18 +57,18 @@ export function EditPlayerProfilePanel({
             Club
             <TextInput defaultValue={player.club} name="club" required type="text" />
           </Field>
-          <Field>
-            County
-            <TextInput defaultValue={player.county} name="county" placeholder="e.g. Surrey" required type="text" />
-          </Field>
+          <FieldGroup>
+            Country
+            <CountrySelect defaultValue={player.country} name="country" />
+          </FieldGroup>
           <Field>
             Height (cm)
             <TextInput
-              defaultValue={player.heightCm ?? ""}
+              defaultValue={player.heightCm}
               max={300}
               min={1}
               name="heightCm"
-              placeholder="Optional"
+              required
               type="number"
             />
           </Field>

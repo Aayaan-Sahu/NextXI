@@ -105,9 +105,9 @@ model Player {
   name         String
   dateOfBirth  DateTime      @map("date_of_birth") @db.Date
   club         String
-  county       String
+  country      String
   roles        PlayerRole[]  @default([])
-  heightCm     Int?          @map("height_cm")
+  heightCm     Int           @map("height_cm")
   weightKg     Int?          @map("weight_kg")
   visibility   Visibility    @default(PRIVATE)
   status       PlayerStatus  @default(ACTIVE)

@@ -71,7 +71,7 @@ export const getProfile = cache(async (userId: string) => {
       where: { id: userId },
       select: {
         club: true,
-        county: true,
+        country: true,
         dateOfBirth: true,
         guardianCode: true,
         heightCm: true,

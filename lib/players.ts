@@ -29,3 +29,26 @@ export function parsePlayerRoles(formData: FormData): PlayerRole[] {
   }
   return [...seen];
 }
+
+/** Countries selectable on a player profile, in display order, with flag emoji. */
+export const COUNTRY_OPTIONS: { label: string; flag: string }[] = [
+  { label: "England", flag: "🏴󠁧󠁢󠁥󠁮󠁧󠁿" },
+  { label: "Australia", flag: "🇦🇺" },
+  { label: "India", flag: "🇮🇳" },
+  { label: "Pakistan", flag: "🇵🇰" },
+  { label: "New Zealand", flag: "🇳🇿" },
+  { label: "South Africa", flag: "🇿🇦" },
+  { label: "Sri Lanka", flag: "🇱🇰" },
+  { label: "Bangladesh", flag: "🇧🇩" },
+  { label: "Afghanistan", flag: "🇦🇫" },
+  { label: "Ireland", flag: "🇮🇪" },
+];
+
+const COUNTRY_VALUES = new Set<string>(COUNTRY_OPTIONS.map((c) => c.label));
+
+/** The default country selection, shown when a player has not chosen one yet. */
+export const DEFAULT_COUNTRY = COUNTRY_OPTIONS[0].label;
+
+export function isCountry(value: unknown): value is string {
+  return typeof value === "string" && COUNTRY_VALUES.has(value);
+}

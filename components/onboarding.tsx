@@ -13,6 +13,7 @@ import {
   TextLink,
   Wordmark,
 } from "@/components/ui";
+import { CountrySelect } from "@/components/country-select";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
 export type OnboardingRole = "player" | "coach" | "guardian";
@@ -153,7 +154,10 @@ function RoleForm({ error, role }: { error?: string; role: OnboardingRole }) {
             {role === "player" && <PlayerGridFields />}
           </div>
           {role === "player" ? (
-            <RolesField />
+            <>
+              <CountryField />
+              <RolesField />
+            </>
           ) : role === "coach" ? (
             <CoachFields />
           ) : (
@@ -181,14 +185,10 @@ function PlayerGridFields() {
         Club
         <TextInput name="club" required type="text" />
       </Field>
-      <Field>
-        County
-        <TextInput name="county" placeholder="e.g. Surrey" required type="text" />
-      </Field>
       <div className="grid grid-cols-2 gap-3">
         <Field>
           Height (cm)
-          <TextInput max={300} min={1} name="heightCm" placeholder="Optional" type="number" />
+          <TextInput max={300} min={1} name="heightCm" required type="number" />
         </Field>
         <Field>
           Weight (kg)
@@ -196,6 +196,15 @@ function PlayerGridFields() {
         </Field>
       </div>
     </>
+  );
+}
+
+function CountryField() {
+  return (
+    <FieldGroup>
+      Country
+      <CountrySelect name="country" />
+    </FieldGroup>
   );
 }
 
