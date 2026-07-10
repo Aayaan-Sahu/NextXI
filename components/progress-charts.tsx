@@ -1,15 +1,12 @@
 import type { ReactNode } from "react";
-import { Panel } from "@/components/ui";
+import { Kicker, Panel } from "@/components/ui";
 import type { StatEntryItem } from "@/lib/progress";
 
 // ---- shared chart geometry -------------------------------------------------
 
-const HEIGHT = 180;
-const PAD = { top: 16, right: 12, bottom: 28, left: 34 };
+const MAX_BAR_HEIGHT = 112;
 
-function chartWidth(count: number) {
-  return Math.max(count * 48, 320);
-}
+const LINE_VIEW = { width: 540, height: 150, padX: 20, padY: 20, innerH: 110 };
 
 function shortDate(date: Date) {
   return date.toLocaleDateString("en-GB", {
@@ -98,15 +95,15 @@ function derive(entries: StatEntryItem[]): Derived {
 
 function ChartCard({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="grid gap-2 rounded-md border border-stone-200 p-4">
-      <h3 className="text-sm font-semibold text-neutral-950">{title}</h3>
+    <Panel>
+      <Kicker>{title}</Kicker>
       {children}
-    </section>
+    </Panel>
   );
 }
 
 function ChartEmpty({ children }: { children: string }) {
-  return <p className="py-6 text-center text-sm text-stone-500">{children}</p>;
+  return <p className="py-10 text-center text-sm text-ink-600">{children}</p>;
 }
 
 function BarChart({
@@ -126,67 +123,25 @@ function BarChart({
     );
   }
 
-  const count = data.length;
-  const width = chartWidth(count);
-  const innerW = width - PAD.left - PAD.right;
-  const innerH = HEIGHT - PAD.top - PAD.bottom;
   const maxValue = Math.max(1, ...data.map((d) => d.value));
-  const slot = innerW / count;
-  const barW = Math.min(slot * 0.6, 40);
-  const baseline = PAD.top + innerH;
 
   return (
     <ChartCard title={title}>
-      <div className="overflow-x-auto">
-        <svg height={HEIGHT} role="img" aria-label={title} width={width}>
-          <line
-            className="stroke-stone-200"
-            x1={PAD.left}
-            x2={width - PAD.right}
-            y1={baseline}
-            y2={baseline}
-          />
-          <text className="fill-stone-400 text-[10px]" x={0} y={PAD.top + 4}>
-            {maxValue}
-          </text>
-          {data.map((d, i) => {
-            const cx = PAD.left + slot * (i + 0.5);
-            const barHeight = (d.value / maxValue) * innerH;
-            const y = baseline - barHeight;
-            return (
-              <g key={i}>
-                <rect
-                  className="fill-emerald-600"
-                  height={barHeight}
-                  rx={2}
-                  width={barW}
-                  x={cx - barW / 2}
-                  y={y}
-                />
-                {count <= 16 ? (
-                  <text
-                    className="fill-stone-600 text-[10px]"
-                    textAnchor="middle"
-                    x={cx}
-                    y={y - 4}
-                  >
-                    {d.value}
-                  </text>
-                ) : null}
-                {count <= 10 ? (
-                  <text
-                    className="fill-stone-400 text-[9px]"
-                    textAnchor="middle"
-                    x={cx}
-                    y={HEIGHT - 8}
-                  >
-                    {shortDate(d.date)}
-                  </text>
-                ) : null}
-              </g>
-            );
-          })}
-        </svg>
+      <div
+        aria-label={title}
+        className="mt-[18px] flex h-[150px] items-end gap-[18px] overflow-x-auto px-1.5"
+        role="img"
+      >
+        {data.map((d, i) => (
+          <div className="flex shrink-0 flex-col items-center gap-[5px]" key={i}>
+            <span className="font-mono text-[10px] text-ink-600">{d.value}</span>
+            <div
+              className="w-6 rounded-t-[3px] bg-gold-500"
+              style={{ height: `${Math.max((d.value / maxValue) * MAX_BAR_HEIGHT, 3)}px` }}
+            />
+            <span className="font-mono text-[10px] text-sage-400">{shortDate(d.date)}</span>
+          </div>
+        ))}
       </div>
     </ChartCard>
   );
@@ -210,10 +165,7 @@ function LineChart({
   }
 
   const count = data.length;
-  const width = chartWidth(count);
-  const innerW = width - PAD.left - PAD.right;
-  const innerH = HEIGHT - PAD.top - PAD.bottom;
-  const baseline = PAD.top + innerH;
+  const innerW = LINE_VIEW.width - LINE_VIEW.padX * 2;
 
   const values = data.map((d) => d.value);
   let lo = Math.min(...values);
@@ -228,60 +180,47 @@ function LineChart({
   }
 
   const x = (i: number) =>
-    count === 1 ? PAD.left + innerW / 2 : PAD.left + innerW * (i / (count - 1));
-  const y = (value: number) => PAD.top + innerH * (1 - (value - lo) / (hi - lo));
+    count === 1
+      ? LINE_VIEW.width / 2
+      : LINE_VIEW.padX + innerW * (i / (count - 1));
+  const y = (value: number) =>
+    LINE_VIEW.padY + LINE_VIEW.innerH * (1 - (value - lo) / (hi - lo));
 
   const path = data.map((d, i) => `${x(i)},${y(d.value)}`).join(" ");
+  const first = data[0];
+  const last = data[count - 1];
 
   return (
     <ChartCard title={title}>
-      <div className="overflow-x-auto">
-        <svg height={HEIGHT} role="img" aria-label={title} width={width}>
-          <line
-            className="stroke-stone-200"
-            x1={PAD.left}
-            x2={width - PAD.right}
-            y1={baseline}
-            y2={baseline}
+      <svg
+        aria-label={title}
+        className="mt-[18px] block h-[150px] w-full"
+        preserveAspectRatio="none"
+        role="img"
+        viewBox={`0 0 ${LINE_VIEW.width} ${LINE_VIEW.height}`}
+      >
+        {count > 1 ? (
+          <polyline
+            className="fill-none stroke-pitch-900"
+            points={path}
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
           />
-          <text className="fill-stone-400 text-[10px]" x={0} y={PAD.top + 4}>
-            {hi.toFixed(1)}
-          </text>
-          {count > 1 ? (
-            <polyline
-              className="fill-none stroke-emerald-600"
-              points={path}
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-            />
-          ) : null}
-          {data.map((d, i) => (
-            <g key={i}>
-              <circle className="fill-emerald-600" cx={x(i)} cy={y(d.value)} r={3} />
-              {i === 0 || i === count - 1 ? (
-                <>
-                  <text
-                    className="fill-stone-600 text-[10px]"
-                    textAnchor="middle"
-                    x={x(i)}
-                    y={y(d.value) - 8}
-                  >
-                    {d.value.toFixed(2)}
-                  </text>
-                  <text
-                    className="fill-stone-400 text-[9px]"
-                    textAnchor="middle"
-                    x={x(i)}
-                    y={HEIGHT - 8}
-                  >
-                    {shortDate(d.date)}
-                  </text>
-                </>
-              ) : null}
-            </g>
-          ))}
-        </svg>
+        ) : null}
+        {data.map((d, i) => (
+          <circle className="fill-gold-500" cx={x(i)} cy={y(d.value)} key={i} r={4} />
+        ))}
+      </svg>
+      <div className="mt-2 flex justify-between font-mono text-[10.5px] text-ink-600">
+        <span>
+          {first.value.toFixed(1)} · {shortDate(first.date)}
+        </span>
+        {count > 1 ? (
+          <span>
+            {last.value.toFixed(1)} · {shortDate(last.date)}
+          </span>
+        ) : null}
       </div>
     </ChartCard>
   );
@@ -292,10 +231,11 @@ function LineChart({
 export function ProgressCharts({ entries }: { entries: StatEntryItem[] }) {
   if (!entries.length) {
     return (
-      <Panel title="Trends">
-        <div className="rounded-md border border-dashed border-stone-300 bg-stone-50 py-10 text-center">
-          <p className="text-sm font-medium text-neutral-950">No stats yet</p>
-          <p className="mt-1 text-sm text-stone-600">
+      <Panel>
+        <Kicker>Trends</Kicker>
+        <div className="mt-4 rounded-md border border-dashed border-cream-500 bg-cream-50 py-10 text-center">
+          <p className="text-sm font-semibold text-ink-900">No stats yet</p>
+          <p className="mt-1 text-sm text-ink-600">
             Log your first match below and your batting and bowling trends will
             appear here.
           </p>
@@ -307,21 +247,19 @@ export function ProgressCharts({ entries }: { entries: StatEntryItem[] }) {
   const { runs, wickets, battingAverage, economy } = derive(entries);
 
   return (
-    <Panel title="Trends">
-      <div className="grid gap-4 md:grid-cols-2">
-        <BarChart data={runs} empty="No batting logged yet." title="Runs per match" />
-        <BarChart data={wickets} empty="No bowling logged yet." title="Wickets per match" />
-        <LineChart
-          data={battingAverage}
-          empty="Log a completed innings to track your average."
-          title="Batting average"
-        />
-        <LineChart
-          data={economy}
-          empty="Log some overs to track your economy."
-          title="Bowling economy"
-        />
-      </div>
-    </Panel>
+    <div className="grid gap-5 md:grid-cols-2">
+      <BarChart data={runs} empty="No batting logged yet." title="Runs per match" />
+      <BarChart data={wickets} empty="No bowling logged yet." title="Wickets per match" />
+      <LineChart
+        data={battingAverage}
+        empty="Log a completed innings to track your average."
+        title="Batting average"
+      />
+      <LineChart
+        data={economy}
+        empty="Log some overs to track your economy."
+        title="Bowling economy"
+      />
+    </div>
   );
 }

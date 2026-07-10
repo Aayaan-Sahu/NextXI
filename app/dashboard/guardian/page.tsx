@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Badge, PageHeader, PageShell, Panel } from "@/components/ui";
+import { Badge, Kicker, PageHeader, PageShell, Panel } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
@@ -32,7 +32,7 @@ export default async function GuardianDashboardPage() {
       <PageShell>
         <PageHeader subtitle={user.email} title={`Welcome ${profile.guardian.name}`} />
         <Panel title="No linked player">
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-ink-600">
             Your account isn&apos;t linked to a player. If you believe this is a
             mistake, please contact support.
           </p>
@@ -62,23 +62,28 @@ export default async function GuardianDashboardPage() {
         subtitle="You approved this account and can review everything your child shares."
         title={`${child.name}'s player account`}
       />
-      <div className="grid gap-5">
-        <Panel title="Profile">
-          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
+      <div className="grid gap-6">
+        <Panel>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <Kicker>Profile</Kicker>
+            {child.roles.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {child.roles.map((role) => (
+                  <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+          <dl className="mt-[18px] grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {facts.map(([label, value]) => (
               <div key={label}>
-                <dt className="text-stone-600">{label}</dt>
-                <dd className="mt-0.5 font-medium text-neutral-950">{value}</dd>
+                <dt className="text-[11px] font-bold tracking-[.1em] text-ink-600 uppercase">
+                  {label}
+                </dt>
+                <dd className="mt-[5px] text-[14.5px] font-semibold">{value}</dd>
               </div>
             ))}
           </dl>
-          {child.roles.length > 0 && (
-            <div className="mt-4 flex flex-wrap gap-1.5">
-              {child.roles.map((role) => (
-                <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
-              ))}
-            </div>
-          )}
         </Panel>
         <VideoGrid
           emptyMessage="No videos yet. Videos your child uploads will appear here."

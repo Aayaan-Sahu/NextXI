@@ -46,15 +46,15 @@ export function VideoGrid({
   deleteAction?: (formData: FormData) => Promise<void>;
 }) {
   if (!videos.length) {
-    return <p className="text-sm text-stone-600">{emptyMessage}</p>;
+    return <p className="text-sm text-ink-600">{emptyMessage}</p>;
   }
 
   return (
-    <ul className="grid grid-cols-3 gap-4 max-md:grid-cols-2 max-sm:grid-cols-1">
+    <ul className="grid grid-cols-3 gap-5 max-md:grid-cols-2 max-sm:grid-cols-1">
       {videos.map((video) => (
         <li className="relative" key={video.id}>
           <Link
-            className="block overflow-hidden rounded-lg border border-stone-300 bg-white no-underline hover:border-neutral-950"
+            className="block overflow-hidden rounded-[10px] border border-cream-400 bg-cream-100 no-underline hover:border-gold-500"
             href={`${linkBase}/${video.id}`}
           >
             {video.thumbnailUrl ? (
@@ -62,35 +62,41 @@ export function VideoGrid({
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt=""
-                className="aspect-video w-full bg-stone-100 object-cover"
+                className="aspect-video w-full bg-pitch-800 object-cover"
                 src={video.thumbnailUrl}
               />
             ) : (
-              <div className="flex aspect-video items-center justify-center bg-stone-100 text-2xl text-stone-600">
+              <div className="grid aspect-video place-items-center bg-thumb-scanlines text-[26px] text-gold-500">
                 ▶
               </div>
             )}
-            <div className="grid gap-1 p-3">
-              <span className="truncate text-sm font-medium text-neutral-950">
+            <div className="px-4 pt-3.5 pb-3">
+              <div className="truncate text-sm font-semibold text-ink-900">
                 {video.originalFilename}
-              </span>
-              <span className="text-xs text-stone-600">
+              </div>
+              <div className="mt-1 font-mono text-[11.5px] text-ink-600">
                 {formatDate(video.uploadedAt ?? video.createdAt)} · {formatVideoSize(video.sizeBytes)}
-              </span>
+              </div>
               {video.tagLabel && (
-                <span className="truncate text-xs text-stone-600">{video.tagLabel}</span>
+                <div
+                  className={`mt-2 truncate text-xs font-semibold text-rust-600 ${
+                    deleteAction ? "pr-7" : ""
+                  }`}
+                >
+                  {video.tagLabel}
+                </div>
               )}
               {video.playerName && (
-                <span className="truncate text-xs text-stone-600">{video.playerName}</span>
+                <div className="mt-1 truncate text-xs text-ink-600">{video.playerName}</div>
               )}
             </div>
           </Link>
           {deleteAction && (
-            <form action={deleteAction} className="absolute bottom-2 right-2">
+            <form action={deleteAction} className="absolute right-2.5 bottom-2.5">
               <input name="id" type="hidden" value={video.id} />
               <button
                 aria-label={`Delete ${video.originalFilename}`}
-                className="rounded p-1.5 text-stone-500 hover:bg-stone-100 hover:text-red-600"
+                className="cursor-pointer rounded p-1 text-sage-400 hover:bg-cream-200 hover:text-rust-600"
                 type="submit"
               >
                 <TrashIcon />

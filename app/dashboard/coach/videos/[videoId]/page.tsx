@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { ReportPanel } from "@/components/report-panel";
-import { PageHeader, PageShell } from "@/components/ui";
+import { PageShell } from "@/components/ui";
 import { CommentForm, VideoComments } from "@/components/video-comments";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
@@ -91,19 +91,21 @@ export default async function CoachVideoPage({
   return (
     <PageShell>
       <Link
-        className="mb-4 inline-block text-sm text-neutral-950 underline-offset-2 hover:underline"
+        className="inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
         href="/dashboard/coach"
       >
         ← All videos
       </Link>
-      <PageHeader
-        subtitle={`${video.player.name} · Uploaded ${uploadedAt} · ${formatVideoSize(video.sizeBytes)}`}
-        title={video.originalFilename}
-      />
-      <div className="grid items-start gap-5 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)]">
-        <div className="grid gap-5">
+      <h1 className="mt-[18px] font-display text-[28px] leading-tight font-bold tracking-[.02em] uppercase">
+        {video.originalFilename}
+      </h1>
+      <p className="mt-1.5 font-mono text-xs text-ink-600">
+        {video.player.name} · Uploaded {uploadedAt} · {formatVideoSize(video.sizeBytes)}
+      </p>
+      <div className="mt-[22px] grid items-start gap-7 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+        <div className="grid gap-6">
           <video
-            className="w-full rounded-lg border border-stone-300 bg-black"
+            className="aspect-video w-full rounded-[10px] bg-pitch-950"
             controls
             preload="metadata"
             src={data.signedUrl}

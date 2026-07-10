@@ -44,11 +44,13 @@ export default async function ProgressPage({
       />
       <Notice tone="error">{error}</Notice>
       <Notice>{message}</Notice>
-      <div className="grid gap-5">
+      <div className="grid gap-6">
         <ProgressCharts entries={entries} />
         <StatEntryForm />
-        <MatchLog entries={entries} />
-        <GoalsReminders goals={goals} reminders={reminders} />
+        <div className="grid items-start gap-5 lg:grid-cols-[1.3fr_1fr]">
+          <MatchLog entries={entries} />
+          <GoalsReminders goals={goals} reminders={reminders} />
+        </div>
       </div>
     </PageShell>
   );

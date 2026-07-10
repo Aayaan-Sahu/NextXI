@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
-import { SecondaryButton } from "@/components/ui";
+import { Field, Panel, PrimaryButton } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
   HANDEDNESS_LABELS,
@@ -107,7 +107,7 @@ async function uploadThumbnail(thumbnail: Blob, signedUrl: string) {
 }
 
 const selectStyles =
-  "rounded-md border border-stone-300 bg-white px-3 py-2.5 text-sm text-neutral-950 focus:border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-600/20 disabled:bg-stone-100 disabled:text-stone-500";
+  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:bg-cream-100 disabled:text-sage-400";
 
 export function VideoUpload() {
   const router = useRouter();
@@ -227,9 +227,9 @@ export function VideoUpload() {
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="grid grid-cols-3 gap-3 max-sm:grid-cols-1">
-        <label className="grid gap-1.5 text-sm font-medium">
+    <Panel>
+      <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-1">
+        <Field>
           Discipline
           <select
             className={selectStyles}
@@ -247,8 +247,8 @@ export function VideoUpload() {
               </option>
             ))}
           </select>
-        </label>
-        <label className="grid gap-1.5 text-sm font-medium">
+        </Field>
+        <Field>
           {discipline === "BATTING" ? "Shot" : "Variation"}
           <select
             className={selectStyles}
@@ -264,8 +264,8 @@ export function VideoUpload() {
                 </option>
               ))}
           </select>
-        </label>
-        <label className="grid gap-1.5 text-sm font-medium">
+        </Field>
+        <Field>
           Handedness
           <select
             className={selectStyles}
@@ -280,13 +280,11 @@ export function VideoUpload() {
               </option>
             ))}
           </select>
-        </label>
+        </Field>
       </div>
       <section
-        className={`grid justify-items-center gap-2 rounded-lg border-2 border-dashed p-8 text-center ${
-          dragActive
-            ? "border-neutral-950 bg-stone-100"
-            : "border-stone-300 bg-white"
+        className={`mt-4 flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-[38px] text-center ${
+          dragActive ? "border-gold-500 bg-cream-50" : "border-cream-500"
         }`}
         onDragLeave={() => setDragActive(false)}
         onDragOver={(event) => {
@@ -310,28 +308,32 @@ export function VideoUpload() {
 
         {uploading ? (
           <div className="grid w-full max-w-[420px] gap-2">
-            <div className="h-2 overflow-hidden rounded-sm bg-stone-200">
+            <div className="h-1.5 overflow-hidden rounded-sm bg-cream-300">
               <div
-                className="h-full bg-neutral-950"
+                className="h-full bg-gold-500"
                 style={{ width: `${progress}%` }}
               />
             </div>
-            <p className="text-sm text-stone-600">{progress}% uploaded</p>
+            <p className="font-mono text-xs text-ink-600">{progress}% uploaded</p>
           </div>
         ) : (
           <>
-            <p className="font-medium">Drag and drop a video to upload</p>
-            <p className="text-sm text-stone-600">
+            <p className="font-display text-[19px] font-semibold tracking-[.03em] uppercase">
+              Drag and drop a video to upload
+            </p>
+            <p className="text-[13px] text-ink-600">
               MP4, MOV, or WebM, up to 500 MB.
             </p>
-            <SecondaryButton onClick={() => inputRef.current?.click()} type="button">
-              Browse files
-            </SecondaryButton>
+            <div className="mt-2.5">
+              <PrimaryButton onClick={() => inputRef.current?.click()} type="button">
+                Browse files
+              </PrimaryButton>
+            </div>
           </>
         )}
 
-        {error ? <p className="text-sm text-red-700">{error}</p> : null}
+        {error ? <p className="text-sm text-rust-700">{error}</p> : null}
       </section>
-    </div>
+    </Panel>
   );
 }

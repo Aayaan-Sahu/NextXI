@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { addVideoComment } from "@/app/dashboard/coach/videos/actions";
-import { Form, Notice, Panel, PrimaryButton, TextArea } from "@/components/ui";
+import { Form, Kicker, Notice, Panel, PrimaryButton, TextArea } from "@/components/ui";
 
 export type VideoCommentItem = {
   id: string;
@@ -22,22 +22,28 @@ export function VideoComments({
   form?: ReactNode;
 }) {
   return (
-    <Panel title="Feedback">
+    <Panel>
+      <Kicker>Feedback</Kicker>
       {comments.length ? (
-        <ul className="grid gap-4">
+        <ul className="mt-4 grid gap-[18px]">
           {comments.map((comment) => (
-            <li className="grid gap-1 border-t border-stone-200 pt-3 first:border-t-0 first:pt-0" key={comment.id}>
-              <div className="flex flex-wrap items-baseline gap-x-2 text-sm">
-                <span className="font-medium text-neutral-950">{comment.authorName}</span>
-                <span className="text-stone-600">@{comment.authorUsername}</span>
-                <span className="text-xs text-stone-600">{formatDate(comment.createdAt)}</span>
+            <li
+              className="border-t border-cream-400 pt-[18px] first:border-t-0 first:pt-0"
+              key={comment.id}
+            >
+              <div className="flex flex-wrap items-baseline gap-x-2">
+                <span className="text-sm font-bold text-ink-900">{comment.authorName}</span>
+                <span className="font-mono text-xs text-ink-600">@{comment.authorUsername}</span>
+                <span className="text-xs text-sage-400">{formatDate(comment.createdAt)}</span>
               </div>
-              <p className="whitespace-pre-wrap text-sm text-neutral-950">{comment.body}</p>
+              <p className="mt-1.5 text-sm leading-[1.65] whitespace-pre-wrap text-ink-900">
+                {comment.body}
+              </p>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-stone-600">No feedback yet.</p>
+        <p className="mt-4 text-sm text-ink-600">No feedback yet.</p>
       )}
       {form}
     </Panel>
@@ -46,7 +52,7 @@ export function VideoComments({
 
 export function CommentForm({ error, videoId }: { error?: string; videoId: string }) {
   return (
-    <div className="mt-4 border-t border-stone-200 pt-4">
+    <div className="mt-4 border-t border-cream-400 pt-4">
       <Notice tone="error">{error}</Notice>
       <Form action={addVideoComment} className={error ? "mt-4" : ""}>
         <input name="videoId" type="hidden" value={videoId} />

@@ -21,12 +21,12 @@ export default async function PlayerDashboardPage() {
       <PageShell>
         <PageHeader subtitle={user.email} title={`Welcome ${profile.player.name}`} />
         <Panel title="Guardian approval needed">
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-ink-600">
             Because you&apos;re under 18, a parent or guardian needs to approve your
             account before you can use the platform. Ask them to sign up, choose
             &ldquo;I&apos;m a parent / guardian&rdquo;, and enter this code:
           </p>
-          <p className="mt-4 font-mono text-2xl tracking-widest text-neutral-950">
+          <p className="mt-4 font-mono text-2xl tracking-widest text-ink-900">
             {formatGuardianCode(profile.player.guardianCode ?? "")}
           </p>
         </Panel>
@@ -39,17 +39,19 @@ export default async function PlayerDashboardPage() {
   return (
     <PageShell>
       <PageHeader
+        action={
+          profile.player.roles.length > 0 ? (
+            <div className="flex flex-wrap gap-2">
+              {profile.player.roles.map((role) => (
+                <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
+              ))}
+            </div>
+          ) : undefined
+        }
         subtitle="Upload footage of your batting, bowling, and fielding for coaches and scouts to see."
         title="Your videos"
       />
-      <div className="grid gap-5">
-        {profile.player.roles.length > 0 && (
-          <div className="flex flex-wrap gap-1.5">
-            {profile.player.roles.map((role) => (
-              <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
-            ))}
-          </div>
-        )}
+      <div className="grid gap-9">
         <VideoUpload />
         <VideoGrid deleteAction={deleteVideo} videos={videos} />
       </div>

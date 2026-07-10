@@ -1,1 +1,61 @@
 @import "tailwindcss";
+
+/*
+ * NextXI design system — pitch-green / cream / amber.
+ *
+ * pitch: dark greens (nav, video surfaces, scoreboard panels)
+ * cream: warm off-whites (page background, cards, borders)
+ * gold:  amber accent (primary actions, active states, meters)
+ * rust:  burnt red (links, kickers, warnings; 500 is the on-dark variant)
+ * ink:   text (900 body, 600 muted)
+ * sage:  desaturated green-grey (placeholder / faint text, on-dark muted)
+ */
+@theme {
+  --color-pitch-950: #0e1c14;
+  --color-pitch-900: #13261c;
+  --color-pitch-800: #1e3527;
+  --color-pitch-700: #24402f;
+
+  --color-cream-50: #fdfbf4;
+  --color-cream-100: #f6f3e9;
+  --color-cream-200: #efead9;
+  --color-cream-300: #e4dec9;
+  --color-cream-400: #ddd6c2;
+  --color-cream-500: #c9c2ac;
+
+  --color-gold-500: #e8a92e;
+  --color-gold-600: #d0951f;
+
+  --color-rust-500: #e07a5f;
+  --color-rust-600: #b23a26;
+  --color-rust-700: #8f2e1e;
+
+  --color-ink-900: #16221b;
+  --color-ink-600: #6e7a70;
+
+  --color-sage-400: #a9b3a8;
+
+  --font-sans: var(--font-public-sans), system-ui, sans-serif;
+  --font-display: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+}
+
+/* Mowed-pitch stripes behind dark full-bleed screens (sign in). */
+@utility bg-pitch-stripes {
+  background-color: var(--color-pitch-900);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 88px,
+    rgb(30 53 39 / 0.55) 88px 176px
+  );
+}
+
+/* Broadcast-scanline texture for video thumbnail placeholders. */
+@utility bg-thumb-scanlines {
+  background-color: var(--color-pitch-800);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 24px,
+    rgb(0 0 0 / 0.12) 24px 48px
+  );
+}

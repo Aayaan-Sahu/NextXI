@@ -28,7 +28,7 @@ export default async function CoachDashboardPage({
       <PageShell>
         <PageHeader subtitle={user.email} title={`Welcome ${profile.coach.name}, coach`} />
         <Panel title={rejected ? "Account not approved" : "Account under review"}>
-          <p className="text-sm text-stone-600">
+          <p className="text-sm text-ink-600">
             {rejected
               ? "Your coach account was not approved. If you believe this is a mistake, please contact support."
               : "Thanks for signing up. To keep the platform safe for young athletes, an administrator reviews every coach before activation. You'll gain full access once you're approved."}
@@ -89,9 +89,9 @@ export default async function CoachDashboardPage({
     <PageShell>
       <PageHeader
         subtitle="New videos from players you are connected with. Open a video to mark it as reviewed."
-        title={`Welcome ${profile.coach.name}, coach`}
+        title="Review queue"
       />
-      <div className="grid gap-6">
+      <div className="grid gap-5">
         <CoachPlayers players={players} />
         <VideoFilterBar />
         <VideoGrid
