@@ -28,10 +28,24 @@ export function DashboardNav({
     ? [{ href: homeHref, label: "Home" }]
     : [
         { href: homeHref, label: "Home" },
-        ...(isPlayer ? [{ href: "/dashboard/progress", label: "Progress" }] : []),
+        ...(isPlayer
+          ? [
+              { href: "/dashboard/player/sessions", label: "Sessions" },
+              { href: "/dashboard/progress", label: "Progress" },
+            ]
+          : []),
         { href: "/dashboard/connections", label: "Connections" },
         { href: "/dashboard/messages", label: "Messages" },
       ];
+
+  // Most-specific match wins, so "Sessions" (not "Home") lights up under
+  // /dashboard/player/sessions even though "Home" is a path prefix.
+  const activeHref = links
+    .filter((link) => pathname === link.href || pathname.startsWith(`${link.href}/`))
+    .reduce<string | null>(
+      (best, link) => (!best || link.href.length > best.length ? link.href : best),
+      null,
+    );
 
   return (
     <header className="bg-pitch-900">
@@ -43,7 +57,7 @@ export function DashboardNav({
           {links.map((link) => (
             <Link
               className={
-                pathname.startsWith(link.href)
+                link.href === activeHref
                   ? "flex items-center self-stretch border-b-2 border-gold-500 text-cream-200 no-underline"
                   : "flex items-center self-stretch border-b-2 border-transparent text-sage-400 no-underline hover:text-cream-200"
               }

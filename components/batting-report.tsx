@@ -1,3 +1,4 @@
+import { ConsistencyList, type ConsistencyItem } from "@/components/consistency";
 import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -35,7 +36,6 @@ const SCORE_BY_LABEL: Record<Label, number> = { good: 100, ok: 65, "needs work":
 type ShotMetric = { label: string; value: Label };
 type ShotStat = { label: string; value: string };
 type Shot = { timeSec: number | null; metrics: ShotMetric[]; stats: ShotStat[] };
-type ConsistencyItem = { label: string; consistency: number };
 
 export type ParsedBattingReport = {
   shots: Shot[];
@@ -147,20 +147,6 @@ function labelColor(value: Label, dark: boolean) {
   return dark ? "text-sage-400" : "text-ink-600";
 }
 
-function ConsistencyBar({ value, tone }: { value: number; tone: Tone }) {
-  const dark = tone === "dark";
-  const low = value < 60;
-  const fill = low ? (dark ? "bg-rust-500" : "bg-rust-600") : "bg-gold-500";
-  return (
-    <div
-      className={`overflow-hidden rounded-sm ${dark ? "h-[3px] bg-black/30" : "h-1 bg-cream-300"}`}
-      aria-hidden
-    >
-      <div className={`h-full rounded-sm ${fill}`} style={{ width: `${value}%` }} />
-    </div>
-  );
-}
-
 function ShotRow({ shot, index, tone }: { shot: Shot; index: number; tone: Tone }) {
   const dark = tone === "dark";
   const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
@@ -264,33 +250,7 @@ export function BattingReport({
           {parsed.consistency.length > 0 && (
             <div className={`border-b py-4 ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
               <Kicker tone={tone}>Consistency across shots</Kicker>
-              <div className="mt-3 grid gap-2.5">
-                {parsed.consistency.map((item) => (
-                  <div key={item.label}>
-                    <div className="flex items-baseline justify-between gap-3">
-                      <span className={`text-[12.5px] ${dark ? "text-cream-200" : "text-ink-900"}`}>
-                        {item.label}
-                      </span>
-                      <span
-                        className={`font-mono text-[12.5px] font-semibold ${
-                          item.consistency < 60
-                            ? dark
-                              ? "text-rust-500"
-                              : "text-rust-600"
-                            : dark
-                              ? "text-gold-500"
-                              : "text-ink-900"
-                        }`}
-                      >
-                        {item.consistency}%
-                      </span>
-                    </div>
-                    <div className="mt-1.5">
-                      <ConsistencyBar value={item.consistency} tone={tone} />
-                    </div>
-                  </div>
-                ))}
-              </div>
+              <ConsistencyList items={parsed.consistency} tone={tone} />
             </div>
           )}
         </>

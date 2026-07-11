@@ -41,6 +41,7 @@ export default async function CoachVideoPage({
       createdAt: true,
       originalFilename: true,
       playerId: true,
+      sessionId: true,
       sizeBytes: true,
       storageBucket: true,
       storagePath: true,
@@ -50,6 +51,12 @@ export default async function CoachVideoPage({
   });
 
   if (!video || !(await hasAcceptedConnection(user.id, video.playerId))) notFound();
+
+  // Return to the session when the video was reached through one.
+  const backHref = video.sessionId
+    ? `/dashboard/coach/sessions/${video.sessionId}`
+    : "/dashboard/coach";
+  const backLabel = video.sessionId ? "Back to session" : "All videos";
 
   // Opening the video marks it viewed, dropping it from the coach's dashboard.
   await prisma.videoView.upsert({
@@ -92,9 +99,9 @@ export default async function CoachVideoPage({
     <PageShell>
       <Link
         className="inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
-        href="/dashboard/coach"
+        href={backHref}
       >
-        ← All videos
+        ← {backLabel}
       </Link>
       <h1 className="mt-[18px] font-display text-[28px] leading-tight font-bold tracking-[.02em] uppercase">
         {video.originalFilename}

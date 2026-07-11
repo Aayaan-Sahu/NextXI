@@ -38,12 +38,15 @@ export function VideoGrid({
   linkBase = "/dashboard/player/videos",
   emptyMessage = "No videos yet. Upload your first video above.",
   deleteAction,
+  deleteLabel = "Delete",
 }: {
   videos: GridVideo[];
   linkBase?: string;
   emptyMessage?: string;
   /** When provided, each card gets a trash button that submits the video id. */
   deleteAction?: (formData: FormData) => Promise<void>;
+  /** Accessible verb for the action button, e.g. "Remove from session". */
+  deleteLabel?: string;
 }) {
   if (!videos.length) {
     return <p className="text-sm text-ink-600">{emptyMessage}</p>;
@@ -95,7 +98,7 @@ export function VideoGrid({
             <form action={deleteAction} className="absolute right-2.5 bottom-2.5">
               <input name="id" type="hidden" value={video.id} />
               <button
-                aria-label={`Delete ${video.originalFilename}`}
+                aria-label={`${deleteLabel} ${video.originalFilename}`}
                 className="cursor-pointer rounded p-1 text-sage-400 hover:bg-cream-200 hover:text-rust-600"
                 type="submit"
               >

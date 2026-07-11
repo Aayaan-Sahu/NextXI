@@ -1,3 +1,4 @@
+import { revalidatePath } from "next/cache";
 import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { getApiPlayer, isUuid, jsonError } from "@/app/api/videos/utils";
 import { prisma } from "@/lib/prisma";
@@ -80,6 +81,7 @@ export async function POST(request: Request) {
       id: true,
       status: true,
       uploadedAt: true,
+      sessionId: true,
     },
   });
 
@@ -90,6 +92,13 @@ export async function POST(request: Request) {
     update: {},
     create: { videoId: updated.id },
   });
+
+  // Keep both the dashboard (standalone videos) and the session page fresh, so a
+  // video never lingers in the wrong list after being filed into a session.
+  revalidatePath("/dashboard/player");
+  if (updated.sessionId) {
+    revalidatePath(`/dashboard/player/sessions/${updated.sessionId}`);
+  }
 
   return Response.json({
     video: {

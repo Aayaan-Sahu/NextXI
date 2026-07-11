@@ -14,11 +14,14 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
 export async function VideoDetail({
   backHref,
   reportTone = "light",
+  sessionLinkBase,
   where,
 }: {
   backHref: string;
   /** Report card style; the player detail uses the dark scoreboard. */
   reportTone?: "light" | "dark";
+  /** When set and the video belongs to a session, "back" returns there instead. */
+  sessionLinkBase?: string;
   where: Prisma.PlayerVideoWhereInput;
 }) {
   const video = await prisma.playerVideo.findFirst({
@@ -29,6 +32,7 @@ export async function VideoDetail({
       createdAt: true,
       handedness: true,
       originalFilename: true,
+      sessionId: true,
       sizeBytes: true,
       storageBucket: true,
       storagePath: true,
@@ -38,6 +42,12 @@ export async function VideoDetail({
   });
 
   if (!video) notFound();
+
+  // A video reached via its session should return there; otherwise to the list.
+  const sessionHref =
+    video.sessionId && sessionLinkBase ? `${sessionLinkBase}/${video.sessionId}` : null;
+  const resolvedBackHref = sessionHref ?? backHref;
+  const backLabel = sessionHref ? "Back to session" : "All videos";
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.storage
@@ -73,9 +83,9 @@ export async function VideoDetail({
     <PageShell>
       <Link
         className="inline-block text-[13px] font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
-        href={backHref}
+        href={resolvedBackHref}
       >
-        ← All videos
+        ← {backLabel}
       </Link>
       <header className="mt-[18px] mb-[22px] flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
         <div>

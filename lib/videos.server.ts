@@ -32,12 +32,17 @@ export async function getVideoReport(videoId: string): Promise<VideoReport | nul
   });
 }
 
-/** A player's ready videos with signed thumbnail URLs, shaped for VideoGrid. */
+/**
+ * A player's standalone ready videos with signed thumbnail URLs, shaped for
+ * VideoGrid. Videos filed under a practice session are shown on the session
+ * page instead, so they're excluded here.
+ */
 export async function getReadyVideoGridItems(playerId: string) {
   const videos = await prisma.playerVideo.findMany({
     where: {
       playerId,
       status: PlayerVideoStatus.READY,
+      sessionId: null,
     },
     orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
     select: {

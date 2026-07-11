@@ -1,5 +1,5 @@
 import { Handedness, PlayerVideoStatus, VideoCategory } from "@/app/generated/prisma/enums";
-import { getApiPlayer, jsonError } from "@/app/api/videos/utils";
+import { getApiPlayer, isUuid, jsonError } from "@/app/api/videos/utils";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import {
@@ -30,14 +30,16 @@ export async function POST(request: Request) {
     return jsonError("Invalid JSON body.", 400);
   }
 
-  const { category, contentType, handedness, originalFilename, sizeBytes, variation } = body as {
-    category?: unknown;
-    contentType?: unknown;
-    handedness?: unknown;
-    originalFilename?: unknown;
-    sizeBytes?: unknown;
-    variation?: unknown;
-  };
+  const { category, contentType, handedness, originalFilename, sessionId, sizeBytes, variation } =
+    body as {
+      category?: unknown;
+      contentType?: unknown;
+      handedness?: unknown;
+      originalFilename?: unknown;
+      sessionId?: unknown;
+      sizeBytes?: unknown;
+      variation?: unknown;
+    };
   const trimmedFilename =
     typeof originalFilename === "string" ? originalFilename.trim().slice(0, 255) : "";
 
@@ -58,6 +60,24 @@ export async function POST(request: Request) {
     return jsonError("Invalid variation for this discipline.", 400);
   }
   if (!isHandedness(handedness)) return jsonError("Invalid handedness.", 400);
+
+  // Optional: file this upload into a practice session. The session must belong
+  // to the caller and share the video's discipline (the exact-category lock).
+  let sessionIdToSet: string | null = null;
+  if (sessionId !== undefined && sessionId !== null) {
+    if (!isUuid(sessionId)) return jsonError("Invalid session.", 400);
+
+    const session = await prisma.practiceSession.findFirst({
+      where: { id: sessionId, playerId: auth.user.id },
+      select: { category: true },
+    });
+
+    if (!session) return jsonError("Session not found.", 404);
+    if (session.category !== VideoCategory[category]) {
+      return jsonError("Video discipline does not match the session.", 400);
+    }
+    sessionIdToSet = sessionId;
+  }
 
   const videoId = crypto.randomUUID();
   const storagePath = buildPlayerVideoPath(auth.user.id, videoId, contentType);
@@ -83,6 +103,7 @@ export async function POST(request: Request) {
       category: VideoCategory[category],
       variation,
       handedness: Handedness[handedness],
+      sessionId: sessionIdToSet,
       status: PlayerVideoStatus.PENDING_UPLOAD,
     },
     select: {

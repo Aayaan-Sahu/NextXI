@@ -99,6 +99,7 @@ model Player {
   id           String        @id @db.Uuid
   authUser     AuthUser      @relation("PlayerAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   videos       PlayerVideo[]
+  sessions     PracticeSession[]
   statEntries  StatEntry[]
   goals        Goal[]
   reminders    Reminder[]
@@ -206,6 +207,8 @@ model PlayerVideo {
   category         VideoCategory?
   variation        String?
   handedness       Handedness?
+  sessionId        String?           @map("session_id") @db.Uuid
+  session          PracticeSession?  @relation(fields: [sessionId], references: [id], onDelete: SetNull, onUpdate: NoAction)
   uploadedAt       DateTime?         @map("uploaded_at") @db.Timestamptz(6)
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt        DateTime          @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
@@ -216,7 +219,23 @@ model PlayerVideo {
 
   @@index([playerId, createdAt(sort: Desc)], map: "player_videos_player_created_at_idx")
   @@index([playerId, status], map: "player_videos_player_status_idx")
+  @@index([sessionId], map: "player_videos_session_id_idx")
   @@map("player_videos")
+  @@schema("public")
+}
+
+model PracticeSession {
+  id         String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  playerId   String        @map("player_id") @db.Uuid
+  player     Player        @relation(fields: [playerId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name       String
+  category   VideoCategory
+  videos     PlayerVideo[]
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt  DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([playerId, createdAt(sort: Desc)], map: "practice_sessions_player_created_at_idx")
+  @@map("practice_sessions")
   @@schema("public")
 }
 

@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { CoachStatus } from "@/app/generated/prisma/enums";
+import { SessionList } from "@/components/session-list";
 import { Badge, PageHeader, PageShell } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
+import { getPlayerSessions } from "@/lib/sessions.server";
 import { getReadyVideoGridItems } from "@/lib/videos.server";
 
 export default async function CoachPlayerVideosPage({
@@ -33,7 +35,10 @@ export default async function CoachPlayerVideosPage({
 
   if (!player) notFound();
 
-  const videos = await getReadyVideoGridItems(playerId);
+  const [videos, sessions] = await Promise.all([
+    getReadyVideoGridItems(playerId),
+    getPlayerSessions(playerId),
+  ]);
 
   return (
     <PageShell>
@@ -53,6 +58,14 @@ export default async function CoachPlayerVideosPage({
             <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
           ))}
         </div>
+      )}
+      {sessions.length > 0 && (
+        <section className="mb-9">
+          <h2 className="mb-4 font-display text-xl leading-tight font-semibold uppercase">
+            Practice sessions
+          </h2>
+          <SessionList linkBase="/dashboard/coach/sessions" sessions={sessions} />
+        </section>
       )}
       <VideoGrid
         emptyMessage="This player has not uploaded any videos yet."

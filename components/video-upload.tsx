@@ -109,14 +109,19 @@ async function uploadThumbnail(thumbnail: Blob, signedUrl: string) {
 const selectStyles =
   "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:bg-cream-100 disabled:text-sage-400";
 
-export function VideoUpload() {
+export function VideoUpload({
+  session,
+}: {
+  /** When set, the upload is filed into this session and its discipline is locked. */
+  session?: { id: string; category: VideoDiscipline };
+} = {}) {
   const router = useRouter();
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
-  const [discipline, setDiscipline] = useState<VideoDiscipline | "">("");
+  const [discipline, setDiscipline] = useState<VideoDiscipline | "">(session?.category ?? "");
   const [variation, setVariation] = useState("");
   const [handedness, setHandedness] = useState<HandednessOption | "">("");
 
@@ -163,6 +168,7 @@ export function VideoUpload() {
           category: discipline,
           variation,
           handedness,
+          ...(session ? { sessionId: session.id } : {}),
         }),
       });
 
@@ -233,7 +239,7 @@ export function VideoUpload() {
           Discipline
           <select
             className={selectStyles}
-            disabled={uploading}
+            disabled={uploading || Boolean(session)}
             onChange={(event) => {
               setDiscipline(event.target.value as VideoDiscipline | "");
               setVariation("");
