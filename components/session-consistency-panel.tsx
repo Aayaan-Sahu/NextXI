@@ -33,7 +33,7 @@ export function SessionConsistencyPanel({
       ) : (
         <p className="text-sm text-ink-600">
           {enough
-            ? "Consistency isn’t available for this discipline yet."
+            ? "Consistency couldn’t be measured from these videos yet."
             : `Add at least ${minVideos} analysed videos to see consistency across this session.`}
         </p>
       )}

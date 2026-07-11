@@ -4,6 +4,7 @@ import {
   battingOverallScore,
   parseBattingReport,
 } from "@/components/batting-report";
+import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
 import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -293,11 +294,13 @@ export function ReportPanel({
   const dark = tone === "dark";
   const ready = report?.status === ReportStatus.READY;
   const payload = ready && isRecord(report.payload) ? report.payload : null;
-  // The batting worker emits a richer shape; anything else uses the legacy render.
+  // Each analyser emits its own shape; anything unrecognised uses the legacy render.
   const batting = payload ? parseBattingReport(payload) : null;
+  const bowling = !batting && payload ? parseBowlingReport(payload) : null;
+  // Bowling is a single delivery, so it has no headline score; batting derives one.
   const overallScore = batting
     ? battingOverallScore(batting)
-    : payload
+    : !bowling && payload
       ? readOverallScore(payload)
       : null;
 
@@ -361,6 +364,8 @@ export function ReportPanel({
         report &&
         (batting ? (
           <BattingReport parsed={batting} report={report} tone={tone} />
+        ) : bowling ? (
+          <BowlingReport parsed={bowling} report={report} tone={tone} />
         ) : (
           <ReadyReport report={report} tone={tone} />
         ))}

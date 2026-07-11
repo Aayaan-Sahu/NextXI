@@ -32,6 +32,17 @@ const SESSION_BATTING_METRICS: readonly MetricPath[] = [
   { path: ["trigger", "gap_to_swing_sec"], label: "Trigger timing" },
 ];
 
+// Per-delivery scalars from a bowling report's `delivery` section (one delivery
+// per video). Paths are relative to the whole payload, not a shot. Distance /
+// height metrics are height-normalized; the brace angle is scale-free.
+const SESSION_BOWLING_METRICS: readonly MetricPath[] = [
+  { path: ["delivery", "front_knee_brace", "landing_angle_deg"], label: "Front-knee brace" },
+  { path: ["delivery", "stride", "length_frac_height"], label: "Delivery stride" },
+  { path: ["delivery", "release", "height_frac_height"], label: "Release height" },
+  { path: ["delivery", "run_up", "distance_frac_height"], label: "Run-up distance" },
+  { path: ["delivery", "follow_through", "distance_frac_height"], label: "Follow-through" },
+];
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
@@ -129,21 +140,25 @@ function battingShots(payload: unknown): Record<string, unknown>[] {
 }
 
 /**
- * Computes session consistency from the member videos' report payloads. Pools
- * every instance's scalar across all videos per metric. Returns [] for
- * disciplines without a producer yet (bowling), so the caller hides the panel.
+ * Computes session consistency from the member videos' report payloads by
+ * pooling one scalar per instance across all videos, per metric. For batting an
+ * instance is a detected shot (many per video); for bowling it's the single
+ * delivery (one per video). Metrics and instances are chosen together so each
+ * metric's path resolves against the right object.
  */
 export function computeSessionConsistency(
   category: VideoCategory,
   payloads: unknown[],
 ): ConsistencyItem[] {
-  if (category !== VideoCategory.BATTING) return [];
+  const isBatting = category === VideoCategory.BATTING;
+  const metrics = isBatting ? SESSION_BATTING_METRICS : SESSION_BOWLING_METRICS;
+  const instances: Record<string, unknown>[] = isBatting
+    ? payloads.flatMap(battingShots)
+    : payloads.filter(isRecord);
 
-  const shots = payloads.flatMap(battingShots);
-
-  return SESSION_BATTING_METRICS.flatMap(({ path, label }) => {
-    const values = shots
-      .map((shot) => readPath(shot, path))
+  return metrics.flatMap(({ path, label }) => {
+    const values = instances
+      .map((instance) => readPath(instance, path))
       .filter((value): value is number => value !== null);
     // Nothing measured for this metric at all → omit the row entirely.
     // Measured but not trustworthy → keep the row, shown as "—".
