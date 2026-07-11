@@ -157,3 +157,36 @@ but matching this shape gives players and coaches the best experience.
 
 Bump `schema_version` when you change this shape so the platform can adapt the
 renderer without breaking older reports.
+
+## Batting-analysis payload — schema_version 2
+
+This is what the CRICKET worker (`api_batting.analyze_batting`) actually sends
+today. The renderer detects it by the presence of a `shots` array and renders
+per-shot judgements, a cross-shot consistency section, and a derived overall
+score. Every field is optional/nullable — missing values are simply omitted.
+
+```jsonc
+{
+  "video":       { "fps": 30.0, "width": 1920, "height": 1080, "frame_count": 900 },
+  "calibration": { "height_cm": 175, "px_per_cm": 6.2, "standing_extent_px": 950, "visible_fraction": 0.88 },
+  "shots": [
+    {
+      "frames": { "trigger_start": 40, "trigger_end": 58, "swing_start": 70, "swing_peak": 82, "swing_end": 96 },
+      "head":   { "max_head_movement_cm": 3.1, "head_movement_label": "good", "head_over_knee_label": "ok", ... },
+      "front_foot_stride": { "stride_length_cm": 62.0, ... },
+      "back_foot_depth":   { "depth_cm": 8.0, ... },
+      "balance": { "head_inside_base": true, "hip_inside_base": true, "balance_label": "good" },
+      "trigger": { "duration_sec": 0.30, "gap_to_swing_sec": 0.20, ... },
+      "swing":   { "swing_straightness_mean": 0.09, "swing_label": "good", ... }
+    }
+  ],
+  "consistency": { "stride_length_cv": 0.12, "backlift_height_cv": 0.18, "swing_straightness_mean_cv": 0.10, ... }
+}
+```
+
+The UI reads the `*_label` fields (`"good" | "ok" | "needs work"`) for each shot,
+the `*_cm` / `*_sec` measurements for the stat line, and the `*_cv` coefficients
+of variation for the consistency bars (rendered as `100 * (1 - min(cv, 1))`%).
+
+`calibration.height_cm` is the player's real height, which the worker reads from
+`players.height_cm`; the analysis normalizes every distance metric against it.

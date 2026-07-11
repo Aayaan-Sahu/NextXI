@@ -1,4 +1,9 @@
 import { ReportStatus } from "@/app/generated/prisma/enums";
+import {
+  BattingReport,
+  battingOverallScore,
+  parseBattingReport,
+} from "@/components/batting-report";
 import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -287,8 +292,14 @@ export function ReportPanel({
 }) {
   const dark = tone === "dark";
   const ready = report?.status === ReportStatus.READY;
-  const overallScore =
-    ready && isRecord(report.payload) ? readOverallScore(report.payload) : null;
+  const payload = ready && isRecord(report.payload) ? report.payload : null;
+  // The batting worker emits a richer shape; anything else uses the legacy render.
+  const batting = payload ? parseBattingReport(payload) : null;
+  const overallScore = batting
+    ? battingOverallScore(batting)
+    : payload
+      ? readOverallScore(payload)
+      : null;
 
   return (
     <section
@@ -346,7 +357,13 @@ export function ReportPanel({
         </StatusMessage>
       )}
 
-      {ready && <ReadyReport report={report} tone={tone} />}
+      {ready &&
+        report &&
+        (batting ? (
+          <BattingReport parsed={batting} report={report} tone={tone} />
+        ) : (
+          <ReadyReport report={report} tone={tone} />
+        ))}
     </section>
   );
 }

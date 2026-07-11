@@ -1,0 +1,309 @@
+import { Kicker } from "@/components/ui";
+import type { VideoReport } from "@/lib/videos.server";
+
+/**
+ * Renderer for the batting-analysis payload produced by the CRICKET worker
+ * (api_batting.analyze_batting -> { video, calibration, shots[], consistency }).
+ * Everything is parsed defensively: any field can be null/missing and the UI
+ * simply omits it. See docs/reports-contract.md (schema_version 2).
+ */
+
+type Tone = "light" | "dark";
+type Label = "good" | "ok" | "needs work";
+
+// Each shot exposes these labelled judgements; we render them as rows.
+const SHOT_METRICS: { section: string; field: string; label: string }[] = [
+  { section: "head", field: "head_movement_label", label: "Head stillness" },
+  { section: "head", field: "head_over_knee_label", label: "Head over front knee" },
+  { section: "balance", field: "balance_label", label: "Balance at contact" },
+  { section: "swing", field: "swing_label", label: "Swing path" },
+];
+
+// Consistency is reported as a coefficient of variation (lower = steadier).
+const CONSISTENCY_FIELDS: { field: string; label: string }[] = [
+  { field: "stride_length_cv", label: "Stride length" },
+  { field: "backlift_height_cv", label: "Backlift height" },
+  { field: "swing_straightness_mean_cv", label: "Swing path" },
+  { field: "trigger_duration_cv", label: "Trigger duration" },
+  { field: "trigger_gap_cv", label: "Trigger timing" },
+  { field: "head_stability_frac_height_cv", label: "Head stability" },
+  { field: "stance_ratio_cv", label: "Stance width" },
+];
+
+const SCORE_BY_LABEL: Record<Label, number> = { good: 100, ok: 65, "needs work": 30 };
+
+type ShotMetric = { label: string; value: Label };
+type ShotStat = { label: string; value: string };
+type Shot = { timeSec: number | null; metrics: ShotMetric[]; stats: ShotStat[] };
+type ConsistencyItem = { label: string; consistency: number };
+
+export type ParsedBattingReport = {
+  shots: Shot[];
+  consistency: ConsistencyItem[];
+  heightCm: number | null;
+  fps: number | null;
+};
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function num(value: unknown): number | null {
+  return typeof value === "number" && Number.isFinite(value) ? value : null;
+}
+
+function labelOf(value: unknown): Label | null {
+  return value === "good" || value === "ok" || value === "needs work" ? value : null;
+}
+
+function section(record: Record<string, unknown>, key: string): Record<string, unknown> {
+  const value = record[key];
+  return isRecord(value) ? value : {};
+}
+
+function formatCm(value: number | null, decimals = 0): string | null {
+  return value === null ? null : `${value.toFixed(decimals)} cm`;
+}
+
+function formatSeconds(value: number | null): string | null {
+  return value === null ? null : `${value.toFixed(2)}s`;
+}
+
+function parseShot(raw: unknown, fps: number | null): Shot | null {
+  if (!isRecord(raw)) return null;
+
+  const frames = section(raw, "frames");
+  const swingPeak = num(frames.swing_peak);
+  const timeSec = swingPeak !== null && fps ? swingPeak / fps : null;
+
+  const metrics: ShotMetric[] = [];
+  for (const { section: sectionKey, field, label } of SHOT_METRICS) {
+    const value = labelOf(section(raw, sectionKey)[field]);
+    if (value) metrics.push({ label, value });
+  }
+
+  const head = section(raw, "head");
+  const stride = section(raw, "front_foot_stride");
+  const backFoot = section(raw, "back_foot_depth");
+  const trigger = section(raw, "trigger");
+
+  const stats: ShotStat[] = [
+    { label: "Stride", value: formatCm(num(stride.stride_length_cm)) },
+    { label: "Back foot", value: formatCm(num(backFoot.depth_cm)) },
+    { label: "Head move", value: formatCm(num(head.max_head_movement_cm), 1) },
+    { label: "Trigger gap", value: formatSeconds(num(trigger.gap_to_swing_sec)) },
+  ].flatMap((stat) => (stat.value ? [{ label: stat.label, value: stat.value }] : []));
+
+  // A shot with neither a judgement nor a measurement isn't worth a row.
+  if (metrics.length === 0 && stats.length === 0) return null;
+  return { timeSec, metrics, stats };
+}
+
+/**
+ * Returns the parsed batting report, or null if `payload` isn't the
+ * batting shape (letting the caller fall back to the legacy renderer).
+ */
+export function parseBattingReport(payload: unknown): ParsedBattingReport | null {
+  if (!isRecord(payload) || !Array.isArray(payload.shots)) return null;
+
+  const fps = num(section(payload, "video").fps);
+  const shots = payload.shots.flatMap((raw) => parseShot(raw, fps) ?? []);
+
+  // Consistency only means something with more than one shot to compare.
+  const consistency: ConsistencyItem[] =
+    shots.length > 1
+      ? CONSISTENCY_FIELDS.flatMap(({ field, label }) => {
+          const cv = num(section(payload, "consistency")[field]);
+          if (cv === null) return [];
+          const consistencyPct = Math.round(100 * (1 - Math.min(Math.max(cv, 0), 1)));
+          return [{ label, consistency: consistencyPct }];
+        })
+      : [];
+
+  return {
+    shots,
+    consistency,
+    heightCm: num(section(payload, "calibration").height_cm),
+    fps,
+  };
+}
+
+/** Overall technique score (0-100) averaged across every shot judgement. */
+export function battingOverallScore(parsed: ParsedBattingReport): number | null {
+  const values = parsed.shots.flatMap((shot) => shot.metrics.map((metric) => metric.value));
+  if (values.length === 0) return null;
+  const total = values.reduce((sum, value) => sum + SCORE_BY_LABEL[value], 0);
+  return Math.round(total / values.length);
+}
+
+function formatTimestamp(seconds: number) {
+  const total = Math.max(0, Math.floor(seconds));
+  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
+}
+
+function labelColor(value: Label, dark: boolean) {
+  if (value === "good") return dark ? "text-gold-500" : "text-gold-600";
+  if (value === "needs work") return dark ? "text-rust-500" : "text-rust-600";
+  return dark ? "text-sage-400" : "text-ink-600";
+}
+
+function ConsistencyBar({ value, tone }: { value: number; tone: Tone }) {
+  const dark = tone === "dark";
+  const low = value < 60;
+  const fill = low ? (dark ? "bg-rust-500" : "bg-rust-600") : "bg-gold-500";
+  return (
+    <div
+      className={`overflow-hidden rounded-sm ${dark ? "h-[3px] bg-black/30" : "h-1 bg-cream-300"}`}
+      aria-hidden
+    >
+      <div className={`h-full rounded-sm ${fill}`} style={{ width: `${value}%` }} />
+    </div>
+  );
+}
+
+function ShotRow({ shot, index, tone }: { shot: Shot; index: number; tone: Tone }) {
+  const dark = tone === "dark";
+  const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
+  const statsLine = shot.stats.map((stat) => `${stat.label} ${stat.value}`).join(" · ");
+
+  return (
+    <div className={`border-b py-3.5 ${rowBorder}`}>
+      <div className="flex items-baseline justify-between gap-3">
+        <span className="font-display text-sm tracking-[.08em] uppercase">Shot {index + 1}</span>
+        {shot.timeSec !== null && (
+          <span className={`font-mono text-[11px] ${dark ? "text-gold-500" : "text-rust-600"}`}>
+            {formatTimestamp(shot.timeSec)}
+          </span>
+        )}
+      </div>
+
+      {shot.metrics.length > 0 && (
+        <div className="mt-2 grid gap-1">
+          {shot.metrics.map((metric) => (
+            <div className="flex items-baseline justify-between gap-3 text-[12.5px]" key={metric.label}>
+              <span className={dark ? "text-cream-200" : "text-ink-900"}>{metric.label}</span>
+              <span className={`font-medium ${labelColor(metric.value, dark)}`}>{metric.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {statsLine && (
+        <p className={`mt-2 font-mono text-[11px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
+          {statsLine}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function RawDetails({ payload, tone }: { payload: unknown; tone: Tone }) {
+  const dark = tone === "dark";
+  return (
+    <details
+      className={`rounded-md border ${
+        dark ? "border-cream-200/15 bg-black/20" : "border-cream-400 bg-cream-50"
+      }`}
+    >
+      <summary
+        className={`cursor-pointer px-3 py-2 text-sm font-medium ${
+          dark ? "text-sage-400" : "text-ink-600"
+        }`}
+      >
+        Raw report data
+      </summary>
+      <pre
+        className={`overflow-x-auto border-t px-3 py-2 text-xs leading-relaxed ${
+          dark ? "border-cream-200/15 text-cream-200" : "border-cream-400 text-ink-600"
+        }`}
+      >
+        {JSON.stringify(payload, null, 2)}
+      </pre>
+    </details>
+  );
+}
+
+/** Renders the parsed batting report body inside ReportPanel's card. */
+export function BattingReport({
+  parsed,
+  report,
+  tone,
+}: {
+  parsed: ParsedBattingReport;
+  report: VideoReport;
+  tone: Tone;
+}) {
+  const dark = tone === "dark";
+  const shotCount = parsed.shots.length;
+  const metaParts = [
+    parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
+    parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
+    report.modelVersion,
+  ].filter(Boolean);
+
+  return (
+    <div className={dark ? "" : "pt-4"}>
+      {shotCount === 0 ? (
+        <p className={`pt-4 text-sm ${dark ? "text-sage-400" : "text-ink-600"}`}>
+          The analysis ran but didn&apos;t detect a clear batting shot in this video.
+        </p>
+      ) : (
+        <>
+          <div className={dark ? "" : "pb-1"}>
+            <Kicker tone={tone}>
+              {shotCount === 1 ? "Shot analysis" : `${shotCount} shots analysed`}
+            </Kicker>
+          </div>
+
+          <div className="mt-1">
+            {parsed.shots.map((shot, index) => (
+              <ShotRow key={index} shot={shot} index={index} tone={tone} />
+            ))}
+          </div>
+
+          {parsed.consistency.length > 0 && (
+            <div className={`border-b py-4 ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
+              <Kicker tone={tone}>Consistency across shots</Kicker>
+              <div className="mt-3 grid gap-2.5">
+                {parsed.consistency.map((item) => (
+                  <div key={item.label}>
+                    <div className="flex items-baseline justify-between gap-3">
+                      <span className={`text-[12.5px] ${dark ? "text-cream-200" : "text-ink-900"}`}>
+                        {item.label}
+                      </span>
+                      <span
+                        className={`font-mono text-[12.5px] font-semibold ${
+                          item.consistency < 60
+                            ? dark
+                              ? "text-rust-500"
+                              : "text-rust-600"
+                            : dark
+                              ? "text-gold-500"
+                              : "text-ink-900"
+                        }`}
+                      >
+                        {item.consistency}%
+                      </span>
+                    </div>
+                    <div className="mt-1.5">
+                      <ConsistencyBar value={item.consistency} tone={tone} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </>
+      )}
+
+      <div className="flex flex-col gap-2 py-4">
+        <RawDetails payload={report.payload} tone={tone} />
+        {metaParts.length > 0 && (
+          <p className={`font-mono text-[10.5px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
+            {metaParts.join(" · ")}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
