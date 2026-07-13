@@ -70,6 +70,10 @@ export const getProfile = cache(async (userId: string) => {
     prisma.player.findUnique({
       where: { id: userId },
       select: {
+        avatarPath: true,
+        battingHandedness: true,
+        bio: true,
+        bowlingHandedness: true,
         club: true,
         country: true,
         dateOfBirth: true,
@@ -84,7 +88,15 @@ export const getProfile = cache(async (userId: string) => {
     }),
     prisma.coach.findUnique({
       where: { id: userId },
-      select: { accomplishments: true, name: true, status: true },
+      select: {
+        avatarPath: true,
+        bio: true,
+        certifications: true,
+        club: true,
+        name: true,
+        specialties: true,
+        status: true,
+      },
     }),
     prisma.guardian.findUnique({
       where: { id: userId },
