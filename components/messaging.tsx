@@ -168,7 +168,7 @@ export function MessageThread({
                   <div
                     className={
                       message.fromMe
-                        ? "inline-block rounded-[14px] rounded-br-[4px] bg-pitch-900 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-cream-200"
+                        ? "inline-block rounded-[14px] rounded-br-[4px] bg-rust-600 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-cream-200"
                         : "inline-block rounded-[14px] rounded-bl-[4px] border border-cream-400 bg-cream-100 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-ink-900"
                     }
                     title={formatDivider(message.createdAt)}
