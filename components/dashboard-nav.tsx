@@ -10,10 +10,12 @@ const menuItemClasses =
   "block w-full cursor-pointer px-3 py-2 text-left text-sm text-ink-900 no-underline hover:bg-cream-200";
 
 export function DashboardNav({
+  avatarUrl = null,
   homeHref,
   initial,
   limited = false,
 }: {
+  avatarUrl?: string | null;
   homeHref: string;
   initial: string;
   limited?: boolean;
@@ -72,11 +74,16 @@ export function DashboardNav({
           <button
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            className="flex size-[34px] cursor-pointer items-center justify-center rounded-full bg-gold-500 text-sm font-bold text-pitch-900"
+            className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gold-500 text-sm font-bold text-pitch-900"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >
-            {initial}
+            {avatarUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img alt="" className="size-full object-cover" src={avatarUrl} />
+            ) : (
+              initial
+            )}
           </button>
           {menuOpen ? (
             <>

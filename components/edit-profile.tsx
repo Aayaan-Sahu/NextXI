@@ -1,9 +1,39 @@
 import type { ReactNode } from "react";
 import { updateProfile } from "@/app/dashboard/profile/actions";
-import type { PlayerRole } from "@/app/generated/prisma/enums";
+import type { CoachSpecialty, Handedness, PlayerRole } from "@/app/generated/prisma/enums";
+import { AvatarField } from "@/components/avatar-upload";
 import { CountrySelect } from "@/components/country-select";
 import { CheckboxChip, Field, FieldGroup, Form, Kicker, PrimaryButton, TextArea, TextInput } from "@/components/ui";
+import { COACH_SPECIALTY_OPTIONS } from "@/lib/coaches";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
+import { HANDEDNESS_LABELS } from "@/lib/videos";
+
+const selectStyles =
+  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
+
+function HandednessSelect({
+  defaultValue,
+  label,
+  name,
+}: {
+  defaultValue: Handedness | null;
+  label: string;
+  name: string;
+}) {
+  return (
+    <Field>
+      {label}
+      <select className={selectStyles} defaultValue={defaultValue ?? ""} name={name}>
+        <option value="">Not set</option>
+        {Object.entries(HANDEDNESS_LABELS).map(([key, optionLabel]) => (
+          <option key={key} value={key}>
+            {optionLabel}
+          </option>
+        ))}
+      </select>
+    </Field>
+  );
+}
 
 function ProfileCard({ children, kicker }: { children: ReactNode; kicker: string }) {
   return (
@@ -31,10 +61,16 @@ function UsernameField({ username }: { username: string | null }) {
 }
 
 export function EditPlayerProfilePanel({
+  avatarUrl,
   player,
   username,
 }: {
+  avatarUrl: string | null;
   player: {
+    avatarPath: string | null;
+    battingHandedness: Handedness | null;
+    bio: string | null;
+    bowlingHandedness: Handedness | null;
     club: string;
     country: string;
     heightCm: number;
@@ -47,6 +83,11 @@ export function EditPlayerProfilePanel({
   return (
     <ProfileCard kicker="Player profile">
       <Form action={updateProfile}>
+        <AvatarField
+          avatarPath={player.avatarPath}
+          avatarUrl={avatarUrl}
+          initial={player.name.charAt(0).toUpperCase()}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             Name
@@ -83,6 +124,16 @@ export function EditPlayerProfilePanel({
               type="number"
             />
           </Field>
+          <HandednessSelect
+            defaultValue={player.battingHandedness}
+            label="Batting handedness"
+            name="battingHandedness"
+          />
+          <HandednessSelect
+            defaultValue={player.bowlingHandedness}
+            label="Bowling handedness"
+            name="bowlingHandedness"
+          />
         </div>
         <FieldGroup>
           Playing roles
@@ -102,6 +153,16 @@ export function EditPlayerProfilePanel({
             Optional. Select any that apply.
           </span>
         </FieldGroup>
+        <Field>
+          Bio
+          <TextArea
+            defaultValue={player.bio ?? ""}
+            maxLength={500}
+            name="bio"
+            placeholder="A short introduction — up to 500 characters."
+            rows={4}
+          />
+        </Field>
         <div className="mt-1.5">
           <PrimaryButton type="submit">Save changes</PrimaryButton>
         </div>
@@ -111,32 +172,80 @@ export function EditPlayerProfilePanel({
 }
 
 export function EditCoachProfilePanel({
+  avatarUrl,
   coach,
   username,
 }: {
+  avatarUrl: string | null;
   coach: {
-    accomplishments: string[];
+    avatarPath: string | null;
+    bio: string | null;
+    certifications: string[];
+    club: string | null;
     name: string;
+    specialties: CoachSpecialty[];
   };
   username: string | null;
 }) {
   return (
     <ProfileCard kicker="Coach profile">
       <Form action={updateProfile}>
+        <AvatarField
+          avatarPath={coach.avatarPath}
+          avatarUrl={avatarUrl}
+          initial={coach.name.charAt(0).toUpperCase()}
+        />
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             Name
             <TextInput defaultValue={coach.name} name="name" required type="text" />
           </Field>
           <UsernameField username={username} />
+          <Field>
+            Club
+            <TextInput
+              defaultValue={coach.club ?? ""}
+              name="club"
+              placeholder="Optional"
+              type="text"
+            />
+          </Field>
         </div>
+        <FieldGroup>
+          Coaching specialties
+          <div className="flex flex-wrap gap-2">
+            {COACH_SPECIALTY_OPTIONS.map((specialty) => (
+              <CheckboxChip
+                defaultChecked={coach.specialties.includes(specialty.value)}
+                key={specialty.value}
+                name="specialties"
+                value={specialty.value}
+              >
+                {specialty.label}
+              </CheckboxChip>
+            ))}
+          </div>
+          <span className="text-xs font-normal text-ink-600">
+            Optional. Select any that apply.
+          </span>
+        </FieldGroup>
         <Field>
-          Accomplishments
+          Bio
           <TextArea
-            defaultValue={coach.accomplishments.join("\n")}
-            name="accomplishments"
-            placeholder="One accomplishment per line"
-            rows={8}
+            defaultValue={coach.bio ?? ""}
+            maxLength={500}
+            name="bio"
+            placeholder="A short introduction — up to 500 characters."
+            rows={4}
+          />
+        </Field>
+        <Field>
+          Certifications
+          <TextArea
+            defaultValue={coach.certifications.join("\n")}
+            name="certifications"
+            placeholder="One certification per line, e.g. ECB Level 2"
+            rows={4}
           />
         </Field>
         <div className="mt-1.5">

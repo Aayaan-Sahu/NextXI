@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { EditCoachProfilePanel, EditPlayerProfilePanel } from "@/components/edit-profile";
 import { Notice, PageHeader, PageShell } from "@/components/ui";
+import { getAvatarUrl } from "@/lib/avatars.server";
 import { getProfile, isAdmin, requireUser } from "@/lib/auth";
 import { firstParam } from "@/lib/search-params";
 
@@ -26,6 +27,9 @@ export default async function ProfilePage({
   const params = await searchParams;
   const error = firstParam(params.error);
   const message = firstParam(params.message);
+  const avatarUrl = await getAvatarUrl(
+    profile.role === "player" ? profile.player.avatarPath : profile.coach.avatarPath,
+  );
 
   return (
     <PageShell>
@@ -37,9 +41,17 @@ export default async function ProfilePage({
         <Notice tone="error">{error}</Notice>
         <Notice>{message}</Notice>
         {profile.role === "player" ? (
-          <EditPlayerProfilePanel player={profile.player} username={profile.username} />
+          <EditPlayerProfilePanel
+            avatarUrl={avatarUrl}
+            player={profile.player}
+            username={profile.username}
+          />
         ) : (
-          <EditCoachProfilePanel coach={profile.coach} username={profile.username} />
+          <EditCoachProfilePanel
+            avatarUrl={avatarUrl}
+            coach={profile.coach}
+            username={profile.username}
+          />
         )}
       </div>
     </PageShell>

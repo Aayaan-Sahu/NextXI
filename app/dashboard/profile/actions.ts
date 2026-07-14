@@ -3,9 +3,14 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/app/generated/prisma/client";
+import type { Handedness } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { parseCoachSpecialties } from "@/lib/coaches";
 import { isCountry, parsePlayerRoles } from "@/lib/players";
+import { isHandedness } from "@/lib/videos";
+
+const MAX_BIO_LENGTH = 500;
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
 const INVALID_NUMBER = Symbol("invalid-number");
@@ -23,6 +28,33 @@ function optionalInt(formData: FormData, name: string, min: number, max: number)
   if (!Number.isInteger(value) || value < min || value > max) return INVALID_NUMBER;
 
   return value;
+}
+
+const INVALID_TEXT = Symbol("invalid-text");
+
+function optionalBio(formData: FormData) {
+  const raw = text(formData, "bio");
+  if (!raw) return null;
+  return raw.length > MAX_BIO_LENGTH ? INVALID_TEXT : raw;
+}
+
+function optionalAvatarPath(formData: FormData) {
+  return text(formData, "avatarPath") || null;
+}
+
+const INVALID_HANDEDNESS = Symbol("invalid-handedness");
+
+function optionalHandedness(formData: FormData, name: string) {
+  const raw = text(formData, name);
+  if (!raw) return null;
+  return isHandedness(raw) ? (raw as Handedness) : INVALID_HANDEDNESS;
+}
+
+function parseLines(formData: FormData, name: string) {
+  return text(formData, name)
+    .split(/\r?\n|,/)
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function profileError(message: string): never {
@@ -56,6 +88,10 @@ export async function updateProfile(formData: FormData) {
     const roles = parsePlayerRoles(formData);
     const heightCm = optionalInt(formData, "heightCm", 1, 300);
     const weightKg = optionalInt(formData, "weightKg", 1, 500);
+    const bio = optionalBio(formData);
+    const avatarPath = optionalAvatarPath(formData);
+    const battingHandedness = optionalHandedness(formData, "battingHandedness");
+    const bowlingHandedness = optionalHandedness(formData, "bowlingHandedness");
 
     if (!club) profileError("Complete all player fields.");
     if (!isCountry(country)) profileError("Select a valid country.");
@@ -65,20 +101,49 @@ export async function updateProfile(formData: FormData) {
     if (weightKg === INVALID_NUMBER) {
       profileError("Enter a valid weight, or leave it blank.");
     }
+    if (bio === INVALID_TEXT) {
+      profileError(`Bio must be ${MAX_BIO_LENGTH} characters or fewer.`);
+    }
+    if (battingHandedness === INVALID_HANDEDNESS || bowlingHandedness === INVALID_HANDEDNESS) {
+      profileError("Choose a valid handedness, or leave it unset.");
+    }
 
     roleUpdate = prisma.player.update({
       where: { id: user.id },
-      data: { club, country, heightCm, name, roles, weightKg },
+      data: {
+        avatarPath,
+        battingHandedness,
+        bio,
+        bowlingHandedness,
+        club,
+        country,
+        heightCm,
+        name,
+        roles,
+        weightKg,
+      },
     });
   } else if (coach) {
-    const accomplishments = text(formData, "accomplishments")
-      .split(/\r?\n|,/)
-      .map((item) => item.trim())
-      .filter(Boolean);
+    const club = text(formData, "club") || null;
+    const certifications = parseLines(formData, "certifications");
+    const specialties = parseCoachSpecialties(formData);
+    const bio = optionalBio(formData);
+    const avatarPath = optionalAvatarPath(formData);
+
+    if (bio === INVALID_TEXT) {
+      profileError(`Bio must be ${MAX_BIO_LENGTH} characters or fewer.`);
+    }
 
     roleUpdate = prisma.coach.update({
       where: { id: user.id },
-      data: { accomplishments, name },
+      data: {
+        avatarPath,
+        bio,
+        certifications,
+        club,
+        name,
+        specialties,
+      },
     });
   } else {
     redirect("/onboarding");
