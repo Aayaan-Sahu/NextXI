@@ -139,7 +139,7 @@ export function PageHeader({
 
 export function Panel({ children, title }: Children & { title?: string }) {
   return (
-    <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-6">
+    <section className="rounded-[10px] border border-cream-400 bg-white p-6">
       {title && (
         <h2 className="mb-4 font-display text-xl leading-tight font-semibold uppercase">
           {title}
@@ -169,7 +169,7 @@ export function FieldGroup({ className = "", ...props }: ComponentProps<"div">) 
 }
 
 const inputStyles =
-  "rounded-md border border-cream-500 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
+  "rounded-md border border-cream-500 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 placeholder:text-ink-600 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
 
 export function TextInput(props: ComponentProps<"input">) {
   return <input {...props} className={inputStyles} />;

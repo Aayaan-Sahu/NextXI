@@ -37,7 +37,7 @@ function HandednessSelect({
 
 function ProfileCard({ children, kicker }: { children: ReactNode; kicker: string }) {
   return (
-    <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-8">
+    <section className="rounded-[10px] border border-cream-400 bg-white p-8">
       <Kicker>{kicker}</Kicker>
       <div className="mt-5">{children}</div>
     </section>
