@@ -16,7 +16,7 @@ export function SessionVideoPicker({
   if (!videos.length) return null;
 
   return (
-    <details className="rounded-[10px] border border-cream-400 bg-cream-100">
+    <details className="rounded-[10px] border border-cream-400 bg-white">
       <summary className="cursor-pointer px-5 py-3.5 text-sm font-semibold text-ink-900">
         Add an existing video ({videos.length})
       </summary>

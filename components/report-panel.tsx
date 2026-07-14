@@ -309,7 +309,7 @@ export function ReportPanel({
       className={
         dark
           ? "rounded-[12px] bg-pitch-800 bg-[repeating-linear-gradient(0deg,transparent_0_44px,rgba(0,0,0,.10)_44px_46px)] px-[26px] pt-[26px] pb-3.5 text-cream-200"
-          : "rounded-[10px] border border-cream-400 bg-cream-100 p-6"
+          : "rounded-[10px] border border-cream-400 bg-white p-6"
       }
     >
       <div
