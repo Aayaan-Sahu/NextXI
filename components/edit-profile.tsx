@@ -50,11 +50,16 @@ function ProfileCard({
   kicker: string;
 }) {
   return (
+<<<<<<< HEAD
     <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-8">
       <div className="flex items-start justify-between gap-4">
         <Kicker>{kicker}</Kicker>
         {action}
       </div>
+=======
+    <section className="rounded-[10px] border border-cream-400 bg-white p-8">
+      <Kicker>{kicker}</Kicker>
+>>>>>>> origin/main
       <div className="mt-5">{children}</div>
     </section>
   );

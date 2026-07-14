@@ -6,8 +6,10 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { Visibility, type Handedness } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
+import { AVATAR_BUCKET } from "@/lib/avatars";
 import { parseCoachSpecialties } from "@/lib/coaches";
 import { isCountry, parsePlayerRoles } from "@/lib/players";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { isHandedness } from "@/lib/videos";
 
 const MAX_BIO_LENGTH = 500;
@@ -165,4 +167,27 @@ export async function updateProfile(formData: FormData) {
 
   revalidatePath("/dashboard/profile");
   redirect(`/dashboard/profile?message=${encodeURIComponent("Profile updated.")}`);
+}
+
+export async function removeAvatar() {
+  const user = await requireUser();
+
+  const [player, coach] = await Promise.all([
+    prisma.player.findUnique({ where: { id: user.id }, select: { avatarPath: true } }),
+    prisma.coach.findUnique({ where: { id: user.id }, select: { avatarPath: true } }),
+  ]);
+
+  const avatarPath = player?.avatarPath ?? coach?.avatarPath;
+  if (!avatarPath) return;
+
+  const supabaseAdmin = createSupabaseAdminClient();
+  await supabaseAdmin.storage.from(AVATAR_BUCKET).remove([avatarPath]);
+
+  if (player) {
+    await prisma.player.update({ where: { id: user.id }, data: { avatarPath: null } });
+  } else if (coach) {
+    await prisma.coach.update({ where: { id: user.id }, data: { avatarPath: null } });
+  }
+
+  revalidatePath("/dashboard/profile");
 }

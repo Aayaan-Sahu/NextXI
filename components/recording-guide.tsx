@@ -36,7 +36,7 @@ export function RecordingGuideButton() {
           {/* muted: the guide has no audio track, and browsers only autoplay muted video */}
           <video
             autoPlay
-            className="w-full max-w-[960px] rounded-[10px] border border-cream-400 bg-cream-100 shadow-2xl shadow-black/40"
+            className="w-full max-w-[960px] rounded-[10px] border border-cream-400 bg-white shadow-2xl shadow-black/40"
             controls
             muted
             onClick={(event) => event.stopPropagation()}

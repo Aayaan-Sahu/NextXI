@@ -74,7 +74,7 @@ export function DashboardNav({
           <button
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            className="flex size-[34px] cursor-pointer items-center justify-center rounded-full bg-gold-500 text-sm font-bold text-rust-600"
+            className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gold-500 text-sm font-bold text-rust-600"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >

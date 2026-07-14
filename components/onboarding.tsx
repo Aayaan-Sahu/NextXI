@@ -105,7 +105,7 @@ function RoleOption({
       className={`w-[280px] rounded-xl p-7 no-underline ${
         dark
           ? "bg-pitch-900 text-cream-200 hover:bg-pitch-800"
-          : "border border-cream-400 bg-cream-100 hover:border-cream-500"
+          : "border border-cream-400 bg-white hover:border-cream-500"
       }`}
       href={href}
     >
@@ -127,7 +127,7 @@ function RoleOption({
 function RoleForm({ error, role }: { error?: string; role: OnboardingRole }) {
   return (
     <>
-      <section className="w-full max-w-[560px] rounded-xl border border-cream-400 bg-cream-100 p-9">
+      <section className="w-full max-w-[560px] rounded-xl border border-cream-400 bg-white p-9">
         <h1 className="font-display text-[26px] leading-tight font-bold uppercase">
           Set up your {role} profile
         </h1>
