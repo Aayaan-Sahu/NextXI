@@ -179,6 +179,37 @@ export function TextArea(props: ComponentProps<"textarea">) {
   return <textarea {...props} className={`resize-y ${inputStyles}`} />;
 }
 
+/**
+ * An on/off switch backed by a real checkbox — submits inside a server-action
+ * form with no client JS. Optional `onLabel`/`offLabel` swap via the checked
+ * state. The value is only sent to the server when the switch is on.
+ */
+export function Switch({
+  onLabel,
+  offLabel,
+  className = "",
+  ...props
+}: ComponentProps<"input"> & { onLabel?: string; offLabel?: string }) {
+  return (
+    <label
+      className={`inline-flex cursor-pointer items-center gap-2.5 select-none ${className}`}
+    >
+      <input {...props} className="peer sr-only" type="checkbox" />
+      {offLabel ? (
+        <span className="text-[12.5px] font-semibold text-ink-600 peer-checked:hidden">
+          {offLabel}
+        </span>
+      ) : null}
+      {onLabel ? (
+        <span className="hidden text-[12.5px] font-semibold text-pitch-900 peer-checked:inline">
+          {onLabel}
+        </span>
+      ) : null}
+      <span className="relative h-6 w-11 shrink-0 rounded-full border border-cream-500 bg-cream-200 transition-colors after:absolute after:top-[3px] after:left-[3px] after:h-4 after:w-4 after:rounded-full after:bg-cream-50 after:shadow-sm after:transition-transform peer-checked:border-pitch-900 peer-checked:bg-pitch-900 peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-gold-500/40" />
+    </label>
+  );
+}
+
 /** A checkbox rendered as a toggleable pill, for multi-select chip groups. */
 export function CheckboxChip({ children, ...props }: ComponentProps<"input">) {
   return (

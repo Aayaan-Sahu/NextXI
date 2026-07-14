@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { Prisma } from "@/app/generated/prisma/client";
-import type { Handedness } from "@/app/generated/prisma/enums";
+import { Visibility, type Handedness } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { parseCoachSpecialties } from "@/lib/coaches";
@@ -92,6 +92,9 @@ export async function updateProfile(formData: FormData) {
     const avatarPath = optionalAvatarPath(formData);
     const battingHandedness = optionalHandedness(formData, "battingHandedness");
     const bowlingHandedness = optionalHandedness(formData, "bowlingHandedness");
+    // The switch only submits its value when on, so absence means Private.
+    const visibility =
+      formData.get("visibility") === "public" ? Visibility.PUBLIC : Visibility.PRIVATE;
 
     if (!club) profileError("Complete all player fields.");
     if (!isCountry(country)) profileError("Select a valid country.");
@@ -120,6 +123,7 @@ export async function updateProfile(formData: FormData) {
         heightCm,
         name,
         roles,
+        visibility,
         weightKg,
       },
     });

@@ -152,6 +152,20 @@ export async function requestConnectionToCoach(formData: FormData) {
   finishConnectionRequest(await requestConnection(user.id, coachId));
 }
 
+/** Connect action for the player directory — same core as `sendConnectionRequest`. */
+export async function requestConnectionToPlayer(formData: FormData) {
+  const user = await requireUser();
+  requireActiveAccount(await accountStatusFor(user.id));
+
+  const playerId = text(formData, "playerId");
+
+  if (!playerId) {
+    done("connectionError", "Player not found.");
+  }
+
+  finishConnectionRequest(await requestConnection(user.id, playerId));
+}
+
 export async function revokeConnection(formData: FormData) {
   const user = await requireUser();
 
