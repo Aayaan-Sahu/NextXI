@@ -359,6 +359,15 @@ model VideoView {
   @@schema("public")
 }
 
+model WaitlistEntry {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email     String   @unique
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  @@map("waitlist_entries")
+  @@schema("public")
+}
+
 model AuthUser {
   id                   String         @id @db.Uuid
   player               Player?        @relation("PlayerAuthUser")
