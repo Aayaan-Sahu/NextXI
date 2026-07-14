@@ -8,7 +8,17 @@ import {
 } from "@/app/generated/prisma/enums";
 import { AvatarField } from "@/components/avatar-upload";
 import { CountrySelect } from "@/components/country-select";
-import { CheckboxChip, Field, FieldGroup, Form, Kicker, PrimaryButton, Switch, TextArea, TextInput } from "@/components/ui";
+import {
+  CheckboxChip,
+  Field,
+  FieldGroup,
+  Form,
+  Kicker,
+  PrimaryButton,
+  Switch,
+  TextArea,
+  TextInput,
+} from "@/components/ui";
 import { COACH_SPECIALTY_OPTIONS } from "@/lib/coaches";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 import { HANDEDNESS_LABELS } from "@/lib/videos";
@@ -28,7 +38,11 @@ function HandednessSelect({
   return (
     <Field>
       {label}
-      <select className={selectStyles} defaultValue={defaultValue ?? ""} name={name}>
+      <select
+        className={selectStyles}
+        defaultValue={defaultValue ?? ""}
+        name={name}
+      >
         <option value="">Not set</option>
         {Object.entries(HANDEDNESS_LABELS).map(([key, optionLabel]) => (
           <option key={key} value={key}>
@@ -50,16 +64,11 @@ function ProfileCard({
   kicker: string;
 }) {
   return (
-<<<<<<< HEAD
     <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-8">
       <div className="flex items-start justify-between gap-4">
         <Kicker>{kicker}</Kicker>
         {action}
       </div>
-=======
-    <section className="rounded-[10px] border border-cream-400 bg-white p-8">
-      <Kicker>{kicker}</Kicker>
->>>>>>> origin/main
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -125,12 +134,22 @@ export function EditPlayerProfilePanel({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             Name
-            <TextInput defaultValue={player.name} name="name" required type="text" />
+            <TextInput
+              defaultValue={player.name}
+              name="name"
+              required
+              type="text"
+            />
           </Field>
           <UsernameField username={username} />
           <Field>
             Club
-            <TextInput defaultValue={player.club} name="club" required type="text" />
+            <TextInput
+              defaultValue={player.club}
+              name="club"
+              required
+              type="text"
+            />
           </Field>
           <FieldGroup>
             Country
@@ -232,7 +251,12 @@ export function EditCoachProfilePanel({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             Name
-            <TextInput defaultValue={coach.name} name="name" required type="text" />
+            <TextInput
+              defaultValue={coach.name}
+              name="name"
+              required
+              type="text"
+            />
           </Field>
           <UsernameField username={username} />
           <Field>
