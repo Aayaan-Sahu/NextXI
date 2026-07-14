@@ -1,53 +1,51 @@
 @import "tailwindcss";
 
 /*
- * NextXI design system — pitch-green / cream / amber.
+ * NextXI design system — "Crease": ball-red / cream / gold-tan stitching.
  *
- * pitch: dark greens (nav, video surfaces, scoreboard panels)
+ * pitch: neutral dark charcoal ("leather-black" — video surfaces, scoreboard panels)
  * cream: warm off-whites (page background, cards, borders)
- * gold:  amber accent (primary actions, active states, meters)
- * rust:  burnt red (links, kickers, warnings; 500 is the on-dark variant)
+ * gold:  gold-tan (red-light-text) — the "XI" wordmark and small highlights on red; not a second dominant color
+ * rust:  cricket-ball red (nav bar, primary buttons, links, sign-in hero, outbound bubbles; 700 is the darker/pressed shade)
  * ink:   text (900 body, 600 muted)
- * sage:  desaturated green-grey (placeholder / faint text, on-dark muted)
+ * sage:  muted pink-taupe (inactive nav-link text on red, placeholder / faint text)
  */
 @theme {
-  --color-pitch-950: #0e1c14;
-  --color-pitch-900: #13261c;
-  --color-pitch-800: #1e3527;
-  --color-pitch-700: #24402f;
+  --color-pitch-950: #171310;
+  --color-pitch-900: #211c17;
+  --color-pitch-800: #2c2620;
+  --color-pitch-700: #38312a;
 
-  --color-cream-50: #fdfbf4;
-  --color-cream-100: #f6f3e9;
+  --color-cream-50: #fdfbf6;
+  --color-cream-100: #f7f0e3;
   --color-cream-200: #efead9;
   --color-cream-300: #e4dec9;
   --color-cream-400: #ddd6c2;
-  --color-cream-500: #c9c2ac;
+  --color-cream-500: #e6ddc9;
 
-  --color-gold-500: #e8a92e;
-  --color-gold-600: #d0951f;
+  --color-gold-500: #f0c8a0;
+  --color-gold-600: #dbae7e;
 
-  --color-rust-500: #e07a5f;
-  --color-rust-600: #b23a26;
-  --color-rust-700: #8f2e1e;
+  --color-rust-500: #c2503f;
+  --color-rust-600: #8a2323;
+  --color-rust-700: #6f1b1b;
 
-  --color-ink-900: #16221b;
-  --color-ink-600: #6e7a70;
+  --color-ink-900: #2a251e;
+  --color-ink-600: #948d7c;
 
-  --color-sage-400: #a9b3a8;
+  --color-sage-400: #e0b0b0;
 
   --font-sans: var(--font-public-sans), system-ui, sans-serif;
   --font-display: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
 }
 
-/* Mowed-pitch stripes behind dark full-bleed screens (sign in). */
-@utility bg-pitch-stripes {
-  background-color: var(--color-pitch-900);
-  background-image: repeating-linear-gradient(
-    0deg,
-    transparent 0 88px,
-    rgb(30 53 39 / 0.55) 88px 176px
-  );
+/* Faint woven seam-stitch texture behind the sign-in hero. */
+@utility bg-seam-stitch {
+  background-color: var(--color-rust-600);
+  background-image:
+    repeating-linear-gradient(0deg, transparent 0 27px, rgb(255 255 255 / 0.05) 27px 28px),
+    repeating-linear-gradient(90deg, transparent 0 6px, rgb(255 255 255 / 0.05) 6px 6.6px);
 }
 
 /* Broadcast-scanline texture for video thumbnail placeholders. */

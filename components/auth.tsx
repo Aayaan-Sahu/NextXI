@@ -65,7 +65,7 @@ export function AuthPanel({
               type="password"
             />
           </Field>
-          <PrimaryButton type="submit">
+          <PrimaryButton type="submit" variant="rust">
             {isSignUp ? "Create account" : "Sign in"}
           </PrimaryButton>
         </Form>
@@ -114,7 +114,7 @@ export function ResetPasswordPanel({
               <TextInput autoComplete="email" name="email" required type="email" />
             </Field>
           )}
-          <PrimaryButton type="submit">
+          <PrimaryButton type="submit" variant="rust">
             {hasUser ? "Update password" : "Send reset email"}
           </PrimaryButton>
         </Form>
@@ -153,7 +153,9 @@ export function CheckEmailPanel({
               type="email"
             />
           </Field>
-          <PrimaryButton type="submit">Resend verification email</PrimaryButton>
+          <PrimaryButton type="submit" variant="rust">
+            Resend verification email
+          </PrimaryButton>
         </Form>
 
         <Notice>{message}</Notice>

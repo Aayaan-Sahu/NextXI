@@ -50,7 +50,7 @@ export function DashboardNav({
     );
 
   return (
-    <header className="bg-pitch-900">
+    <header className="bg-rust-600">
       <nav className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-10 px-6 sm:px-12">
         <Link className="no-underline" href={homeHref}>
           <Wordmark tone="dark" />
@@ -74,7 +74,7 @@ export function DashboardNav({
           <button
             aria-expanded={menuOpen}
             aria-haspopup="menu"
-            className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gold-500 text-sm font-bold text-pitch-900"
+            className="flex size-[34px] cursor-pointer items-center justify-center rounded-full bg-gold-500 text-sm font-bold text-rust-600"
             onClick={() => setMenuOpen((open) => !open)}
             type="button"
           >

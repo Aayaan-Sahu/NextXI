@@ -7,12 +7,18 @@ type Children = {
 };
 
 /** The NextXI wordmark. `tone` picks the "Next" color for dark or light surfaces. */
-export function Wordmark({ tone = "dark" }: { tone?: "dark" | "light" }) {
+export function Wordmark({
+  size = "md",
+  tone = "dark",
+}: {
+  size?: "md" | "lg";
+  tone?: "dark" | "light";
+}) {
   return (
     <span
-      className={`font-display text-xl font-bold tracking-[.06em] uppercase ${
-        tone === "dark" ? "text-cream-200" : "text-pitch-900"
-      }`}
+      className={`font-display font-bold tracking-[.06em] uppercase ${
+        size === "lg" ? "text-4xl" : "text-xl"
+      } ${tone === "dark" ? "text-cream-200" : "text-pitch-900"}`}
     >
       Next<span className="text-gold-500">XI</span>
     </span>
@@ -37,9 +43,9 @@ export function Kicker({
 
 export function AuthShell({ children }: Children) {
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-pitch-stripes p-6">
-      <div className="absolute top-8 left-6 sm:left-12">
-        <Wordmark tone="dark" />
+    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-seam-stitch p-6 sm:p-12">
+      <div className="absolute top-8 left-6 sm:top-10 sm:left-12">
+        <Wordmark size="lg" tone="dark" />
       </div>
       {children}
     </main>
@@ -57,7 +63,7 @@ export function AuthCard({
   title: string;
 }) {
   return (
-    <section className="relative w-full max-w-[400px] overflow-hidden rounded-xl bg-cream-100 text-ink-900 shadow-2xl shadow-black/45">
+    <section className="relative w-full max-w-[560px] overflow-hidden rounded-xl bg-white text-ink-900 shadow-2xl shadow-black/45">
       <div className="p-9">
         <h1 className="font-display text-[26px] leading-tight font-bold uppercase">
           {title}
@@ -163,7 +169,7 @@ export function FieldGroup({ className = "", ...props }: ComponentProps<"div">) 
 }
 
 const inputStyles =
-  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
+  "rounded-md border border-cream-500 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
 
 export function TextInput(props: ComponentProps<"input">) {
   return <input {...props} className={inputStyles} />;
@@ -192,11 +198,18 @@ export function Badge({ children }: Children) {
   );
 }
 
-export function PrimaryButton(props: ComponentProps<"button">) {
+export function PrimaryButton({
+  variant = "gold",
+  ...props
+}: ComponentProps<"button"> & { variant?: "gold" | "rust" }) {
   return (
     <button
       {...props}
-      className="cursor-pointer rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600"
+      className={
+        variant === "rust"
+          ? "cursor-pointer rounded-md bg-rust-600 px-4 py-2.5 text-sm font-bold text-cream-50 hover:bg-rust-700"
+          : "cursor-pointer rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600"
+      }
     />
   );
 }
