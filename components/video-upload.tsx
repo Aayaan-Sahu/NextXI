@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
+import { RecordingGuideButton } from "@/components/recording-guide";
 import { Field, Panel, PrimaryButton } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
@@ -289,7 +290,7 @@ export function VideoUpload({
         </Field>
       </div>
       <section
-        className={`mt-4 flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-[38px] text-center ${
+        className={`relative mt-4 flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-[38px] text-center ${
           dragActive ? "border-gold-500 bg-cream-50" : "border-cream-500"
         }`}
         onDragLeave={() => setDragActive(false)}
@@ -303,6 +304,7 @@ export function VideoUpload({
           handleFile(event.dataTransfer.files[0]);
         }}
       >
+        <RecordingGuideButton />
         <input
           accept={acceptedTypes}
           className="hidden"
