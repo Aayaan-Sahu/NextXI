@@ -3,12 +3,16 @@
 import { useRef, useSyncExternalStore } from "react";
 import {
   motion,
+  useMotionValue,
   useMotionValueEvent,
   useScroll,
   useSpring,
   useTransform,
 } from "motion/react";
+import { AnalysisHud } from "@/components/landing/analysis-hud";
 import { useScrollRatchet } from "@/components/landing/use-scroll-ratchet";
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 const SCRUB_BLOCKERS = "(pointer: coarse), (prefers-reduced-motion: reduce)";
 
@@ -57,6 +61,13 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
     }
   });
 
+  // Hand-off from the ball section's red wipe: the frame starts leather-red
+  // and the batter fades in over the first few percent of the scrub.
+  const entry = useMotionValue(scrub ? 1 : 0);
+  useMotionValueEvent(scrollYProgress, "change", (progress) => {
+    if (scrub) entry.set(1 - clamp01(progress / 0.07));
+  });
+
   return (
     <section ref={sectionRef} className={scrub ? "relative h-[350vh]" : "relative"}>
       <div
@@ -77,6 +88,8 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           className="h-full w-full object-contain"
         />
 
+        <AnalysisHud progress={scrollYProgress} scrub={scrub} />
+
         <motion.div
           style={scrub ? { opacity: revealOpacity, y: revealY } : undefined}
           className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-pitch-950/55 px-6 text-center"
@@ -85,6 +98,23 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             See your game like a scout does
           </h2>
         </motion.div>
+
+        {scrub ? (
+          <motion.div
+            aria-hidden
+            style={{ opacity: entry }}
+            className="pointer-events-none absolute inset-0 bg-rust-700"
+          />
+        ) : (
+          <motion.div
+            aria-hidden
+            initial={{ opacity: 1 }}
+            whileInView={{ opacity: 0 }}
+            viewport={{ once: true, amount: 0.4 }}
+            transition={{ duration: 0.8, ease: "easeOut" }}
+            className="pointer-events-none absolute inset-0 bg-rust-700"
+          />
+        )}
       </div>
     </section>
   );

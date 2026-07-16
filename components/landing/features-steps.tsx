@@ -32,7 +32,7 @@ const STEPS = [
 
 export function FeaturesSteps() {
   return (
-    <section className="bg-cream-200 px-6 py-24 sm:px-12">
+    <section className="bg-seam-stitch px-6 py-24 sm:px-12">
       <div className="mx-auto w-full max-w-[1000px]">
         <motion.header
           initial={{ opacity: 0, y: 32 }}
@@ -41,8 +41,8 @@ export function FeaturesSteps() {
           transition={{ duration: 0.55 }}
           className="mb-16 text-center"
         >
-          <Kicker>How it works</Kicker>
-          <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-5xl">
+          <Kicker tone="dark">How it works</Kicker>
+          <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] text-cream-50 uppercase sm:text-5xl">
             From the nets to the scout&apos;s desk
           </h2>
         </motion.header>
@@ -59,11 +59,11 @@ export function FeaturesSteps() {
             >
               <div className={i % 2 === 1 ? "md:order-2" : ""}>{step.animation}</div>
               <div className={i % 2 === 1 ? "md:order-1 md:text-right" : ""}>
-                <Kicker>{step.kicker}</Kicker>
-                <h3 className="mt-2 font-display text-2xl leading-tight font-bold uppercase sm:text-3xl">
+                <Kicker tone="dark">{step.kicker}</Kicker>
+                <h3 className="mt-2 font-display text-2xl leading-tight font-bold text-cream-50 uppercase sm:text-3xl">
                   {step.title}
                 </h3>
-                <p className="mt-3 text-[15px] leading-relaxed text-ink-600">
+                <p className="mt-3 text-[15px] leading-relaxed text-cream-200">
                   {step.body}
                 </p>
               </div>

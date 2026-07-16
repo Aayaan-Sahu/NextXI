@@ -30,8 +30,11 @@ function CricketBall({ progress, reduced }: BallProps) {
     const ball = group.current;
     if (!ball) return;
     const p = reduced ? 1 : progress.get();
-    ball.rotation.y = p * Math.PI * 4;
-    ball.scale.setScalar(0.6 + p * 1.8);
+    // The delivery: past 82% the ball accelerates into the camera so its
+    // leather fills the frame for the red wipe into the next section.
+    const launch = reduced ? 0 : Math.max(0, (p - 0.82) / 0.18);
+    ball.rotation.y = p * Math.PI * 4 + launch * Math.PI;
+    ball.scale.setScalar(0.6 + p * 1.8 + launch * launch * 7);
   });
 
   return (

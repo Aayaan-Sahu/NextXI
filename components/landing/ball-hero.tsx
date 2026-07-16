@@ -2,8 +2,17 @@
 
 import { useRef, useState } from "react";
 import dynamic from "next/dynamic";
-import { motion, useMotionValueEvent, useReducedMotion, useScroll } from "motion/react";
+import {
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from "motion/react";
 import { Wordmark } from "@/components/ui";
+
+const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 const BallCanvas = dynamic(() => import("@/components/landing/ball-canvas"), {
   ssr: false,
@@ -25,8 +34,14 @@ export function BallHero() {
   // Subscribe rather than bind a transform: the raw scroll value updates
   // outside React, and a state flip + CSS transition fades reliably.
   const [cueHidden, setCueHidden] = useState(false);
+  // "The delivery": as the ball launches into the camera (last ~15%), a
+  // leather-red wash covers the frame; the video section fades in from the
+  // same red so the two pinned sections read as one continuous shot.
+  const wipe = useMotionValue(0);
+  const wordmarkOpacity = useTransform(wipe, [0, 0.5], [1, 0]);
   useMotionValueEvent(scrollYProgress, "change", (progress) => {
     setCueHidden(progress > 0.08);
+    if (!reduced) wipe.set(clamp01((progress - 0.84) / 0.12));
   });
 
   return (
@@ -42,8 +57,16 @@ export function BallHero() {
           transition={{ duration: 0.9, ease: "easeOut" }}
           className="pointer-events-none absolute inset-0 flex items-center justify-center"
         >
-          <Wordmark size="xl" tone="dark" />
+          <motion.span style={{ opacity: wordmarkOpacity }}>
+            <Wordmark size="xl" tone="dark" />
+          </motion.span>
         </motion.h1>
+
+        <motion.div
+          aria-hidden
+          style={{ opacity: wipe }}
+          className="pointer-events-none absolute inset-0 bg-rust-700"
+        />
 
         <p
           className={`pointer-events-none absolute inset-x-0 bottom-8 text-center font-mono text-[11px] font-semibold tracking-[.3em] text-sage-400 uppercase transition-opacity duration-500 ${

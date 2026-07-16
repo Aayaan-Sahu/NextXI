@@ -210,7 +210,7 @@ export function ConnectAnimation() {
 export function StepArrow({ flip = false }: { flip?: boolean }) {
   return (
     <div className={`flex justify-center py-2 ${flip ? "-scale-x-100" : ""}`} aria-hidden>
-      <svg viewBox="0 0 220 130" className="h-28 w-auto text-rust-600/70" fill="none">
+      <svg viewBox="0 0 220 130" className="h-28 w-auto text-gold-500/80" fill="none">
         <motion.path
           d="M30 12 C 80 100, 150 20, 186 96"
           stroke="currentColor"
