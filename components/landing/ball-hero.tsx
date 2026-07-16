@@ -34,19 +34,23 @@ export function BallHero() {
   // Subscribe rather than bind a transform: the raw scroll value updates
   // outside React, and a state flip + CSS transition fades reliably.
   const [cueHidden, setCueHidden] = useState(false);
-  // "The delivery": as the ball launches into the camera (last ~15%), a
-  // leather-red wash covers the frame; the video section fades in from the
-  // same red so the two pinned sections read as one continuous shot.
+  // "The delivery": in the final stretch the ball launches into the camera,
+  // a leather-red vignette closes over the frame, and the video section
+  // (pinned underneath via its negative top margin) emerges from the same
+  // vignette. `depart` blinks this layer out right at the handoff so the
+  // departing section never slides over the pinned video.
   const wipe = useMotionValue(0);
+  const depart = useMotionValue(1);
   const wordmarkOpacity = useTransform(wipe, [0, 0.5], [1, 0]);
   useMotionValueEvent(scrollYProgress, "change", (progress) => {
     setCueHidden(progress > 0.08);
-    if (!reduced) wipe.set(clamp01((progress - 0.84) / 0.12));
+    depart.set(1 - clamp01((progress - 0.985) / 0.013));
+    if (!reduced) wipe.set(clamp01((progress - 0.86) / 0.12));
   });
 
   return (
-    <section ref={sectionRef} className="relative h-[250vh] bg-pitch-950">
-      <div className="sticky top-0 h-dvh overflow-hidden">
+    <section ref={sectionRef} className="relative z-10 h-[250vh]">
+      <motion.div style={{ opacity: depart }} className="sticky top-0 h-dvh overflow-hidden bg-pitch-950">
         <div className="absolute inset-0">
           <BallCanvas progress={scrollYProgress} reduced={reduced} />
         </div>
@@ -65,7 +69,7 @@ export function BallHero() {
         <motion.div
           aria-hidden
           style={{ opacity: wipe }}
-          className="pointer-events-none absolute inset-0 bg-rust-700"
+          className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,rgba(90,20,18,0.78)_0%,rgba(58,15,15,0.94)_60%,#2c0b0b_100%)]"
         />
 
         <p
@@ -75,7 +79,7 @@ export function BallHero() {
         >
           Scroll
         </p>
-      </div>
+      </motion.div>
     </section>
   );
 }

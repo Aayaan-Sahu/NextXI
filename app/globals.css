@@ -35,6 +35,13 @@
 
   --color-sage-400: #e0b0b0;
 
+  /* vision: cold phosphor-mint accent reserved for the machine-vision /
+     analysis overlay layer — the deliberate counterpoint to the warm Crease
+     palette (see PRODUCT.md, principle 3). Not for product UI chrome. */
+  --color-vision-300: #b5f5dc;
+  --color-vision-500: #7ce8bf;
+  --color-vision-700: #2ea77d;
+
   --font-sans: var(--font-public-sans), system-ui, sans-serif;
   --font-display: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;

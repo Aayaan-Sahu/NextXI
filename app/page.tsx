@@ -41,7 +41,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
     <main>
       <LandingNav />
       <BallHero />
-      <HeroScrubVideo src="/hero-scrub.mp4" poster="/hero-poster.jpg" />
+      <HeroScrubVideo src="/hero-drive.mp4" poster="/hero-drive-poster.jpg" />
       <FeaturesSteps />
       <MoreFeatures />
       <ReportShowcase />

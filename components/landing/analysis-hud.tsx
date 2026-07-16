@@ -1,203 +1,383 @@
 "use client";
 
-import { useState } from "react";
-import {
-  motion,
-  useMotionValue,
-  useMotionValueEvent,
-  type MotionValue,
-} from "motion/react";
+import { useEffect, useRef, useState } from "react";
+import { motion, useMotionValue, useMotionValueEvent, type MotionValue } from "motion/react";
+import { HERO_DRIVE_TRACK, type TrackSample } from "@/components/landing/hero-drive-track";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-const BALL_SPEED_MPH = 68.2;
+/* ── track math (frame % ⇄ metres via the calibration block) ───────────── */
 
-/** Scroll progress at which each HUD layer switches on. */
-const STAGE_AT = [0.06, 0.28, 0.5, 0.6, 0.7];
+const { calibration, events, video } = HERO_DRIVE_TRACK;
+const FRAME_H_M = calibration.subjectHeightM / (calibration.subjectHeightPct / 100);
+const FRAME_W_M = FRAME_H_M * video.aspect;
+const MPS_TO_MPH = 2.23694;
 
-function stageFor(progress: number) {
-  let stage = 0;
-  for (const threshold of STAGE_AT) if (progress > threshold) stage++;
-  return stage;
+/** Linear interpolation over a sparse [t, x, y] channel; clamps at the ends. */
+function sampleAt(channel: TrackSample[], t: number): [number, number] {
+  if (t <= channel[0][0]) return [channel[0][1], channel[0][2]];
+  const last = channel[channel.length - 1];
+  if (t >= last[0]) return [last[1], last[2]];
+  let i = 1;
+  while (channel[i][0] < t) i++;
+  const [t0, x0, y0] = channel[i - 1];
+  const [t1, x1, y1] = channel[i];
+  const k = (t - t0) / (t1 - t0);
+  return [x0 + (x1 - x0) * k, y0 + (y1 - y0) * k];
 }
 
-const SHOT_METRICS = [
-  { label: "Bat swing", score: 82 },
-  { label: "Balance", score: 76 },
-  { label: "Timing", score: 68 },
+function metersBetween(a: [number, number], b: [number, number]) {
+  const dx = ((b[0] - a[0]) / 100) * FRAME_W_M;
+  const dy = ((b[1] - a[1]) / 100) * FRAME_H_M;
+  return Math.hypot(dx, dy);
+}
+
+/** Interior angle at `mid` (degrees), computed in metre space. */
+function angleAt(a: [number, number], mid: [number, number], c: [number, number]) {
+  const v1 = [((a[0] - mid[0]) / 100) * FRAME_W_M, ((a[1] - mid[1]) / 100) * FRAME_H_M];
+  const v2 = [((c[0] - mid[0]) / 100) * FRAME_W_M, ((c[1] - mid[1]) / 100) * FRAME_H_M];
+  const dot = v1[0] * v2[0] + v1[1] * v2[1];
+  const mag = Math.hypot(v1[0], v1[1]) * Math.hypot(v2[0], v2[1]);
+  return mag === 0 ? 0 : (Math.acos(Math.min(1, Math.max(-1, dot / mag))) * 180) / Math.PI;
+}
+
+function speedMps(channel: TrackSample[], t: number, window = 0.15) {
+  return metersBetween(sampleAt(channel, t - window), sampleAt(channel, t)) / window;
+}
+
+/* ── derived once from the data (real numbers, not copy) ───────────────── */
+
+const P = HERO_DRIVE_TRACK.points;
+const BALL = HERO_DRIVE_TRACK.ball;
+const BALL_T0 = BALL[0][0];
+const BALL_T1 = BALL[BALL.length - 1][0];
+const IMPACT_T = events.find((e) => e.label === "impact")!.t;
+
+const FEED_MPH = (metersBetween(sampleAt(BALL, 6.0), sampleAt(BALL, 6.6)) / 0.6) * MPS_TO_MPH;
+const EXIT_MPH = (metersBetween(sampleAt(BALL, 6.8), sampleAt(BALL, 7.2)) / 0.4) * MPS_TO_MPH;
+
+/** Bat-tip trail geometry in the 160×90 svg space, with cumulative length. */
+const TRAIL = (() => {
+  const pts: Array<{ x: number; y: number; t: number; len: number }> = [];
+  let len = 0;
+  for (let t = 6.0; t <= 7.4; t += 1 / 60) {
+    const [x, y] = sampleAt(P.batTip, t);
+    const sx = x * 1.6, sy = y * 0.9;
+    if (pts.length) len += Math.hypot(sx - pts[pts.length - 1].x, sy - pts[pts.length - 1].y);
+    pts.push({ x: sx, y: sy, t, len });
+  }
+  return { d: `M ${pts.map((p) => `${p.x.toFixed(2)} ${p.y.toFixed(2)}`).join(" L ")}`, pts, total: len };
+})();
+
+function trailLenAt(t: number) {
+  if (t <= 6.0) return 0;
+  const pt = TRAIL.pts.find((p) => p.t >= t);
+  return pt ? pt.len : TRAIL.total;
+}
+
+const LIMBS: Array<[keyof typeof P, keyof typeof P]> = [
+  ["shoulder", "elbow"], ["elbow", "hands"], ["shoulder", "hip"],
+  ["hip", "kneeF"], ["kneeF", "ankleF"], ["hip", "kneeB"], ["kneeB", "ankleB"],
 ];
+const JOINTS = Object.keys(P) as Array<keyof typeof P>;
 
-function reveal(shown: boolean) {
-  return `transition-all duration-500 ${shown ? "translate-y-0 opacity-100" : "translate-y-2 opacity-0"}`;
-}
+const fmtTime = (t: number) =>
+  `T+00:${String(Math.floor(t)).padStart(2, "0")}.${String(Math.floor((t % 1) * 100)).padStart(2, "0")}`;
 
-/** A small mono callout pinned at a percentage position over the video. */
-function Chip({
-  children,
-  shown,
-  x,
-  y,
-}: {
-  children: React.ReactNode;
-  shown: boolean;
-  x: string;
-  y: string;
-}) {
-  return (
-    <div style={{ left: x, top: y }} className="absolute">
-      <span
-        className={`flex items-center gap-1.5 rounded border border-gold-500/40 bg-pitch-950/75 px-2.5 py-1.5 font-mono text-[11px] font-semibold tracking-[.08em] whitespace-nowrap text-gold-500 uppercase backdrop-blur-sm ${reveal(shown)}`}
-      >
-        {children}
-      </span>
-    </div>
-  );
-}
+/* ── component ─────────────────────────────────────────────────────────── */
 
 /**
- * Broadcast-style analysis overlays that build up as the visitor scrubs
- * through the batting video: framing brackets, ball tracking, a speed
- * readout, technique callouts, then a shot-metrics panel. All values are
- * scripted demo numbers, not live CV output. Everything subscribes to the
- * scroll value via events — direct transform bindings proved unreliable.
+ * Machine-vision overlay for the drive video. Reads video.currentTime every
+ * frame (works for scroll-scrub and autoplay alike) and renders the
+ * hand-annotated track: skeleton, bat-path trail, ball tracking, live-
+ * computed angles and speeds. Geometry updates are imperative (refs, one
+ * rAF) so nothing re-renders at 60 Hz; only the phase label goes through
+ * React state. Cold vision-mint on near-white — deliberately not Crease.
  */
 export function AnalysisHud({
   progress,
   scrub,
+  videoRef,
 }: {
   progress: MotionValue<number>;
   scrub: boolean;
+  videoRef: React.RefObject<HTMLVideoElement | null>;
 }) {
-  // Without scrubbing (touch devices, reduced motion) the video autoplays
-  // and the HUD sits fully assembled as a static broadcast overlay.
-  const [stage, setStage] = useState(scrub ? 0 : STAGE_AT.length);
-  const track = useMotionValue(scrub ? 0 : 1);
-  const speedText = useMotionValue(scrub ? "0.0" : BALL_SPEED_MPH.toFixed(1));
-  const hudOpacity = useMotionValue(1);
+  const [phase, setPhase] = useState(events[0].label);
+  const frameBoxRef = useRef<HTMLDivElement>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
+  const boxRef = useRef<SVGRectElement>(null);
+  const trailRef = useRef<SVGPathElement>(null);
+  const batRef = useRef<SVGLineElement>(null);
+  const ballRef = useRef<SVGCircleElement>(null);
+  const ballTailRef = useRef<SVGPathElement>(null);
+  const impactRef = useRef<SVGCircleElement>(null);
+  const subjectTagRef = useRef<HTMLDivElement>(null);
+  const timeRef = useRef<HTMLSpanElement>(null);
+  const elbowRef = useRef<HTMLSpanElement>(null);
+  const strideRef = useRef<HTMLSpanElement>(null);
+  const tipRef = useRef<HTMLSpanElement>(null);
+  const feedRef = useRef<HTMLSpanElement>(null);
+  const exitRef = useRef<HTMLSpanElement>(null);
+  const jsonRef = useRef<HTMLSpanElement>(null);
+  const limbRefs = useRef<Array<SVGLineElement | null>>([]);
+  const jointRefs = useRef<Partial<Record<keyof typeof P, SVGGElement | null>>>({});
+  const phaseRef = useRef(phase);
 
+  // Fade with the scroll story in scrub mode: in after the red wipe, out
+  // before the headline takes the frame. Always on when the video autoplays.
+  const hudOpacity = useMotionValue(scrub ? 0 : 1);
   useMotionValueEvent(progress, "change", (p) => {
-    if (!scrub) return;
-    setStage(stageFor(p));
-    track.set(clamp01((p - 0.12) / 0.3));
-    speedText.set((BALL_SPEED_MPH * clamp01((p - 0.28) / 0.14)).toFixed(1));
-    // Clear the HUD before the headline takes the frame.
-    hudOpacity.set(1 - clamp01((p - 0.78) / 0.08));
+    if (scrub) hudOpacity.set(clamp01((p - 0.02) / 0.03) - clamp01((p - 0.78) / 0.08));
   });
+
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      raf = requestAnimationFrame(tick);
+      const vid = videoRef.current;
+      const frameBox = frameBoxRef.current;
+      if (!vid || !frameBox || !vid.parentElement) return;
+
+      // Pin the overlay to the video's object-contain content box.
+      const cw = vid.clientWidth, ch = vid.clientHeight;
+      const scale = Math.min(cw / video.aspect, ch);
+      const vw = scale * video.aspect, vh = scale;
+      frameBox.style.left = `${(cw - vw) / 2}px`;
+      frameBox.style.top = `${(ch - vh) / 2}px`;
+      frameBox.style.width = `${vw}px`;
+      frameBox.style.height = `${vh}px`;
+
+      const t = vid.currentTime;
+
+      // joints + limbs + bounding box
+      let minX = 100, minY = 100, maxX = 0, maxY = 0;
+      for (const key of JOINTS) {
+        const [x, y] = sampleAt(P[key], t);
+        const g = jointRefs.current[key];
+        if (g) g.setAttribute("transform", `translate(${x * 1.6} ${y * 0.9})`);
+        if (key !== "batTip") {
+          minX = Math.min(minX, x); maxX = Math.max(maxX, x);
+          minY = Math.min(minY, y); maxY = Math.max(maxY, y);
+        }
+      }
+      LIMBS.forEach(([a, b], i) => {
+        const line = limbRefs.current[i];
+        if (!line) return;
+        const [ax, ay] = sampleAt(P[a], t);
+        const [bx, by] = sampleAt(P[b], t);
+        line.setAttribute("x1", String(ax * 1.6)); line.setAttribute("y1", String(ay * 0.9));
+        line.setAttribute("x2", String(bx * 1.6)); line.setAttribute("y2", String(by * 0.9));
+      });
+      const box = boxRef.current;
+      if (box) {
+        box.setAttribute("x", String((minX - 3) * 1.6));
+        box.setAttribute("y", String((minY - 4) * 0.9));
+        box.setAttribute("width", String((maxX - minX + 6) * 1.6));
+        box.setAttribute("height", String((maxY - minY + 8) * 0.9));
+      }
+      const tag = subjectTagRef.current;
+      if (tag) {
+        tag.style.left = `${minX - 3}%`;
+        tag.style.top = `calc(${minY - 4}% - 20px)`;
+      }
+
+      // bat + trail
+      const bat = batRef.current;
+      if (bat) {
+        const [hx, hy] = sampleAt(P.hands, t);
+        const [tx, ty] = sampleAt(P.batTip, t);
+        bat.setAttribute("x1", String(hx * 1.6)); bat.setAttribute("y1", String(hy * 0.9));
+        bat.setAttribute("x2", String(tx * 1.6)); bat.setAttribute("y2", String(ty * 0.9));
+      }
+      const trail = trailRef.current;
+      if (trail) {
+        const reveal = trailLenAt(t);
+        trail.style.strokeDasharray = `${reveal} ${TRAIL.total + 1}`;
+        trail.style.opacity = t > 6.05 ? "0.75" : "0";
+      }
+
+      // ball marker + short tail
+      const ball = ballRef.current, tail = ballTailRef.current;
+      const ballVisible = t >= BALL_T0 && t <= BALL_T1;
+      if (ball) {
+        ball.style.opacity = ballVisible ? "1" : "0";
+        if (ballVisible) {
+          const [bx, by] = sampleAt(BALL, t);
+          ball.setAttribute("cx", String(bx * 1.6));
+          ball.setAttribute("cy", String(by * 0.9));
+        }
+      }
+      if (tail) {
+        tail.style.opacity = ballVisible ? "0.6" : "0";
+        if (ballVisible) {
+          const pts: string[] = [];
+          for (let dt = 0.3; dt >= 0; dt -= 0.05) {
+            if (t - dt < BALL_T0) continue;
+            const [bx, by] = sampleAt(BALL, t - dt);
+            pts.push(`${bx * 1.6} ${by * 0.9}`);
+          }
+          if (pts.length > 1) tail.setAttribute("d", `M ${pts.join(" L ")}`);
+        }
+      }
+
+      // impact pulse
+      const impact = impactRef.current;
+      if (impact) {
+        const k = 1 - Math.min(1, Math.abs(t - IMPACT_T) / 0.35);
+        impact.style.opacity = String(0.9 * k);
+        impact.setAttribute("r", String(1.5 + (1 - k) * 7));
+      }
+
+      // readouts
+      const shoulder = sampleAt(P.shoulder, t), elbow = sampleAt(P.elbow, t), hands = sampleAt(P.hands, t);
+      const elbowDeg = angleAt(shoulder, elbow, hands);
+      const strideM = metersBetween(sampleAt(P.ankleF, t), sampleAt(P.ankleB, t));
+      const tipMph = speedMps(P.batTip, t) * MPS_TO_MPH;
+      if (timeRef.current) timeRef.current.textContent = `${fmtTime(t)} · F${String(Math.floor(t * video.fps)).padStart(3, "0")}`;
+      if (elbowRef.current) elbowRef.current.textContent = `${elbowDeg.toFixed(1)}°`;
+      if (strideRef.current) strideRef.current.textContent = `${strideM.toFixed(2)} m`;
+      if (tipRef.current) tipRef.current.textContent = `${tipMph.toFixed(1)} mph`;
+      if (feedRef.current) feedRef.current.textContent = t >= BALL_T0 ? `${FEED_MPH.toFixed(1)} mph` : "—";
+      if (exitRef.current) exitRef.current.textContent = t >= 6.9 ? `${EXIT_MPH.toFixed(1)} mph` : "—";
+      if (jsonRef.current)
+        jsonRef.current.textContent = `{"t":${t.toFixed(2)},"phase":"${phaseRef.current}","elbow_deg":${elbowDeg.toFixed(0)},"tip_mps":${(tipMph / MPS_TO_MPH).toFixed(1)}}`;
+
+      // phase (React state, changes rarely)
+      let current = events[0].label;
+      for (const e of events) if (t >= e.t) current = e.label;
+      if (current !== phaseRef.current) {
+        phaseRef.current = current;
+        setPhase(current);
+      }
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [videoRef]);
 
   return (
     <motion.div
       aria-hidden
       style={{ opacity: hudOpacity }}
-      className="pointer-events-none absolute inset-0 max-sm:hidden"
+      className="pointer-events-none absolute inset-0 font-mono max-sm:hidden"
     >
-      {/* framing brackets */}
-      <div
-        className={`absolute inset-4 transition-opacity duration-700 sm:inset-6 ${
-          stage >= 1 ? "opacity-100" : "opacity-0"
-        }`}
-      >
-        <span className="absolute top-0 left-0 size-6 border-t-2 border-l-2 border-gold-500/50" />
-        <span className="absolute top-0 right-0 size-6 border-t-2 border-r-2 border-gold-500/50" />
-        <span className="absolute bottom-0 left-0 size-6 border-b-2 border-l-2 border-gold-500/50" />
-        <span className="absolute right-0 bottom-0 size-6 border-r-2 border-b-2 border-gold-500/50" />
-      </div>
+      <div ref={frameBoxRef} className="absolute">
+        {/* corner ticks */}
+        <div className="absolute inset-3">
+          <span className="absolute top-0 left-0 size-4 border-t border-l border-white/40" />
+          <span className="absolute top-0 right-0 size-4 border-t border-r border-white/40" />
+          <span className="absolute bottom-0 left-0 size-4 border-b border-l border-white/40" />
+          <span className="absolute right-0 bottom-0 size-4 border-r border-b border-white/40" />
+        </div>
 
-      {/* status badges */}
-      <div className={`absolute top-9 left-9 sm:top-11 sm:left-11 ${reveal(stage >= 1)}`}>
-        <span className="flex items-center gap-2 rounded bg-rust-600 px-2.5 py-1.5 font-mono text-[11px] font-semibold tracking-[.18em] text-cream-50 uppercase">
-          <motion.span
-            animate={{ opacity: [1, 0.25, 1] }}
-            transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
-            className="size-1.5 rounded-full bg-gold-500"
+        {/* tracked geometry */}
+        <svg
+          ref={svgRef}
+          viewBox="0 0 160 90"
+          preserveAspectRatio="none"
+          className="absolute inset-0 h-full w-full"
+        >
+          <rect
+            ref={boxRef}
+            fill="none"
+            strokeWidth={0.22}
+            strokeDasharray="1.6 1.1"
+            className="stroke-white/45"
           />
-          Analysis
-        </span>
-      </div>
-      <div
-        className={`absolute top-10 right-9 font-mono text-[11px] font-semibold tracking-[.2em] text-sage-400 uppercase sm:top-12 sm:right-11 ${reveal(
-          stage >= 1,
-        )}`}
-      >
-        NX·Vision
-      </div>
+          <path ref={trailRef} d={TRAIL.d} fill="none" strokeWidth={0.55} strokeLinecap="round" strokeLinejoin="round" className="stroke-vision-500" />
+          {LIMBS.map((pair, i) => (
+            <line
+              key={pair.join("-")}
+              ref={(el) => { limbRefs.current[i] = el; }}
+              strokeWidth={0.3}
+              className="stroke-white/70"
+            />
+          ))}
+          <line ref={batRef} strokeWidth={0.42} className="stroke-white/90" />
+          {JOINTS.map((key) => (
+            <g key={key} ref={(el) => { jointRefs.current[key] = el; }}>
+              <line x1={-0.9} y1={0} x2={0.9} y2={0} strokeWidth={0.26} className="stroke-vision-500" />
+              <line x1={0} y1={-0.9} x2={0} y2={0.9} strokeWidth={0.26} className="stroke-vision-500" />
+            </g>
+          ))}
+          <path ref={ballTailRef} fill="none" strokeWidth={0.35} strokeLinecap="round" className="stroke-vision-300" />
+          <circle ref={ballRef} r={0.9} className="fill-vision-300" />
+          <circle
+            ref={impactRef}
+            cx={69.5 * 1.6}
+            cy={84.5 * 0.9}
+            fill="none"
+            strokeWidth={0.35}
+            className="stroke-vision-300"
+            style={{ opacity: 0 }}
+          />
+        </svg>
 
-      {/* ball tracking — viewBox matches a 16:10 frame so the stroke stays
-          near-uniform; dash-based path drawing breaks with non-scaling-stroke */}
-      <svg
-        viewBox="0 0 144 90"
-        preserveAspectRatio="none"
-        className="absolute inset-0 h-full w-full"
-      >
-        <motion.path
-          d="M 2.9 27 Q 34.6 46.8 57.6 68.4 Q 72 63 87.8 54"
-          fill="none"
-          strokeWidth={0.5}
-          strokeLinecap="round"
-          className="stroke-gold-500/90"
-          style={{ pathLength: track }}
-        />
-        <circle
-          cx={57.6}
-          cy={68.4}
-          r={1.3}
-          className={`fill-rust-500 transition-opacity duration-500 ${
-            stage >= 2 ? "opacity-100" : "opacity-0"
-          }`}
-        />
-      </svg>
-      <Chip shown={stage >= 2} x="34%" y="86%">
-        Pitched · good length
-      </Chip>
-
-      {/* speed readout */}
-      <div className={`absolute top-[22%] left-[6%] ${reveal(stage >= 2)}`}>
-        <div className="font-mono text-[10px] font-semibold tracking-[.24em] text-sage-400 uppercase">
-          Ball speed
+        {/* subject tag rides the bounding box */}
+        <div
+          ref={subjectTagRef}
+          className="absolute text-[10px] font-semibold tracking-[.18em] text-white/75 uppercase"
+        >
+          <span className="bg-pitch-950/70 px-1.5 py-0.5">Subject 01 · Batter</span>
         </div>
-        <div className="mt-1 font-mono text-4xl font-semibold text-gold-500">
-          <motion.span>{speedText}</motion.span>
-          <span className="ml-1.5 text-sm text-sage-400">mph</span>
+
+        {/* status bar */}
+        <div className="absolute top-5 left-5 flex flex-col items-start gap-1.5">
+          <span className="flex w-fit items-center gap-2 border border-white/15 bg-pitch-950/70 px-2 py-1 text-[11px] font-semibold tracking-[.22em] text-vision-500 uppercase backdrop-blur-sm">
+            <motion.span
+              animate={{ opacity: [1, 0.25, 1] }}
+              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
+              className="size-1.5 rounded-full bg-vision-500"
+            />
+            Tracking
+          </span>
+          <span className="bg-pitch-950/70 px-1.5 py-0.5 text-[10px] tracking-[.18em] text-white/60 uppercase backdrop-blur-sm">
+            NX·Vision 0.4 · manual track
+          </span>
         </div>
-      </div>
+        <div className="absolute top-5 right-5 bg-pitch-950/70 px-2 py-1 text-right backdrop-blur-sm">
+          <span ref={timeRef} className="text-[11px] font-semibold tracking-[.12em] text-white/90" />
+          <div className="text-[10px] tracking-[.18em] text-white/55 uppercase">{video.fps} fps · 1280×720</div>
+        </div>
 
-      {/* technique callouts */}
-      <Chip shown={stage >= 3} x="66%" y="32%">
-        Front elbow · 138°
-      </Chip>
-      <Chip shown={stage >= 3} x="52%" y="18%">
-        Head still ✓
-      </Chip>
-      <Chip shown={stage >= 4} x="24%" y="48%">
-        Bat angle · 42°
-      </Chip>
-      <Chip shown={stage >= 4} x="56%" y="74%">
-        Stride · 0.9 m
-      </Chip>
-
-      {/* shot metrics panel */}
-      <div className={`absolute top-1/2 right-[4%] w-48 -translate-y-1/2 ${reveal(stage >= 5)}`}>
-        <div className="rounded-md border border-pitch-700 bg-pitch-950/85 p-3.5 backdrop-blur-sm">
-          <div className="mb-3 font-mono text-[10px] font-semibold tracking-[.22em] text-gold-500 uppercase">
-            Shot metrics
-          </div>
-          {SHOT_METRICS.map((metric) => (
-            <div className="mb-2.5 last:mb-0" key={metric.label}>
-              <div className="flex items-baseline justify-between gap-2">
-                <span className="font-display text-[12px] tracking-[.08em] text-cream-200 uppercase">
-                  {metric.label}
-                </span>
-                <span className="font-mono text-[12px] font-semibold text-gold-500">
-                  {metric.score}
-                </span>
-              </div>
-              <div className="mt-1 h-[3px] overflow-hidden rounded-sm bg-black/40">
-                <div
-                  className="h-full rounded-sm bg-gold-500 transition-[width] duration-700 ease-out"
-                  style={{ width: stage >= 5 ? `${metric.score}%` : "0%" }}
-                />
-              </div>
+        {/* live readouts */}
+        <div className="absolute top-[30%] left-5 flex flex-col gap-1 border border-white/10 bg-pitch-950/65 px-3 py-2.5 text-[11px] tracking-[.08em] tabular-nums backdrop-blur-sm">
+          {(
+            [
+              ["Elbow", elbowRef],
+              ["Stride", strideRef],
+              ["Bat tip", tipRef],
+              ["Feed", feedRef],
+              ["Exit", exitRef],
+            ] as const
+          ).map(([label, ref]) => (
+            <div key={label} className="flex w-40 items-baseline justify-between border-b border-white/10 pb-1 last:border-b-0 last:pb-0">
+              <span className="text-[10px] tracking-[.2em] text-white/55 uppercase">{label}</span>
+              <span ref={ref} className="font-semibold text-vision-300" />
             </div>
           ))}
+        </div>
+
+        {/* phase + event rail */}
+        <div className="absolute bottom-6 left-5 bg-pitch-950/65 px-3 py-2 backdrop-blur-sm">
+          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold tracking-[.2em] uppercase">
+            <span className="text-white/55">Phase</span>
+            <span className="text-vision-500">▸ {phase}</span>
+          </div>
+          <div className="relative h-px w-56 bg-white/25">
+            {events.map((e) => (
+              <span
+                key={e.label}
+                style={{ left: `${(e.t / video.durationS) * 100}%` }}
+                className={`absolute -top-[3px] h-[7px] w-px ${phase === e.label ? "bg-vision-500" : "bg-white/45"}`}
+              />
+            ))}
+          </div>
+        </div>
+
+        {/* raw feed, for the code-literate */}
+        <div className="absolute right-5 bottom-6 max-w-[46%] bg-pitch-950/65 px-2 py-1 text-right backdrop-blur-sm">
+          <span ref={jsonRef} className="text-[10px] leading-relaxed break-all text-white/55" />
         </div>
       </div>
     </motion.div>
