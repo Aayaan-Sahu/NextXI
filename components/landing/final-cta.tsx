@@ -11,7 +11,7 @@ export function FinalCta({ waitlist }: { waitlist?: WaitlistState }) {
         <p className="mt-4 text-[15px] text-cream-200">
           We&apos;re starting with a handful of clubs, so early spots are limited.
         </p>
-        <div className="mt-8 w-full">
+        <div className="mt-8 w-full scroll-mt-24" id="waitlist">
           <WaitlistForm align="center" waitlist={waitlist} />
         </div>
       </div>

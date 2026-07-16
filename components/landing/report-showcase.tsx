@@ -1,5 +1,4 @@
 import { ReportStatus } from "@/app/generated/prisma/enums";
-import { WaitlistForm, type WaitlistState } from "@/components/landing/waitlist-form";
 import { ReportPanel } from "@/components/report-panel";
 import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
@@ -35,24 +34,21 @@ const SAMPLE_REPORT: VideoReport = {
   updatedAt: new Date("2026-07-12T09:30:00Z"),
 };
 
-/** Seam-red hero: headline, waitlist capture, and a real coaching report. */
-export function LandingHero({ waitlist }: { waitlist?: WaitlistState }) {
+/** Seam-red showcase: the headline pitch next to a real coaching report. */
+export function ReportShowcase() {
   return (
     <section className="bg-seam-stitch">
       <div className="mx-auto grid w-full max-w-[1280px] items-center gap-14 px-6 py-16 sm:px-12 sm:py-24 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
           <Kicker tone="dark">AI technique coaching · youth cricket</Kicker>
-          <h1 className="mt-5 font-display text-5xl leading-[0.98] font-bold text-cream-50 uppercase sm:text-6xl">
+          <h2 className="mt-5 font-display text-5xl leading-[0.98] font-bold text-cream-50 uppercase sm:text-6xl">
             Get coached on <span className="text-gold-500">every ball</span> you bowl.
-          </h1>
+          </h2>
           <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-cream-200">
             Film your bowling or batting on a phone and upload it. The AI breaks down
             your technique and writes you a coaching report, like having a coach watch
             every ball back with you.
           </p>
-          <div className="mt-8 scroll-mt-24" id="waitlist">
-            <WaitlistForm waitlist={waitlist} />
-          </div>
         </div>
         <div className="w-full max-w-[440px] justify-self-center rounded-[12px] shadow-2xl shadow-black/45 lg:justify-self-end">
           <ReportPanel

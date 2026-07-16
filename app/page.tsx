@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { BallFinale } from "@/components/landing/ball-finale";
+import { BallHero } from "@/components/landing/ball-hero";
 import { FeaturesSteps } from "@/components/landing/features-steps";
 import { FinalCta } from "@/components/landing/final-cta";
-import { LandingHero } from "@/components/landing/hero";
 import { HeroScrubVideo } from "@/components/landing/hero-scrub-video";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { MoreFeatures } from "@/components/landing/more-features";
+import { ReportShowcase } from "@/components/landing/report-showcase";
 import { TrustStrip } from "@/components/landing/trust-strip";
 import { type WaitlistState } from "@/components/landing/waitlist-form";
 import { getCurrentUser, getOnboardingStatus, isAdmin } from "@/lib/auth";
@@ -40,12 +40,12 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   return (
     <main>
       <LandingNav />
-      <LandingHero waitlist={waitlist} />
+      <BallHero />
       <HeroScrubVideo src="/hero-scrub.mp4" poster="/hero-poster.jpg" />
       <FeaturesSteps />
       <MoreFeatures />
+      <ReportShowcase />
       <TrustStrip />
-      <BallFinale />
       <FinalCta waitlist={waitlist} />
       <LandingFooter />
     </main>
