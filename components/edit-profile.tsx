@@ -1,9 +1,24 @@
 import type { ReactNode } from "react";
 import { updateProfile } from "@/app/dashboard/profile/actions";
-import type { CoachSpecialty, Handedness, PlayerRole } from "@/app/generated/prisma/enums";
+import {
+  Visibility,
+  type CoachSpecialty,
+  type Handedness,
+  type PlayerRole,
+} from "@/app/generated/prisma/enums";
 import { AvatarField } from "@/components/avatar-upload";
 import { CountrySelect } from "@/components/country-select";
-import { CheckboxChip, Field, FieldGroup, Form, Kicker, PrimaryButton, TextArea, TextInput } from "@/components/ui";
+import {
+  CheckboxChip,
+  Field,
+  FieldGroup,
+  Form,
+  Kicker,
+  PrimaryButton,
+  Switch,
+  TextArea,
+  TextInput,
+} from "@/components/ui";
 import { COACH_SPECIALTY_OPTIONS } from "@/lib/coaches";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 import { HANDEDNESS_LABELS } from "@/lib/videos";
@@ -23,7 +38,11 @@ function HandednessSelect({
   return (
     <Field>
       {label}
-      <select className={selectStyles} defaultValue={defaultValue ?? ""} name={name}>
+      <select
+        className={selectStyles}
+        defaultValue={defaultValue ?? ""}
+        name={name}
+      >
         <option value="">Not set</option>
         {Object.entries(HANDEDNESS_LABELS).map(([key, optionLabel]) => (
           <option key={key} value={key}>
@@ -35,10 +54,21 @@ function HandednessSelect({
   );
 }
 
-function ProfileCard({ children, kicker }: { children: ReactNode; kicker: string }) {
+function ProfileCard({
+  action,
+  children,
+  kicker,
+}: {
+  action?: ReactNode;
+  children: ReactNode;
+  kicker: string;
+}) {
   return (
     <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-8">
-      <Kicker>{kicker}</Kicker>
+      <div className="flex items-start justify-between gap-4">
+        <Kicker>{kicker}</Kicker>
+        {action}
+      </div>
       <div className="mt-5">{children}</div>
     </section>
   );
@@ -76,13 +106,26 @@ export function EditPlayerProfilePanel({
     heightCm: number;
     name: string;
     roles: PlayerRole[];
+    visibility: Visibility;
     weightKg: number | null;
   };
   username: string | null;
 }) {
   return (
-    <ProfileCard kicker="Player profile">
-      <Form action={updateProfile}>
+    <ProfileCard
+      action={
+        <Switch
+          defaultChecked={player.visibility === Visibility.PUBLIC}
+          form="player-profile-form"
+          name="visibility"
+          offLabel="Private"
+          onLabel="Public"
+          value="public"
+        />
+      }
+      kicker="Player profile"
+    >
+      <Form action={updateProfile} id="player-profile-form">
         <AvatarField
           avatarPath={player.avatarPath}
           avatarUrl={avatarUrl}
@@ -91,12 +134,22 @@ export function EditPlayerProfilePanel({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             Name
-            <TextInput defaultValue={player.name} name="name" required type="text" />
+            <TextInput
+              defaultValue={player.name}
+              name="name"
+              required
+              type="text"
+            />
           </Field>
           <UsernameField username={username} />
           <Field>
             Club
-            <TextInput defaultValue={player.club} name="club" required type="text" />
+            <TextInput
+              defaultValue={player.club}
+              name="club"
+              required
+              type="text"
+            />
           </Field>
           <FieldGroup>
             Country
@@ -198,7 +251,12 @@ export function EditCoachProfilePanel({
         <div className="grid gap-4 sm:grid-cols-2">
           <Field>
             Name
-            <TextInput defaultValue={coach.name} name="name" required type="text" />
+            <TextInput
+              defaultValue={coach.name}
+              name="name"
+              required
+              type="text"
+            />
           </Field>
           <UsernameField username={username} />
           <Field>

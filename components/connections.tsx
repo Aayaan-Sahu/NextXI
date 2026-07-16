@@ -104,7 +104,7 @@ function RevokeButton({ person }: { person: ConnectionPerson }) {
           className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-950/60 p-4"
           role="alertdialog"
         >
-          <div className="w-full max-w-[380px] rounded-[10px] border border-cream-400 bg-cream-100 p-5 shadow-2xl shadow-black/40">
+          <div className="w-full max-w-[380px] rounded-[10px] border border-cream-400 bg-white p-5 shadow-2xl shadow-black/40">
             <p className="font-semibold">Revoke this connection?</p>
             <p className="mt-2 text-sm text-ink-600">{warning}</p>
             <div className="mt-4 flex justify-end gap-2">

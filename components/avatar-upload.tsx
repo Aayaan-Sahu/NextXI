@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { removeAvatar } from "@/app/dashboard/profile/actions";
 import { ALLOWED_AVATAR_TYPES, MAX_AVATAR_SIZE_BYTES } from "@/lib/avatars";
 
 type InitiateUploadResponse = {
@@ -43,7 +44,9 @@ export function AvatarField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [avatarPath, setAvatarPath] = useState(initialAvatarPath ?? "");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [currentAvatarUrl, setCurrentAvatarUrl] = useState(avatarUrl);
   const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function handleFile(file: File | null | undefined) {
@@ -94,7 +97,24 @@ export function AvatarField({
     }
   }
 
-  const displayUrl = previewUrl ?? avatarUrl;
+  async function handleRemove() {
+    if (removing || uploading) return;
+
+    setError(null);
+    setRemoving(true);
+    try {
+      await removeAvatar();
+      setAvatarPath("");
+      setPreviewUrl(null);
+      setCurrentAvatarUrl(null);
+    } catch {
+      setError("Could not remove photo.");
+    } finally {
+      setRemoving(false);
+    }
+  }
+
+  const displayUrl = previewUrl ?? currentAvatarUrl;
 
   return (
     <div className="flex items-center gap-4">
@@ -116,14 +136,26 @@ export function AvatarField({
           ref={inputRef}
           type="file"
         />
-        <button
-          className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-cream-100 disabled:cursor-default disabled:opacity-60"
-          disabled={uploading}
-          onClick={() => inputRef.current?.click()}
-          type="button"
-        >
-          {uploading ? "Uploading…" : "Change photo"}
-        </button>
+        <div className="flex gap-2">
+          <button
+            className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-cream-100 disabled:cursor-default disabled:opacity-60"
+            disabled={uploading}
+            onClick={() => inputRef.current?.click()}
+            type="button"
+          >
+            {uploading ? "Uploading…" : "Change photo"}
+          </button>
+          {displayUrl ? (
+            <button
+              className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2 text-sm font-semibold text-rust-600 hover:bg-cream-100 disabled:cursor-default disabled:opacity-60"
+              disabled={removing}
+              onClick={handleRemove}
+              type="button"
+            >
+              {removing ? "Removing…" : "Remove photo"}
+            </button>
+          ) : null}
+        </div>
         {error ? <p className="mt-1.5 text-xs text-rust-700">{error}</p> : null}
       </div>
     </div>

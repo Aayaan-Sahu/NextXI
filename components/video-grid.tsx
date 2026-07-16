@@ -57,7 +57,7 @@ export function VideoGrid({
       {videos.map((video) => (
         <li className="relative" key={video.id}>
           <Link
-            className="block overflow-hidden rounded-[10px] border border-cream-400 bg-cream-100 no-underline hover:border-gold-500"
+            className="block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
             href={`${linkBase}/${video.id}`}
           >
             {video.thumbnailUrl ? (

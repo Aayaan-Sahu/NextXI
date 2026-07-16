@@ -1,4 +1,10 @@
-import { CoachStatus, ConnectionStatus } from "@/app/generated/prisma/enums";
+import {
+  CoachStatus,
+  ConnectionStatus,
+  PlayerRole,
+  PlayerStatus,
+  Visibility,
+} from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
 export type PersonRole = "player" | "coach" | null;
@@ -192,5 +198,35 @@ export async function getCoachDirectory(
       accomplishments: coach.accomplishments,
       state,
     };
+  });
+}
+
+export type PlayerDirectoryEntry = {
+  id: string;
+  name: string;
+  roles: PlayerRole[];
+  country: string;
+};
+
+/**
+ * Searchable list of players for approved coaches to discover, filtered by
+ * discipline (role) and country. Only surfaces players who opted into
+ * discovery (`PUBLIC`) and are active — the same PUBLIC visibility the coach
+ * player page checks before letting a non-connected coach view a profile.
+ */
+export async function searchPlayers(
+  viewerId: string,
+  filters: { role?: PlayerRole; country?: string },
+): Promise<PlayerDirectoryEntry[]> {
+  return prisma.player.findMany({
+    where: {
+      visibility: Visibility.PUBLIC,
+      status: PlayerStatus.ACTIVE,
+      id: { not: viewerId },
+      ...(filters.role ? { roles: { has: filters.role } } : {}),
+      ...(filters.country ? { country: filters.country } : {}),
+    },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, roles: true, country: true },
   });
 }
