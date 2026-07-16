@@ -42,6 +42,7 @@ export const COUNTRY_OPTIONS: { label: string; flag: string }[] = [
   { label: "Bangladesh", flag: "🇧🇩" },
   { label: "Afghanistan", flag: "🇦🇫" },
   { label: "Ireland", flag: "🇮🇪" },
+  { label: "United States", flag: "🇺🇸" },
 ];
 
 const COUNTRY_VALUES = new Set<string>(COUNTRY_OPTIONS.map((c) => c.label));
