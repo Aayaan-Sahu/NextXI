@@ -1,7 +1,7 @@
 "use client";
 
-import { Suspense, useMemo, useRef } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Suspense, useEffect, useMemo, useRef } from "react";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { useGLTF } from "@react-three/drei";
 import type { MotionValue } from "motion/react";
 import { Box3, Vector3, type Group } from "three";
@@ -16,6 +16,15 @@ type BallProps = {
 function CricketBall({ progress, reduced }: BallProps) {
   const group = useRef<Group>(null);
   const { scene } = useGLTF(BALL_MODEL);
+  const invalidate = useThree((state) => state.invalidate);
+
+  // Demand-driven frameloop: render only when scroll moves the ball (plus one
+  // frame on mount). While the video section covers the hero, progress is
+  // clamped and the canvas goes fully idle instead of contending for the GPU.
+  useEffect(() => {
+    invalidate();
+    return progress.on("change", () => invalidate());
+  }, [progress, invalidate]);
 
   // Normalize whatever size/origin the model ships with to a centered,
   // radius-1 ball so the scroll-driven scale below stays predictable.
@@ -51,6 +60,7 @@ useGLTF.preload(BALL_MODEL);
 export default function BallCanvas(props: BallProps) {
   return (
     <Canvas
+      frameloop="demand"
       camera={{ position: [0, 0, 4.2], fov: 45 }}
       gl={{ alpha: true, antialias: true }}
       dpr={[1, 2]}

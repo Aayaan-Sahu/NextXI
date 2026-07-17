@@ -10,7 +10,6 @@ import {
   useTransform,
 } from "motion/react";
 import { AnalysisHud } from "@/components/landing/analysis-hud";
-import { useScrollRatchet } from "@/components/landing/use-scroll-ratchet";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
@@ -46,11 +45,16 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
     offset: ["start start", "end end"],
   });
   const smooth = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
-  // Reveal the headline only once the video has (almost) played out — and
-  // keep it revealed if the user scrolls back up.
-  const ratchet = useScrollRatchet(scrollYProgress);
-  const revealOpacity = useTransform(ratchet, [0.82, 0.97], [0, 1]);
-  const revealY = useTransform(ratchet, [0.82, 0.97], [32, 0]);
+  // Once the pin clamps at either edge the video is fully hidden (red wipe /
+  // headline), so snap the spring there — letting it drain would keep issuing
+  // backward seeks that fight the ball canvas for the GPU during the handoff.
+  useMotionValueEvent(scrollYProgress, "change", (progress) => {
+    if (progress === 0 || progress === 1) smooth.jump(progress);
+  });
+  // Reveal the headline only once the video has (almost) played out; scrolling
+  // back up plays the same reveal in reverse.
+  const revealOpacity = useTransform(scrollYProgress, [0.82, 0.97], [0, 1]);
+  const revealY = useTransform(scrollYProgress, [0.82, 0.97], [32, 0]);
 
   useMotionValueEvent(smooth, "change", (progress) => {
     const video = videoRef.current;

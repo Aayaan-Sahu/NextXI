@@ -119,7 +119,6 @@ export function AnalysisHud({
   const tipRef = useRef<HTMLSpanElement>(null);
   const feedRef = useRef<HTMLSpanElement>(null);
   const exitRef = useRef<HTMLSpanElement>(null);
-  const jsonRef = useRef<HTMLSpanElement>(null);
   const limbRefs = useRef<Array<SVGLineElement | null>>([]);
   const jointRefs = useRef<Partial<Record<keyof typeof P, SVGGElement | null>>>({});
   const phaseRef = useRef(phase);
@@ -240,8 +239,6 @@ export function AnalysisHud({
       if (tipRef.current) tipRef.current.textContent = `${tipMph.toFixed(1)} mph`;
       if (feedRef.current) feedRef.current.textContent = t >= BALL_T0 ? `${FEED_MPH.toFixed(1)} mph` : "—";
       if (exitRef.current) exitRef.current.textContent = t >= 6.9 ? `${EXIT_MPH.toFixed(1)} mph` : "—";
-      if (jsonRef.current)
-        jsonRef.current.textContent = `{"t":${t.toFixed(2)},"phase":"${phaseRef.current}","elbow_deg":${elbowDeg.toFixed(0)},"tip_mps":${(tipMph / MPS_TO_MPH).toFixed(1)}}`;
 
       // phase (React state, changes rarely)
       let current = events[0].label;
@@ -316,14 +313,14 @@ export function AnalysisHud({
         {/* subject tag rides the bounding box */}
         <div
           ref={subjectTagRef}
-          className="absolute text-[10px] font-semibold tracking-[.18em] text-white/75 uppercase"
+          className="absolute text-[11px] font-semibold tracking-[.18em] text-white/90 uppercase"
         >
-          <span className="bg-pitch-950/70 px-1.5 py-0.5">Subject 01 · Batter</span>
+          <span className="bg-pitch-950/80 px-2 py-1">Subject 01 · Batter</span>
         </div>
 
         {/* status bar */}
-        <div className="absolute top-5 left-5 flex flex-col items-start gap-1.5">
-          <span className="flex w-fit items-center gap-2 border border-white/15 bg-pitch-950/70 px-2 py-1 text-[11px] font-semibold tracking-[.22em] text-vision-500 uppercase backdrop-blur-sm">
+        <div className="absolute top-5 left-5">
+          <span className="flex w-fit items-center gap-2 border border-white/20 bg-pitch-950/80 px-2.5 py-1.5 text-xs font-semibold tracking-[.22em] text-vision-500 uppercase backdrop-blur-sm">
             <motion.span
               animate={{ opacity: [1, 0.25, 1] }}
               transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
@@ -331,17 +328,14 @@ export function AnalysisHud({
             />
             Tracking
           </span>
-          <span className="bg-pitch-950/70 px-1.5 py-0.5 text-[10px] tracking-[.18em] text-white/60 uppercase backdrop-blur-sm">
-            NX·Vision 0.4 · manual track
-          </span>
         </div>
-        <div className="absolute top-5 right-5 bg-pitch-950/70 px-2 py-1 text-right backdrop-blur-sm">
-          <span ref={timeRef} className="text-[11px] font-semibold tracking-[.12em] text-white/90" />
-          <div className="text-[10px] tracking-[.18em] text-white/55 uppercase">{video.fps} fps · 1280×720</div>
+        <div className="absolute top-5 right-5 bg-pitch-950/80 px-2.5 py-1.5 text-right backdrop-blur-sm">
+          <span ref={timeRef} className="text-xs font-semibold tracking-[.12em] text-white" />
+          <div className="text-[11px] tracking-[.18em] text-white/75 uppercase">{video.fps} fps · 1280×720</div>
         </div>
 
         {/* live readouts */}
-        <div className="absolute top-[30%] left-5 flex flex-col gap-1 border border-white/10 bg-pitch-950/65 px-3 py-2.5 text-[11px] tracking-[.08em] tabular-nums backdrop-blur-sm">
+        <div className="absolute top-[30%] left-5 flex flex-col gap-1.5 border border-white/15 bg-pitch-950/80 px-3.5 py-3 text-[13px] tracking-[.08em] tabular-nums backdrop-blur-sm">
           {(
             [
               ["Elbow", elbowRef],
@@ -351,17 +345,17 @@ export function AnalysisHud({
               ["Exit", exitRef],
             ] as const
           ).map(([label, ref]) => (
-            <div key={label} className="flex w-40 items-baseline justify-between border-b border-white/10 pb-1 last:border-b-0 last:pb-0">
-              <span className="text-[10px] tracking-[.2em] text-white/55 uppercase">{label}</span>
+            <div key={label} className="flex w-44 items-baseline justify-between border-b border-white/10 pb-1.5 last:border-b-0 last:pb-0">
+              <span className="text-[11px] tracking-[.2em] text-white/75 uppercase">{label}</span>
               <span ref={ref} className="font-semibold text-vision-300" />
             </div>
           ))}
         </div>
 
         {/* phase + event rail */}
-        <div className="absolute bottom-6 left-5 bg-pitch-950/65 px-3 py-2 backdrop-blur-sm">
-          <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold tracking-[.2em] uppercase">
-            <span className="text-white/55">Phase</span>
+        <div className="absolute bottom-6 left-5 border border-white/15 bg-pitch-950/80 px-3.5 py-2.5 backdrop-blur-sm">
+          <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[.2em] uppercase">
+            <span className="text-white/75">Phase</span>
             <span className="text-vision-500">▸ {phase}</span>
           </div>
           <div className="relative h-px w-56 bg-white/25">
@@ -373,11 +367,6 @@ export function AnalysisHud({
               />
             ))}
           </div>
-        </div>
-
-        {/* raw feed, for the code-literate */}
-        <div className="absolute right-5 bottom-6 max-w-[46%] bg-pitch-950/65 px-2 py-1 text-right backdrop-blur-sm">
-          <span ref={jsonRef} className="text-[10px] leading-relaxed break-all text-white/55" />
         </div>
       </div>
     </motion.div>
