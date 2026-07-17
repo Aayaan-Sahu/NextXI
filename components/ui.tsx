@@ -6,19 +6,25 @@ type Children = {
   children: ReactNode;
 };
 
+const WORDMARK_SIZES = {
+  md: "text-xl",
+  lg: "text-4xl",
+  xl: "text-7xl sm:text-8xl lg:text-9xl",
+};
+
 /** The NextXI wordmark. `tone` picks the "Next" color for dark or light surfaces. */
 export function Wordmark({
   size = "md",
   tone = "dark",
 }: {
-  size?: "md" | "lg";
+  size?: keyof typeof WORDMARK_SIZES;
   tone?: "dark" | "light";
 }) {
   return (
     <span
-      className={`font-display font-bold tracking-[.06em] uppercase ${
-        size === "lg" ? "text-4xl" : "text-xl"
-      } ${tone === "dark" ? "text-cream-200" : "text-pitch-900"}`}
+      className={`font-display font-bold tracking-[.06em] uppercase ${WORDMARK_SIZES[size]} ${
+        tone === "dark" ? "text-cream-200" : "text-pitch-900"
+      }`}
     >
       Next<span className="text-gold-500">XI</span>
     </span>
