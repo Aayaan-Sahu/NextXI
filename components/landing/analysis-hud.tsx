@@ -93,6 +93,11 @@ const fmtTime = (t: number) =>
  * computed angles and speeds. Geometry updates are imperative (refs, one
  * rAF) so nothing re-renders at 60 Hz; only the phase label goes through
  * React state. Cold vision-mint on near-white — deliberately not Crease.
+ * On phones the object-contain frame is a short letterboxed strip, so the
+ * chrome (status bar, readouts, phase rail) moves into the letterbox bands
+ * around it; the tracked geometry stays on the frame at every size. On the
+ * rare sub-640px landscape viewport there are no bands, so that off-frame
+ * chrome clips away and only the on-frame geometry shows — intentional.
  */
 export function AnalysisHud({
   progress,
@@ -129,6 +134,12 @@ export function AnalysisHud({
   useMotionValueEvent(progress, "change", (p) => {
     if (scrub) hudOpacity.set(clamp01((p - 0.02) / 0.03) - clamp01((p - 0.78) / 0.08));
   });
+  // useCanScrub's server snapshot is true, so SSR'd autoplay visits (phones,
+  // reduced motion) hydrate with hudOpacity frozen at 0 — the motion value's
+  // initial argument is captured once. Snap it on when scrub settles to false.
+  useEffect(() => {
+    if (!scrub) hudOpacity.set(1);
+  }, [scrub, hudOpacity]);
 
   useEffect(() => {
     let raf = 0;
@@ -256,15 +267,15 @@ export function AnalysisHud({
     <motion.div
       aria-hidden
       style={{ opacity: hudOpacity }}
-      className="pointer-events-none absolute inset-0 font-mono max-sm:hidden"
+      className="pointer-events-none absolute inset-0 font-mono"
     >
       <div ref={frameBoxRef} className="absolute">
         {/* corner ticks */}
-        <div className="absolute inset-3">
-          <span className="absolute top-0 left-0 size-4 border-t border-l border-white/40" />
-          <span className="absolute top-0 right-0 size-4 border-t border-r border-white/40" />
-          <span className="absolute bottom-0 left-0 size-4 border-b border-l border-white/40" />
-          <span className="absolute right-0 bottom-0 size-4 border-r border-b border-white/40" />
+        <div className="absolute inset-3 max-sm:inset-2">
+          <span className="absolute top-0 left-0 size-4 border-t border-l border-white/40 max-sm:size-3" />
+          <span className="absolute top-0 right-0 size-4 border-t border-r border-white/40 max-sm:size-3" />
+          <span className="absolute bottom-0 left-0 size-4 border-b border-l border-white/40 max-sm:size-3" />
+          <span className="absolute right-0 bottom-0 size-4 border-r border-b border-white/40 max-sm:size-3" />
         </div>
 
         {/* tracked geometry */}
@@ -313,14 +324,14 @@ export function AnalysisHud({
         {/* subject tag rides the bounding box */}
         <div
           ref={subjectTagRef}
-          className="absolute text-[11px] font-semibold tracking-[.18em] text-white/90 uppercase"
+          className="absolute text-[11px] font-semibold tracking-[.18em] text-white/90 uppercase max-sm:text-[10px]"
         >
-          <span className="bg-pitch-950/80 px-2 py-1">Subject 01 · Batter</span>
+          <span className="bg-pitch-950/80 px-2 py-1 max-sm:px-1.5 max-sm:py-0.5">Subject 01 · Batter</span>
         </div>
 
-        {/* status bar */}
-        <div className="absolute top-5 left-5">
-          <span className="flex w-fit items-center gap-2 border border-white/20 bg-pitch-950/80 px-2.5 py-1.5 text-xs font-semibold tracking-[.22em] text-vision-500 uppercase backdrop-blur-sm">
+        {/* status bar — rides the upper letterbox band on phones */}
+        <div className="absolute top-5 left-5 max-sm:top-auto max-sm:bottom-full max-sm:left-0 max-sm:mb-2">
+          <span className="flex w-fit items-center gap-2 border border-white/20 bg-pitch-950/80 px-2.5 py-1.5 text-xs font-semibold tracking-[.22em] text-vision-500 uppercase backdrop-blur-sm max-sm:px-2 max-sm:py-1 max-sm:text-[10px]">
             <motion.span
               animate={{ opacity: [1, 0.25, 1] }}
               transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
@@ -329,43 +340,48 @@ export function AnalysisHud({
             Tracking
           </span>
         </div>
-        <div className="absolute top-5 right-5 bg-pitch-950/80 px-2.5 py-1.5 text-right backdrop-blur-sm">
-          <span ref={timeRef} className="text-xs font-semibold tracking-[.12em] text-white" />
-          <div className="text-[11px] tracking-[.18em] text-white/75 uppercase">{video.fps} fps · 1280×720</div>
+        <div className="absolute top-5 right-5 bg-pitch-950/80 px-2.5 py-1.5 text-right backdrop-blur-sm max-sm:top-auto max-sm:right-0 max-sm:bottom-full max-sm:mb-2 max-sm:px-2 max-sm:py-1">
+          <span ref={timeRef} className="text-xs font-semibold tracking-[.12em] text-white max-sm:text-[10px]" />
+          <div className="text-[11px] tracking-[.18em] text-white/75 uppercase max-sm:text-[9px]">{video.fps} fps · 1280×720</div>
         </div>
 
-        {/* live readouts */}
-        <div className="absolute top-[30%] left-5 flex flex-col gap-1.5 border border-white/15 bg-pitch-950/80 px-3.5 py-3 text-[13px] tracking-[.08em] tabular-nums backdrop-blur-sm">
-          {(
-            [
-              ["Elbow", elbowRef],
-              ["Stride", strideRef],
-              ["Bat tip", tipRef],
-              ["Feed", feedRef],
-              ["Exit", exitRef],
-            ] as const
-          ).map(([label, ref]) => (
-            <div key={label} className="flex w-44 items-baseline justify-between border-b border-white/10 pb-1.5 last:border-b-0 last:pb-0">
-              <span className="text-[11px] tracking-[.2em] text-white/75 uppercase">{label}</span>
-              <span ref={ref} className="font-semibold text-vision-300" />
-            </div>
-          ))}
-        </div>
-
-        {/* phase + event rail */}
-        <div className="absolute bottom-6 left-5 border border-white/15 bg-pitch-950/80 px-3.5 py-2.5 backdrop-blur-sm">
-          <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[.2em] uppercase">
-            <span className="text-white/75">Phase</span>
-            <span className="text-vision-500">▸ {phase}</span>
-          </div>
-          <div className="relative h-px w-56 bg-white/25">
-            {events.map((e) => (
-              <span
-                key={e.label}
-                style={{ left: `${(e.t / video.durationS) * 100}%` }}
-                className={`absolute -top-[3px] h-[7px] w-px ${phase === e.label ? "bg-vision-500" : "bg-white/45"}`}
-              />
+        {/* Readouts + phase rail. On phones both drop into the letterbox band
+            below the frame (the frame itself is only ~220px tall); from sm the
+            wrapper dissolves (display: contents) and they pin to the frame. */}
+        <div className="absolute inset-x-0 top-full mt-2 flex flex-col gap-2 sm:contents">
+          {/* live readouts — a compact label-over-value strip on phones */}
+          <div className="absolute top-[30%] left-5 flex flex-col gap-1.5 border border-white/15 bg-pitch-950/80 px-3.5 py-3 text-[13px] tracking-[.08em] tabular-nums backdrop-blur-sm max-sm:static max-sm:flex-row max-sm:justify-between max-sm:gap-2 max-sm:px-3 max-sm:py-2 max-sm:text-[11px]">
+            {(
+              [
+                ["Elbow", elbowRef],
+                ["Stride", strideRef],
+                ["Bat tip", tipRef],
+                ["Feed", feedRef],
+                ["Exit", exitRef],
+              ] as const
+            ).map(([label, ref]) => (
+              <div key={label} className="flex w-44 items-baseline justify-between border-b border-white/10 pb-1.5 last:border-b-0 last:pb-0 max-sm:w-auto max-sm:flex-col max-sm:items-center max-sm:gap-0.5 max-sm:border-b-0 max-sm:pb-0">
+                <span className="text-[11px] tracking-[.2em] text-white/75 uppercase max-sm:text-[9px] max-sm:tracking-[.15em]">{label}</span>
+                <span ref={ref} className="font-semibold text-vision-300" />
+              </div>
             ))}
+          </div>
+
+          {/* phase + event rail */}
+          <div className="absolute bottom-6 left-5 border border-white/15 bg-pitch-950/80 px-3.5 py-2.5 backdrop-blur-sm max-sm:static max-sm:px-3 max-sm:py-2">
+            <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[.2em] uppercase max-sm:mb-1.5 max-sm:text-[10px]">
+              <span className="text-white/75">Phase</span>
+              <span className="text-vision-500">▸ {phase}</span>
+            </div>
+            <div className="relative h-px w-56 bg-white/25 max-sm:w-full">
+              {events.map((e) => (
+                <span
+                  key={e.label}
+                  style={{ left: `${(e.t / video.durationS) * 100}%` }}
+                  className={`absolute -top-[3px] h-[7px] w-px ${phase === e.label ? "bg-vision-500" : "bg-white/45"}`}
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>

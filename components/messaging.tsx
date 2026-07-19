@@ -143,7 +143,7 @@ export function MessageThread({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-cream-200 p-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-cream-200 p-4 md:p-6">
         {messages.length ? (
           messages.map((message, index) => {
             const previous = messages[index - 1];
@@ -162,7 +162,9 @@ export function MessageThread({
                 ) : null}
                 <div
                   className={
-                    message.fromMe ? "max-w-[60%] self-end text-right" : "max-w-[60%] self-start"
+                    message.fromMe
+                      ? "max-w-[85%] self-end text-right md:max-w-[60%]"
+                      : "max-w-[85%] self-start md:max-w-[60%]"
                   }
                 >
                   <div
@@ -193,18 +195,18 @@ export function MessageThread({
       </div>
 
       {error ? (
-        <p className="border-t border-rust-600/30 bg-rust-600/10 px-6 py-2 text-sm text-rust-700">
+        <p className="border-t border-rust-600/30 bg-rust-600/10 px-4 py-2 text-sm text-rust-700 md:px-6">
           {error}
         </p>
       ) : null}
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-3 border-t border-cream-400 bg-cream-100 px-6 py-4"
+        className="flex items-center gap-3 border-t border-cream-400 bg-cream-100 px-4 py-3 md:px-6 md:py-4"
       >
         <input
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3.5 py-2.5 text-sm text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none"
+          className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3.5 py-2.5 text-base text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none md:text-sm"
           maxLength={4000}
           name="body"
           onChange={(event) => setDraft(event.target.value)}

@@ -21,7 +21,10 @@ export function DashboardNav({
   limited?: boolean;
 }) {
   const pathname = usePathname();
-  const [menuOpen, setMenuOpen] = useState(false);
+  // Two disclosures share the bar (nav links, account); opening one closes the
+  // other so their backdrops and z-20 panels never stack.
+  const [navOpen, setNavOpen] = useState(false);
+  const [accountOpen, setAccountOpen] = useState(false);
 
   // Progress is a player-only surface; `homeHref` encodes the signed-in role.
   const isPlayer = homeHref === "/dashboard/player";
@@ -50,12 +53,69 @@ export function DashboardNav({
     );
 
   return (
-    <header className="bg-rust-600">
-      <nav className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-10 px-6 sm:px-12">
+    // `relative` anchors the mobile disclosure panel to the bar's bottom edge.
+    <header className="relative bg-rust-600">
+      <nav className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-4 px-6 sm:px-12 md:gap-10">
+        {/* A player's inline link row needs ~592px min-content (wordmark +
+            five links + avatar), which fits the 672px md leaves after sm:px-12
+            (768 - 96), so the row returns at md and only sub-md gets a
+            disclosure menu. */}
+        <button
+          aria-expanded={navOpen}
+          aria-label="Menu"
+          className="-ml-3 flex size-11 shrink-0 cursor-pointer items-center justify-center text-cream-200 md:hidden"
+          onClick={() => {
+            setNavOpen((open) => !open);
+            setAccountOpen(false);
+          }}
+          type="button"
+        >
+          <svg
+            aria-hidden="true"
+            className="size-6"
+            fill="none"
+            stroke="currentColor"
+            strokeLinecap="round"
+            strokeWidth={2}
+            viewBox="0 0 24 24"
+          >
+            {navOpen ? (
+              <path d="M6 6l12 12M18 6L6 18" />
+            ) : (
+              <path d="M4 6h16M4 12h16M4 18h16" />
+            )}
+          </svg>
+        </button>
+        {navOpen ? (
+          <>
+            <button
+              aria-label="Close menu"
+              className="fixed inset-0 z-10 cursor-default md:hidden"
+              onClick={() => setNavOpen(false)}
+              type="button"
+            />
+            <div className="absolute inset-x-0 top-full z-20 border-b border-cream-400 bg-cream-50 py-2 shadow-md md:hidden">
+              {links.map((link) => (
+                <Link
+                  className={
+                    link.href === activeHref
+                      ? "block border-l-2 border-gold-500 bg-cream-200 px-6 py-3 text-sm font-semibold text-rust-600 no-underline sm:px-12"
+                      : "block border-l-2 border-transparent px-6 py-3 text-sm font-semibold text-ink-900 no-underline hover:bg-cream-200 sm:px-12"
+                  }
+                  href={link.href}
+                  key={link.href}
+                  onClick={() => setNavOpen(false)}
+                >
+                  {link.label}
+                </Link>
+              ))}
+            </div>
+          </>
+        ) : null}
         <Link className="no-underline" href={homeHref}>
           <Wordmark tone="dark" />
         </Link>
-        <div className="flex flex-1 items-center gap-7 self-stretch text-sm font-semibold">
+        <div className="hidden flex-1 items-center gap-7 self-stretch text-sm font-semibold md:flex">
           {links.map((link) => (
             <Link
               className={
@@ -70,12 +130,17 @@ export function DashboardNav({
             </Link>
           ))}
         </div>
-        <div className="relative">
+        {/* `ml-auto` keeps the avatar flush right on mobile, where no flex-1
+            link row sits between it and the wordmark. */}
+        <div className="relative ml-auto">
           <button
-            aria-expanded={menuOpen}
+            aria-expanded={accountOpen}
             aria-haspopup="menu"
             className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gold-500 text-sm font-bold text-rust-600"
-            onClick={() => setMenuOpen((open) => !open)}
+            onClick={() => {
+              setAccountOpen((open) => !open);
+              setNavOpen(false);
+            }}
             type="button"
           >
             {avatarUrl ? (
@@ -85,12 +150,12 @@ export function DashboardNav({
               initial
             )}
           </button>
-          {menuOpen ? (
+          {accountOpen ? (
             <>
               <button
                 aria-label="Close menu"
                 className="fixed inset-0 z-10 cursor-default"
-                onClick={() => setMenuOpen(false)}
+                onClick={() => setAccountOpen(false)}
                 type="button"
               />
               <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-cream-400 bg-cream-50 py-1 shadow-md">
@@ -98,7 +163,7 @@ export function DashboardNav({
                   <Link
                     className={menuItemClasses}
                     href="/dashboard/profile"
-                    onClick={() => setMenuOpen(false)}
+                    onClick={() => setAccountOpen(false)}
                   >
                     Edit profile
                   </Link>

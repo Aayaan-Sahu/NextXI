@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { MessagesRealtime } from "@/components/messages-realtime";
+import { MessagesShell } from "@/components/messages-shell";
 import { isAdmin, requireUser } from "@/lib/auth";
 import { getConversations } from "@/lib/messages";
 
@@ -17,10 +18,9 @@ export default async function MessagesLayout({
 
   return (
     <MessagesRealtime connectionIds={conversations.map((c) => c.connectionId)}>
-      <main className="flex h-[calc(100dvh-4rem)] w-full">
-        <ConversationSidebar conversations={conversations} />
-        <section className="flex min-w-0 flex-1 flex-col bg-cream-200">{children}</section>
-      </main>
+      <MessagesShell sidebar={<ConversationSidebar conversations={conversations} />}>
+        {children}
+      </MessagesShell>
     </MessagesRealtime>
   );
 }

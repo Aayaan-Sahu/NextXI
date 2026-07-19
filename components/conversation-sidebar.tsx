@@ -34,11 +34,17 @@ export function ConversationSidebar({
       )
     : conversations;
 
+  // Single pane below md: the list fills the screen on the index and hides
+  // while a thread is open (MessagesShell swaps in the thread pane there).
   return (
-    <aside className="flex w-80 shrink-0 flex-col border-r border-cream-400 bg-cream-100 max-md:w-52">
+    <aside
+      className={`flex w-full flex-col border-cream-400 bg-cream-100 md:w-80 md:shrink-0 md:border-r ${
+        connectionId ? "max-md:hidden" : ""
+      }`}
+    >
       <div className="p-4">
         <input
-          className="w-full rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-[13.5px] text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none"
+          className="w-full rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-base text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none md:text-[13.5px]"
           onChange={(event) => setQuery(event.target.value)}
           placeholder="Search"
           type="search"
