@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MessageThread } from "@/components/messaging";
 import { requireUser } from "@/lib/auth";
@@ -22,7 +23,14 @@ export default async function ThreadPage({ params }: { params: Params }) {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-cream-400 bg-cream-100 px-6 py-3.5">
+      <header className="flex items-center gap-3 border-b border-cream-400 bg-cream-100 px-4 py-3.5 md:px-6">
+        <Link
+          aria-label="Back to conversations"
+          className="-ml-2.5 flex size-11 shrink-0 items-center justify-center rounded-full text-lg text-ink-900 no-underline active:bg-cream-200 md:hidden"
+          href="/dashboard/messages"
+        >
+          ←
+        </Link>
         <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-pitch-900 text-[15px] font-bold text-gold-500">
           {thread.counterpart.name.charAt(0).toUpperCase()}
         </span>

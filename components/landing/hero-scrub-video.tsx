@@ -101,8 +101,17 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
 
         <AnalysisHud progress={scrollYProgress} scrub={scrub} videoRef={videoRef} />
 
+        {/* Scrim + headline: scroll-driven in scrub mode (fades in as the video
+            plays out). In autoplay mode the headline gets a beat once the red
+            vignette clears, then the whole overlay fades so the visitor can
+            watch the play un-dimmed — the tracked events start ~5.5s in. The
+            h2 stays in the DOM at opacity 0, matching scrub mode. */}
         <motion.div
           style={scrub ? { opacity: revealOpacity, y: revealY } : undefined}
+          initial={scrub ? undefined : { opacity: 1 }}
+          whileInView={scrub ? undefined : { opacity: 0 }}
+          viewport={scrub ? undefined : { once: true, amount: 0.4 }}
+          transition={scrub ? undefined : { delay: 2.2, duration: 0.9, ease: "easeOut" }}
           className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-pitch-950/55 px-6 text-center"
         >
           <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase sm:text-7xl lg:text-8xl">
