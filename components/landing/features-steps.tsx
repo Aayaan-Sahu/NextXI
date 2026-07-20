@@ -1,6 +1,8 @@
 "use client";
 
+import { useState, type ReactNode } from "react";
 import { motion } from "motion/react";
+import { RecordingGuideModal } from "@/components/recording-guide";
 import { Kicker } from "@/components/ui";
 import {
   ConnectAnimation,
@@ -9,23 +11,48 @@ import {
   UploadAnimation,
 } from "@/components/landing/step-animations";
 
-const STEPS = [
+/** Opens the same recording-guide video players see inside the app. */
+function RecordingGuideCta() {
+  const [open, setOpen] = useState(false);
+
+  return (
+    <>
+      <button
+        className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-md border border-cream-200/30 px-4 py-2 text-[13px] font-semibold text-cream-50 hover:border-gold-500 hover:text-gold-500"
+        onClick={() => setOpen(true)}
+        type="button"
+      >
+        How to record your videos →
+      </button>
+      {open ? <RecordingGuideModal onClose={() => setOpen(false)} /> : null}
+    </>
+  );
+}
+
+const STEPS: Array<{
+  kicker: string;
+  title: string;
+  body: string;
+  animation: ReactNode;
+  extra?: ReactNode;
+}> = [
   {
     kicker: "01 · Upload",
-    title: "Players upload technique videos",
-    body: "Record a spell from the side-on camera guide and upload it straight from your phone. Resumable uploads mean a flaky net-session connection never loses a delivery.",
+    title: "Players upload videos",
+    body: "No training session goes wasted. Please find our guide for how to record your videos here:",
+    extra: <RecordingGuideCta />,
     animation: <UploadAnimation />,
   },
   {
     kicker: "02 · Analyze",
     title: "AI builds your coaching report",
-    body: "Pose tracking measures stride, arm path, release and front-leg brace on every ball (the same overlays you just scrolled through) and turns them into a report you can read on the bus home.",
+    body: "Our AI model extrapolates key metrics for both batting and bowling, turning them into a report you can read on the bus home.",
     animation: <NeuralNetAnimation />,
   },
   {
     kicker: "03 · Connect",
     title: "Coaches & scouts find you",
-    body: "Verified coaches browse player profiles, watch the reports, and reach out. A good spell in the nets counts even when nobody important was there to see it.",
+    body: "Verified coaches and scouts watch your videos, read our AI report, and reach out. No talent goes undiscovered.",
     animation: <ConnectAnimation />,
   },
 ];
@@ -66,6 +93,7 @@ export function FeaturesSteps() {
                 <p className="mt-3 text-[15px] leading-relaxed text-cream-200">
                   {step.body}
                 </p>
+                {step.extra}
               </div>
             </motion.article>
           </div>

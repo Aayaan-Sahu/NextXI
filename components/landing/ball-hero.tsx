@@ -19,9 +19,9 @@ const BallCanvas = dynamic(() => import("@/components/landing/ball-canvas"), {
 });
 
 /**
- * Pinned opener: the wordmark sits front and center from the first frame
- * while the ball spins on Y and grows toward the camera as you scroll down
- * into the rest of the page.
+ * Pinned opener: the wordmark and headline sit front and center from the
+ * first frame while the ball spins on Y and grows toward the camera as you
+ * scroll down into the rest of the page.
  */
 export function BallHero() {
   const sectionRef = useRef<HTMLElement>(null);
@@ -59,10 +59,16 @@ export function BallHero() {
           initial={reduced ? false : { opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, ease: "easeOut" }}
-          className="pointer-events-none absolute inset-0 flex items-center justify-center"
+          className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center"
         >
-          <motion.span style={{ opacity: wordmarkOpacity }}>
-            <Wordmark size="xl" tone="dark" />
+          <motion.span
+            style={{ opacity: wordmarkOpacity }}
+            className="flex flex-col items-center gap-5"
+          >
+            <Wordmark size="lg" tone="dark" />
+            <span className="max-w-6xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase sm:text-7xl lg:text-8xl">
+              Cricket talent, <span className="text-gold-500">seen properly</span>
+            </span>
           </motion.span>
         </motion.h1>
 

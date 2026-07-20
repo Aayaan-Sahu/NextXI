@@ -1,24 +1,23 @@
 "use client";
 
 import { motion } from "motion/react";
-import { Kicker } from "@/components/ui";
 
 const FEATURES = [
   {
-    title: "Messaging",
-    body: "Message your coach on the platform. Guardians can read along.",
+    title: "Sessions",
+    body: "Track sessions, goals, and match stats across the season.",
+  },
+  {
+    title: "AI report",
+    body: "Every upload becomes a coaching report with the key batting and bowling metrics.",
   },
   {
     title: "Coach connections",
-    body: "Coaches send connection requests to promising players and build their roster.",
+    body: "Coaches send connection requests to promising players and build their roster. Players can also request to connect with coaches.",
   },
   {
-    title: "Video feedback",
-    body: "Coaches comment on the exact moment in a video, down to the second.",
-  },
-  {
-    title: "Sessions",
-    body: "Track sessions, goals, and match stats across the season.",
+    title: "Messaging",
+    body: "Conversations and feedback between coaches and players leads to the development of the NextXI.",
   },
 ];
 
@@ -33,9 +32,8 @@ export function MoreFeatures() {
           transition={{ duration: 0.55 }}
           className="mb-14 text-center"
         >
-          <Kicker>And many more</Kicker>
-          <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-5xl">
-            Everything around the game
+          <h2 className="font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-5xl">
+            End-to-end provider
           </h2>
         </motion.header>
 

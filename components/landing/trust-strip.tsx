@@ -3,7 +3,7 @@ import { Kicker } from "@/components/ui";
 const TRUST_ITEMS = [
   {
     title: "Guardians see everything",
-    body: "Parents get their own account linked to their player's. They see every report and every message.",
+    body: "For players under the age of 18, parents/guardians get their own account linked to their child's. They see every report and every message.",
   },
   {
     title: "Coaches are verified",

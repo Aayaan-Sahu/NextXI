@@ -315,7 +315,7 @@ export function AnalysisHud({
           ref={subjectTagRef}
           className="absolute text-[11px] font-semibold tracking-[.18em] text-white/90 uppercase"
         >
-          <span className="bg-pitch-950/80 px-2 py-1">Subject 01 · Batter</span>
+          <span className="bg-pitch-950/80 px-2 py-1">Subject 01 · Aryaman Varma · Pro</span>
         </div>
 
         {/* status bar */}

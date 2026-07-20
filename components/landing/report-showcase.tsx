@@ -1,6 +1,5 @@
 import { ReportStatus } from "@/app/generated/prisma/enums";
 import { ReportPanel } from "@/components/report-panel";
-import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -40,14 +39,13 @@ export function ReportShowcase() {
     <section className="bg-seam-stitch">
       <div className="mx-auto grid w-full max-w-[1280px] items-center gap-14 px-6 py-16 sm:px-12 sm:py-24 lg:grid-cols-[1.05fr_0.95fr]">
         <div>
-          <Kicker tone="dark">AI technique coaching · youth cricket</Kicker>
-          <h2 className="mt-5 font-display text-5xl leading-[0.98] font-bold text-cream-50 uppercase sm:text-6xl">
-            Get coached on <span className="text-gold-500">every ball</span> you bowl.
+          <h2 className="font-display text-5xl leading-[0.98] font-bold text-cream-50 uppercase sm:text-6xl">
+            AI <span className="text-gold-500">report</span>
           </h2>
           <p className="mt-5 max-w-[46ch] text-[17px] leading-relaxed text-cream-200">
-            Film your bowling or batting on a phone and upload it. The AI breaks down
-            your technique and writes you a coaching report, like having a coach watch
-            every ball back with you.
+            Get AI driven feedback on every shot you hit and every ball you bowl. Our AI
+            model is built on what the best-ever do so you have the ability to, quite
+            simply, learn from the best!
           </p>
         </div>
         <div className="w-full max-w-[440px] justify-self-center rounded-[12px] shadow-2xl shadow-black/45 lg:justify-self-end">
