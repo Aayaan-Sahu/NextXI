@@ -123,7 +123,7 @@ export async function signIn(formData: FormData) {
 export async function signOut() {
   const supabase = await createSupabaseServerClient();
   await supabase.auth.signOut();
-  redirect("/auth");
+  redirect("/");
 }
 
 export async function resendVerification(formData: FormData) {

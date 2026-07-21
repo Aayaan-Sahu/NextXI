@@ -31,7 +31,10 @@
   --color-rust-700: #6f1b1b;
 
   --color-ink-900: #2a251e;
-  --color-ink-600: #948d7c;
+  /* ink-600 is body-adjacent muted text on white/cream surfaces; #6b6353
+     holds ≥4.5:1 on every cream step (the old #948d7c sat at 3.3:1 on white
+     and failed WCAG AA). Keep it dark enough to pass wherever it lands. */
+  --color-ink-600: #6b6353;
 
   --color-sage-400: #e0b0b0;
 

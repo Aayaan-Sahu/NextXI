@@ -10,6 +10,7 @@ const WORDMARK_SIZES = {
   md: "text-xl",
   lg: "text-4xl",
   xl: "text-7xl sm:text-8xl lg:text-9xl",
+  "2xl": "text-8xl sm:text-9xl lg:text-[10.5rem]",
 };
 
 /** The NextXI wordmark. `tone` picks the "Next" color for dark or light surfaces. */

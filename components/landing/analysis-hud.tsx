@@ -321,12 +321,17 @@ export function AnalysisHud({
           />
         </svg>
 
-        {/* subject tag rides the bounding box */}
-        <div
-          ref={subjectTagRef}
-          className="absolute text-[11px] font-semibold tracking-[.18em] text-white/90 uppercase max-sm:text-[10px]"
-        >
-          <span className="bg-pitch-950/80 px-2 py-1 max-sm:px-1.5 max-sm:py-0.5">Subject 01 · Batter</span>
+        {/* subject tag rides the bounding box — the real player, named, for
+            credibility (Aryaman is the demo subject, not a benchmark pro). */}
+        <div ref={subjectTagRef} className="absolute">
+          <div className="w-fit bg-pitch-950/80 px-2 py-1 max-sm:px-1.5 max-sm:py-0.5">
+            <div className="text-[11px] font-semibold tracking-[.18em] text-white/95 uppercase max-sm:text-[10px]">
+              Aryaman Varma
+            </div>
+            <div className="text-[9px] font-medium tracking-[.14em] text-vision-300 uppercase max-sm:text-[8px]">
+              Wisden Schools Cricketer &rsquo;25 · England U19
+            </div>
+          </div>
         </div>
 
         {/* status bar — rides the upper letterbox band on phones */}

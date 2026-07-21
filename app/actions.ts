@@ -1,22 +1,32 @@
 "use server";
 
-import { redirect } from "next/navigation";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 
 // Loose on purpose — the address is only used to send one launch email.
 const emailPattern = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
+export type WaitlistActionState =
+  | { status: "idle" }
+  | { status: "invalid"; email: string }
+  | { status: "joined" };
+
 function isUniqueError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }
 
-export async function joinWaitlist(formData: FormData) {
+export async function joinWaitlist(
+  _prevState: WaitlistActionState,
+  formData: FormData,
+): Promise<WaitlistActionState> {
   const raw = formData.get("email");
-  const email = typeof raw === "string" ? raw.trim().toLowerCase() : "";
+  const typed = typeof raw === "string" ? raw.trim() : "";
+  const email = typed.toLowerCase();
 
+  // Return the typed address with the invalid state so the form can re-fill
+  // the input — a full redirect used to erase it at the conversion moment.
   if (!emailPattern.test(email)) {
-    redirect("/?waitlist=invalid#waitlist");
+    return { status: "invalid", email: typed };
   }
 
   try {
@@ -26,5 +36,5 @@ export async function joinWaitlist(formData: FormData) {
     if (!isUniqueError(error)) throw error;
   }
 
-  redirect("/?waitlist=joined#waitlist");
+  return { status: "joined" };
 }
