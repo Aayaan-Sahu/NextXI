@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useSyncExternalStore } from "react";
+import { useRef } from "react";
 import {
   motion,
   useMotionValue,
@@ -10,30 +10,21 @@ import {
   useTransform,
 } from "motion/react";
 import { AnalysisHud } from "@/components/landing/analysis-hud";
+import { VariantEditorial } from "@/components/landing/report-variants/variant-editorial";
+import { useCanScrub } from "@/components/landing/use-can-scrub";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
-const SCRUB_BLOCKERS = "(pointer: coarse), (prefers-reduced-motion: reduce)";
-
-function subscribeToScrubBlockers(onChange: () => void) {
-  const query = window.matchMedia(SCRUB_BLOCKERS);
-  query.addEventListener("change", onChange);
-  return () => query.removeEventListener("change", onChange);
-}
-
-/** Whether to scrub on scroll; false on coarse pointers / reduced motion. */
-function useCanScrub() {
-  return useSyncExternalStore(
-    subscribeToScrubBlockers,
-    () => !window.matchMedia(SCRUB_BLOCKERS).matches,
-    () => true,
-  );
-}
+// The video scrub completes at this fraction of the pin; the rest of the
+// scroll drives the headline → "video slides left, report reveals" handoff.
+const VIDEO_END = 0.5;
 
 /**
- * Pinned hero: scrolling through the tall section scrubs the analysis video.
- * On coarse pointers / reduced motion the video simply autoplays instead —
- * frame-accurate seeking is too janky on mobile to be worth it.
+ * Pinned hero: scrolling scrubs the analysis video, then — in the SAME shot,
+ * no second video — the headline rises, the video slides and shrinks to the
+ * left, and its AI coaching report reveals line by line on the right while the
+ * batter stays in view. On coarse pointers / reduced motion the video just
+ * autoplays and the report sits under it.
  */
 export function HeroScrubVideo({ src, poster }: { src: string; poster: string }) {
   const sectionRef = useRef<HTMLElement>(null);
@@ -44,17 +35,13 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
     target: sectionRef,
     offset: ["start start", "end end"],
   });
-  const smooth = useSpring(scrollYProgress, { stiffness: 120, damping: 30 });
-  // Once the pin clamps at either edge the video is fully hidden (red wipe /
-  // headline), so snap the spring there — letting it drain would keep issuing
-  // backward seeks that fight the ball canvas for the GPU during the handoff.
-  useMotionValueEvent(scrollYProgress, "change", (progress) => {
+  // The video only scrubs over the first VIDEO_END of the pin, so everything
+  // video-relative (seek, HUD, entry wipe) reads this remapped value.
+  const videoProgress = useTransform(scrollYProgress, (p) => clamp01(p / VIDEO_END));
+  const smooth = useSpring(videoProgress, { stiffness: 120, damping: 30 });
+  useMotionValueEvent(videoProgress, "change", (progress) => {
     if (progress === 0 || progress === 1) smooth.jump(progress);
   });
-  // Reveal the headline only once the video has (almost) played out; scrolling
-  // back up plays the same reveal in reverse.
-  const revealOpacity = useTransform(scrollYProgress, [0.82, 0.97], [0, 1]);
-  const revealY = useTransform(scrollYProgress, [0.82, 0.97], [32, 0]);
 
   useMotionValueEvent(smooth, "change", (progress) => {
     const video = videoRef.current;
@@ -66,59 +53,101 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   });
 
   // Hand-off from the ball section's red wipe: the frame starts inside the
-  // same leather-red vignette and the batter emerges over the first few
-  // percent of the scrub.
+  // same leather-red vignette and the batter emerges over the first few percent.
   const entry = useMotionValue(scrub ? 1 : 0);
-  useMotionValueEvent(scrollYProgress, "change", (progress) => {
+  useMotionValueEvent(videoProgress, "change", (progress) => {
     if (scrub) entry.set(1 - clamp01(progress / 0.05));
   });
 
+  // Headline rises after the scrub, holds, then clears as the split forms.
+  // Keyframes span the full [0,1] input (Motion runs scroll-linked opacity as a
+  // ScrollTimeline animation and fills open ends from the mount value).
+  // All scroll-linked keyframes span the full [0,1] input and hold at their end
+  // value — an open-ended range gets an implicit ScrollTimeline keyframe that
+  // drifts it back over the pin's tail (the video would recentre, the report
+  // fade out). See the reveal note in variant-editorial.
+  const headlineOpacity = useTransform(scrollYProgress, [0, 0.44, 0.52, 0.6, 0.66, 1], [0, 0, 1, 1, 0, 0]);
+  const headlineY = useTransform(scrollYProgress, [0, 0.44, 0.52, 0.6, 0.66, 1], [32, 32, 0, 0, -28, -28]);
+  // The video collapses from full-frame into a rounded panel (squircle) on the
+  // left, sitting almost flush with the report. Animating the wrapper insets
+  // (rather than a transform) lets the batter's 16:9 frame fill the panel
+  // edge-to-edge. Tuned by screenshot.
+  const videoLeft = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "2.5%", "2.5%"]);
+  const videoRight = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "39.5%", "39.5%"]);
+  const videoTop = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
+  const videoBottom = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
+  const videoRadius = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0px", "0px", "26px", "26px"]);
+  // The report slides in on the right; its lines then reveal (in VariantEditorial,
+  // driven by scrollYProgress over roughly [0.6, 0.99]).
+  const reportOpacity = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [0, 0, 1, 1]);
+  const reportX = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [48, 48, 0, 0]);
+
   return (
     // In scrub mode the section tucks under the ball opener's final viewport
-    // (-mt-[100vh], lower z): its pin starts the instant the ball unpins, so
-    // there is no dead scroll between the two pinned scenes.
+    // (-mt-[100vh], lower z): its pin starts the instant the ball unpins.
     <section
       ref={sectionRef}
-      className={scrub ? "relative z-0 -mt-[100vh] h-[350vh]" : "relative"}
+      className={scrub ? "relative z-0 -mt-[100vh] h-[600vh]" : "relative"}
     >
       <div
         className={`flex flex-col justify-center overflow-hidden bg-pitch-950 ${
           scrub ? "sticky top-0 h-dvh" : "h-dvh"
         }`}
       >
-        <video
-          key={scrub ? "scrub" : "loop"}
-          ref={videoRef}
-          src={src}
-          poster={poster}
-          preload="auto"
-          muted
-          playsInline
-          autoPlay={!scrub}
-          loop={!scrub}
-          className="h-full w-full object-contain"
-        />
-
-        <AnalysisHud progress={scrollYProgress} scrub={scrub} videoRef={videoRef} />
-
-        {/* Scrim + headline: scroll-driven in scrub mode (fades in as the video
-            plays out). In autoplay mode the headline gets a beat once the red
-            vignette clears, then the whole overlay fades so the visitor can
-            watch the play un-dimmed — the tracked events start ~5.5s in. The
-            h2 stays in the DOM at opacity 0, matching scrub mode. */}
+        {/* video + its HUD move together, collapsing into a rounded left panel */}
         <motion.div
-          style={scrub ? { opacity: revealOpacity, y: revealY } : undefined}
-          initial={scrub ? undefined : { opacity: 1 }}
-          whileInView={scrub ? undefined : { opacity: 0 }}
-          viewport={scrub ? undefined : { once: true, amount: 0.4 }}
-          transition={scrub ? undefined : { delay: 2.2, duration: 0.9, ease: "easeOut" }}
-          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center bg-pitch-950/55 px-6 text-center"
+          style={
+            scrub
+              ? {
+                  left: videoLeft,
+                  right: videoRight,
+                  top: videoTop,
+                  bottom: videoBottom,
+                  borderRadius: videoRadius,
+                }
+              : undefined
+          }
+          className="absolute inset-0 overflow-hidden bg-pitch-950"
         >
-          <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase sm:text-7xl lg:text-8xl">
-            See your game like a scout does
-          </h2>
+          <video
+            key={scrub ? "scrub" : "loop"}
+            ref={videoRef}
+            src={src}
+            poster={poster}
+            preload="auto"
+            muted
+            playsInline
+            autoPlay={!scrub}
+            loop={!scrub}
+            className="h-full w-full object-contain"
+          />
+          <AnalysisHud progress={videoProgress} scrub={scrub} videoRef={videoRef} />
         </motion.div>
 
+        {/* "See your game like a scout does" */}
+        <motion.div
+          style={scrub ? { opacity: headlineOpacity, y: headlineY } : undefined}
+          initial={scrub ? undefined : { opacity: 1 }}
+          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+        >
+          <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-7xl lg:text-8xl">
+            See your game like a scout does
+          </h2>
+          <p className="mt-6 font-mono text-[14px] font-semibold tracking-[.14em] text-cream-100 uppercase sm:text-base">
+            Footage · Aryaman Varma · Professional cricketer
+          </p>
+        </motion.div>
+
+        {/* report, right side, revealing line by line (scrub only) */}
+        {scrub && (
+          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[46%] max-w-[500px] items-center">
+            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="w-full">
+              <VariantEditorial progress={scrollYProgress} />
+            </motion.div>
+          </div>
+        )}
+
+        {/* ball → video red hand-off */}
         {scrub ? (
           <motion.div
             aria-hidden
@@ -136,6 +165,21 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           />
         )}
       </div>
+
+      {/* No pin to ride on touch: the report gets its own section under the video. */}
+      {!scrub && (
+        <div className="bg-pitch-950 px-6 py-16 sm:px-12">
+          <motion.div
+            initial={{ opacity: 0, y: 40 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.2 }}
+            transition={{ duration: 0.6 }}
+            className="mx-auto w-full max-w-[460px]"
+          >
+            <VariantEditorial />
+          </motion.div>
+        </div>
+      )}
     </section>
   );
 }

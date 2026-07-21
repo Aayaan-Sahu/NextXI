@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
+import { GuideButton } from "@/components/landing/guide-button";
 import { Kicker } from "@/components/ui";
 import {
   ConnectAnimation,
@@ -12,20 +13,23 @@ import {
 const STEPS = [
   {
     kicker: "01 · Upload",
-    title: "Players upload technique videos",
-    body: "Record a spell from the side-on camera guide and upload it straight from your phone. Resumable uploads mean a flaky net-session connection never loses a delivery.",
+    title: "Players upload videos",
+    body: "No training session goes wasted. Please find our guide for how to record your videos here:",
+    guide: true,
     animation: <UploadAnimation />,
   },
   {
     kicker: "02 · Analyze",
     title: "AI builds your coaching report",
-    body: "Pose tracking measures stride, arm path, release and front-leg brace on every ball (the same overlays you just scrolled through) and turns them into a report you can read on the bus home.",
+    body: "Our AI model extrapolates key metrics for both batting and bowling, turning them into a report you can read on the bus home.",
+    guide: false,
     animation: <NeuralNetAnimation />,
   },
   {
     kicker: "03 · Connect",
     title: "Coaches & scouts find you",
-    body: "Verified coaches browse player profiles, watch the reports, and reach out. A good spell in the nets counts even when nobody important was there to see it.",
+    body: "Verified coaches and scouts watch your videos, read our AI report, and reach out. No talent goes undiscovered.",
+    guide: false,
     animation: <ConnectAnimation />,
   },
 ];
@@ -66,6 +70,7 @@ export function FeaturesSteps() {
                 <p className="mt-3 text-[15px] leading-relaxed text-cream-200">
                   {step.body}
                 </p>
+                {step.guide && <GuideButton />}
               </div>
             </motion.article>
           </div>

@@ -1,0 +1,44 @@
+import { VariantEditorial } from "@/components/landing/report-variants/variant-editorial";
+import { VariantRadar } from "@/components/landing/report-variants/variant-radar";
+import { VariantScoreboard } from "@/components/landing/report-variants/variant-scoreboard";
+
+/**
+ * Throwaway comparison page for choosing an AI-report format. Not linked from
+ * anywhere — visit /report-preview directly. Delete once a format is picked.
+ */
+export default function ReportPreview() {
+  const variants = [
+    { id: "A", name: "Scoreboard", note: "Dark list · bar + elite tick per metric", node: <VariantScoreboard /> },
+    { id: "B", name: "Radar", note: "Dark · you vs elite at a glance", node: <VariantRadar /> },
+    { id: "C", name: "Editorial", note: "Light · printed-report stat tiles", node: <VariantEditorial /> },
+  ];
+
+  return (
+    <main className="min-h-dvh bg-pitch-950 px-6 py-14 sm:px-12">
+      <div className="mx-auto max-w-[1360px]">
+        <h1 className="font-display text-3xl font-bold tracking-[.02em] text-cream-50 uppercase">
+          AI report — format options
+        </h1>
+        <p className="mt-2 font-mono text-[12px] tracking-[.14em] text-sage-400 uppercase">
+          Same demo data · pick one
+        </p>
+
+        <div className="mt-10 grid items-start gap-8 lg:grid-cols-3">
+          {variants.map((v) => (
+            <section key={v.id}>
+              <div className="mb-4">
+                <div className="font-display text-lg font-semibold tracking-[.04em] text-cream-100 uppercase">
+                  {v.id} · {v.name}
+                </div>
+                <div className="mt-1 font-mono text-[11px] tracking-[.1em] text-sage-400 uppercase">
+                  {v.note}
+                </div>
+              </div>
+              {v.node}
+            </section>
+          ))}
+        </div>
+      </div>
+    </main>
+  );
+}
