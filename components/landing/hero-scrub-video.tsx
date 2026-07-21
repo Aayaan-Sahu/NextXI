@@ -91,7 +91,13 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
     >
       <div
         className={`flex flex-col justify-center overflow-hidden bg-pitch-950 ${
-          scrub ? "sticky top-0 h-dvh" : "h-dvh"
+          // Both branches must be a *positioned* box: the video/headline/wipe
+          // layers inside are `absolute inset-0`, so they resolve to this box.
+          // In scrub, `sticky` already positions it. In the fallback it must be
+          // `relative` — otherwise `absolute inset-0` escapes to the section's
+          // `relative` ancestor and the full-height video paints over the
+          // report block below it (invisible report on phones).
+          scrub ? "sticky top-0 h-dvh" : "relative h-dvh"
         }`}
       >
         {/* video + its HUD move together, collapsing into a rounded left panel */}
@@ -124,19 +130,25 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           <AnalysisHud progress={videoProgress} scrub={scrub} videoRef={videoRef} />
         </motion.div>
 
-        {/* "See your game like a scout does" */}
-        <motion.div
-          style={scrub ? { opacity: headlineOpacity, y: headlineY } : undefined}
-          initial={scrub ? undefined : { opacity: 1 }}
-          className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
-        >
-          <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-7xl lg:text-8xl">
-            See your game like a scout does
-          </h2>
-          <p className="mt-6 font-mono text-[14px] font-semibold tracking-[.14em] text-cream-100 uppercase sm:text-base">
-            Footage · Aryaman Varma · Professional cricketer
-          </p>
-        </motion.div>
+        {/* "See your game like a scout does" — scrub-only overlay that rises as
+            the video scrubs, then clears as the split forms. Rendering it only in
+            scrub avoids the SSR trap: useCanScrub's server snapshot is true, so a
+            fallback visit would hydrate this overlay in the scrub state (opacity
+            0) with no animation to bring it back — it would sit invisible. The
+            fallback shows the same line as a static heading above the report. */}
+        {scrub && (
+          <motion.div
+            style={{ opacity: headlineOpacity, y: headlineY }}
+            className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
+          >
+            <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-7xl lg:text-8xl">
+              See your game like a scout does
+            </h2>
+            <p className="mt-6 font-mono text-[14px] font-semibold tracking-[.14em] text-cream-100 uppercase sm:text-base">
+              Footage · Aryaman Varma · Professional cricketer
+            </p>
+          </motion.div>
+        )}
 
         {/* report, right side, revealing line by line (scrub only) */}
         {scrub && (
@@ -166,9 +178,19 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         )}
       </div>
 
-      {/* No pin to ride on touch: the report gets its own section under the video. */}
+      {/* No pin to ride on touch: the "video → headline → report" story that
+          scrubs on desktop is laid out vertically here — the analysis video,
+          then the same headline as a static intro, then the report card. */}
       {!scrub && (
         <div className="bg-pitch-950 px-6 py-16 sm:px-12">
+          <div className="mx-auto mb-12 max-w-[460px] text-center">
+            <h2 className="font-display text-4xl leading-[1.04] font-bold tracking-[.02em] text-cream-100 uppercase sm:text-5xl">
+              See your game like a scout does
+            </h2>
+            <p className="mt-4 font-mono text-[13px] font-semibold tracking-[.14em] text-cream-100 uppercase">
+              Footage · Aryaman Varma · Professional cricketer
+            </p>
+          </div>
           <motion.div
             initial={{ opacity: 0, y: 40 }}
             whileInView={{ opacity: 1, y: 0 }}
