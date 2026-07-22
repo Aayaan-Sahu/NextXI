@@ -1,6 +1,6 @@
 /**
  * Time-indexed tracking data for /hero-drive.mp4 (front-foot drive, 14 s,
- * 30 fps). Hand-annotated from extracted frames — the manual bootstrap for
+ * 240 fps). Hand-annotated from extracted frames — the manual bootstrap for
  * the overlay schema the CV pipeline can emit per video (an extension of
  * docs/reports-contract.md, which already keys shots to frame indices).
  *
@@ -14,7 +14,7 @@ export type TrackSample = [t: number, x: number, y: number];
 export type DriveTrack = typeof HERO_DRIVE_TRACK;
 
 export const HERO_DRIVE_TRACK = {
-  video: { durationS: 14, fps: 30, aspect: 16 / 9 },
+  video: { durationS: 14, fps: 240, aspect: 16 / 9 },
   /** Scale reference: batter height in metres vs. frame-height percentage. */
   calibration: { subjectHeightM: 1.75, subjectHeightPct: 55 },
   events: [

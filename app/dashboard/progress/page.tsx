@@ -3,6 +3,7 @@ import { PlayerStatus } from "@/app/generated/prisma/enums";
 import { GoalsReminders } from "@/components/goals-reminders";
 import { ProgressCharts } from "@/components/progress-charts";
 import { MatchLog, StatEntryForm } from "@/components/stat-entry-form";
+import { StatsLink } from "@/components/stats-link";
 import { Notice, PageHeader, PageShell } from "@/components/ui";
 import { getProfile, isAdmin, requireUser } from "@/lib/auth";
 import { getProgressData } from "@/lib/progress";
@@ -46,6 +47,7 @@ export default async function ProgressPage({
       <Notice>{message}</Notice>
       <div className="grid gap-6">
         <ProgressCharts entries={entries} />
+        <StatsLink statsUrl={profile.player.statsUrl} />
         <StatEntryForm />
         <div className="grid items-start gap-5 lg:grid-cols-[1.3fr_1fr]">
           <MatchLog entries={entries} />

@@ -15,7 +15,7 @@ const STEPS = [
   {
     step: "02",
     title: "AI report",
-    body: "Every upload becomes a numbers-first coaching report, benchmarked against elite standards.",
+    body: "Every upload becomes a numbers-first coaching report, benchmarked against elite standards. Reports are checked by a qualified coach before they reach your profile.",
   },
   {
     step: "03",

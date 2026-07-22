@@ -82,6 +82,7 @@ export const getProfile = cache(async (userId: string) => {
         name: true,
         roles: true,
         status: true,
+        statsUrl: true,
         visibility: true,
         weightKg: true,
       },

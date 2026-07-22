@@ -125,6 +125,7 @@ model Player {
   visibility        Visibility        @default(PRIVATE)
   status            PlayerStatus      @default(ACTIVE)
   bio               String?
+  statsUrl          String?           @map("stats_url")
   avatarPath        String?           @map("avatar_path")
   battingHandedness Handedness?       @map("batting_handedness")
   bowlingHandedness Handedness?       @map("bowling_handedness")

@@ -21,7 +21,7 @@ const STEPS = [
   {
     kicker: "02 · Analyze",
     title: "AI builds your coaching report",
-    body: "Our AI model extrapolates key metrics for both batting and bowling, turning them into a report you can read on the bus home.",
+    body: "Our AI model studies what the greatest players do, and we measure your batting and bowling against this elite benchmark, turning it into a report you can read on the bus home.",
     guide: false,
     animation: <NeuralNetAnimation />,
   },

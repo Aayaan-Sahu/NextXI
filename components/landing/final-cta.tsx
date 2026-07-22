@@ -8,9 +8,6 @@ export function FinalCta({ waitlist }: { waitlist?: WaitlistState }) {
         <h2 className="max-w-[20ch] font-display text-4xl leading-[0.98] font-bold text-cream-50 uppercase sm:text-5xl">
           Be first to know when we launch.
         </h2>
-        <p className="mt-4 text-[15px] text-cream-200">
-          We&apos;re starting with a handful of clubs, so early spots are limited.
-        </p>
         <div className="mt-8 w-full scroll-mt-24" id="waitlist">
           <WaitlistForm align="center" waitlist={waitlist} />
         </div>

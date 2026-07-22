@@ -3,7 +3,7 @@
    Benchmarks are anonymous ("elite" = the best-ever standard, no named pro). */
 
 export const OVERALL = 84;
-export const SUBTITLE = "Aryaman Varma · Front-foot drive · 120 fps";
+export const SUBTITLE = "Aryaman Varma · Front-foot drive · 240 fps";
 export const SUMMARY =
   "Textbook front-foot driving — dead-still head, swing straight down the line, elite-grade consistency across 12 balls.";
 

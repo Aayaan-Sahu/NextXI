@@ -82,6 +82,59 @@ async function requirePlayerId(): Promise<string> {
   return player.id;
 }
 
+/**
+ * Normalizes a pasted stats link to a safe absolute URL. Adds a default
+ * `https://` when the player omits the scheme, then hard-rejects anything that
+ * isn't plain http(s) — this value is later rendered as an `href`, so schemes
+ * like `javascript:` must never survive validation.
+ */
+function normalizeStatsUrl(raw: string): string | typeof INVALID {
+  const candidate = /^[a-z][a-z0-9+.-]*:\/\//i.test(raw) ? raw : `https://${raw}`;
+
+  let url: URL;
+  try {
+    url = new URL(candidate);
+  } catch {
+    return INVALID;
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") return INVALID;
+  if (!url.hostname.includes(".")) return INVALID;
+
+  return url.toString();
+}
+
+export async function saveStatsLink(formData: FormData) {
+  const playerId = await requirePlayerId();
+
+  const raw = text(formData, "statsUrl");
+  if (!raw) finish({ error: "Paste a link to your public stats." });
+  if (raw.length > 500) finish({ error: "That link is too long." });
+
+  const statsUrl = normalizeStatsUrl(raw);
+  if (statsUrl === INVALID) {
+    finish({ error: "Enter a valid link, e.g. https://your-club.play-cricket.com/..." });
+  }
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { statsUrl },
+  });
+
+  finish({ message: "Stats link saved." });
+}
+
+export async function removeStatsLink() {
+  const playerId = await requirePlayerId();
+
+  await prisma.player.update({
+    where: { id: playerId },
+    data: { statsUrl: null },
+  });
+
+  finish({ message: "Stats link removed." });
+}
+
 export async function addStatEntry(formData: FormData) {
   const playerId = await requirePlayerId();
 
