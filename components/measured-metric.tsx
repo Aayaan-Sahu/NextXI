@@ -210,8 +210,8 @@ export function MeasuredMetricRow({
     >
       <div className="flex items-baseline justify-between gap-3">
         <span
-          className={`font-display tracking-[.08em] uppercase ${
-            compact ? "text-[12px]" : "text-sm"
+          className={`font-display font-semibold tracking-[.06em] uppercase ${
+            compact ? "text-[13px]" : "text-[15px]"
           } ${dark ? "text-cream-100" : "text-ink-900"}`}
         >
           {metric.name}

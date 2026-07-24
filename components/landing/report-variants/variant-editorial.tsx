@@ -10,7 +10,9 @@ import {
   SHOTS_ANALYSED,
   SUBTITLE,
   SUMMARY,
+  SUMMARY_SHORT,
   WEAKEST,
+  WEAKEST_SHORT,
 } from "./report-data";
 import { ReportTrailer } from "./report-shared";
 
@@ -113,10 +115,10 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
         progress={progress}
         {...w(1)}
         className={`border-b border-cream-300 text-[13px] leading-[1.5] text-ink-900 ${
-          compact ? "line-clamp-2 py-2.5" : "py-3.5"
+          compact ? "py-2.5" : "py-3.5"
         }`}
       >
-        {SUMMARY}
+        {compact ? SUMMARY_SHORT : SUMMARY}
       </Reveal>
 
       <div className={compact ? "pt-2.5" : "pt-3.5"}>
@@ -146,7 +148,7 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
         <>
           <Reveal progress={progress} {...w(6)} className="pt-3">
             <Kicker>Focus area</Kicker>
-            <p className="mt-2 line-clamp-2 text-[12.5px] leading-[1.5] text-ink-900">{WEAKEST}</p>
+            <p className="mt-2 text-[12.5px] leading-[1.5] text-ink-900">{WEAKEST_SHORT}</p>
             <div className="mt-2 rounded-md border border-gold-500/40 bg-gold-500/12 px-3 py-2">
               <div className="font-mono text-[10px] font-semibold tracking-[.2em] text-gold-600 uppercase">
                 Recommended drill
