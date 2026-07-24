@@ -52,6 +52,31 @@ typography:
     fontSize: "0.6875rem"
     fontWeight: 600
     letterSpacing: "0.2em"
+  body-lead:
+    fontFamily: "Public Sans, system-ui, sans-serif"
+    fontSize: "0.9375rem"
+    fontWeight: 400
+    lineHeight: 1.6
+  body-small:
+    fontFamily: "Public Sans, system-ui, sans-serif"
+    fontSize: "0.8125rem"
+    fontWeight: 400
+    lineHeight: 1.55
+  body-secondary:
+    fontFamily: "Public Sans, system-ui, sans-serif"
+    fontSize: "0.78125rem"
+    fontWeight: 400
+    lineHeight: 1.5
+  label-small:
+    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
+    fontSize: "0.625rem"
+    fontWeight: 600
+    letterSpacing: "0.14em"
+  scoreboard:
+    fontFamily: "IBM Plex Mono, ui-monospace, monospace"
+    fontSize: "2.75rem"
+    fontWeight: 600
+    lineHeight: 1
 rounded:
   meter: "4px"
   control: "6px"
