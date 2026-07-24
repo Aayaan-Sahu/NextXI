@@ -8,9 +8,9 @@ import { VariantScoreboard } from "@/components/landing/report-variants/variant-
  */
 export default function ReportPreview() {
   const variants = [
-    { id: "A", name: "Scoreboard", note: "Dark list · bar + elite tick per metric", node: <VariantScoreboard /> },
-    { id: "B", name: "Radar", note: "Dark · you vs elite at a glance", node: <VariantRadar /> },
-    { id: "C", name: "Editorial", note: "Light · printed-report stat tiles", node: <VariantEditorial /> },
+    { id: "A", name: "Scoreboard", note: "Dark list · measured value + reference range per metric", node: <VariantScoreboard /> },
+    { id: "B", name: "Radar", note: "Dark · repeatability across the session at a glance", node: <VariantRadar /> },
+    { id: "C", name: "Editorial", note: "Light · printed-report measurement rows", node: <VariantEditorial /> },
   ];
 
   return (

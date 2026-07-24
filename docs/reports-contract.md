@@ -190,3 +190,93 @@ of variation for the consistency bars (rendered as `100 * (1 - min(cv, 1))`%).
 
 `calibration.height_cm` is the player's real height, which the worker reads from
 `players.height_cm`; the analysis normalizes every distance metric against it.
+
+> **Open question for the AI team.** This section documents cm-calibrated
+> output (`stride_length_cm`, `max_head_movement_cm`, `calibration.px_per_cm`).
+> The analyser in `cricket-ai-model/analyze-batting.py` emits *unitless ratios
+> normalised to stance width* (`stride_length_norm`, `backlift_height_norm`) and
+> contains no pixel-to-cm calibration at all. Either a second worker exists that
+> this repo does not contain, or this section is ahead of the model. The UI
+> cannot render real units until that is resolved — please confirm which.
+
+## Measurements — PROPOSED schema_version 3
+
+v3 exists because a 0-100 score is not actionable. "Stride 82/100" does not tell
+a player whether the stride was too short or too long; "Stride 1.02 m, your usual
+0.94-1.05 m" does. v3 adds a flat `measurements` array that the UI renders
+directly, so the pipeline decides what a metric means rather than the renderer
+guessing.
+
+**On references — read this before adding one.** There is no published "elite
+benchmark" for most batting kinematics. The accessible literature reports pooled
+means across mixed international-to-club samples measured on lab motion-capture
+rigs, and for stride length it finds *no significant difference* between skilled
+and less-skilled batters (910 ± 30 mm vs 890 ± 320 mm, P = 0.65). So a reference
+is one of three kinds and must always say which:
+
+- `"session"` — the player's own recent range. Always defensible. Prefer this.
+- `"published"` — a real published range. `label` **must** carry the population
+  ("14 male batters, club→international, ISBS 2020"), never the word "elite"
+  unless the source population genuinely was elite.
+- `"none"` — no defensible comparison. Send the measurement without a band.
+
+```jsonc
+{
+  "schema_version": 3,
+  "video": { "fps": 30.0, "width": 1920, "height": 1080, "frame_count": 900 },
+  "calibration": { "height_cm": 175, "px_per_cm": 6.2 },
+  "shots": [ /* unchanged from v2 */ ],
+  "consistency": { /* unchanged from v2 */ },
+
+  "coverage": {                     // how much of this was observed vs inferred
+    "bat_detected_frac": 0.34,      // frames where the bat detector actually fired
+    "ball_detected_frac": 0.40,
+    "pose_frac": 0.72,
+    "scored": true                  // false => the UI shows "not enough signal"
+  },
+
+  "measurements": [
+    {
+      "key": "front_foot_stride",   // stable id, safe to key React off
+      "name": "Front-foot stride",
+      "short": "Stride",            // axis label for tight layouts
+      "value": 1.02,
+      "unit": "m",
+      "decimals": 2,
+      "direction": "none",          // "higher" | "lower" | "inside" | "none"
+      "reference": {
+        "kind": "session",          // "session" | "published" | "none"
+        "label": "Your last 5 sessions",
+        "band": [0.94, 1.05]        // omitted when kind is "none"
+      },
+      "note": "Varies by only ±4 cm across 12 balls — your most repeatable movement."
+    }
+  ]
+}
+```
+
+`direction` drives whether being outside the band reads as a fault. Send
+`"none"` for descriptive metrics — the UI will show the measurement and the
+band without colouring it as a problem. This matters: stride length has no
+demonstrated link to batting skill, so flagging a "short" stride as a fault
+would be inventing a target the evidence does not support.
+
+`coverage` is the honesty gate and it is not optional. In our one real test clip
+the bat detector fired on 34% of frames — the rest of the trajectory was
+inferred from the bat polygon or extrapolated by the Kalman filter. A report
+built on 34% observation should say so rather than presenting the same
+confident number as one built on 90%. Set `scored: false` below your coverage
+floor and the UI will decline to show measurements rather than guess.
+
+### Backward compatibility
+
+The renderer picks its path in this order, so nothing stored breaks:
+
+1. `measurements` array present → v3 measurement rows.
+2. `shots` array present → v2 batting renderer (per-shot stats + consistency).
+3. `overall_score` / `metrics` present → v1 legacy score rows.
+4. Anything else → the collapsible "Raw report data" panel.
+
+Stored v1 and v2 reports keep rendering exactly as they do today. A v3 payload
+may also include `shots` and `consistency`; the UI will render the measurement
+rows and still use `consistency` for the headline repeatability figure.

@@ -3,22 +3,8 @@ import { COACH_NOTE, DISCLOSURE, DRILL, WEAKEST } from "./report-data";
 
 type Tone = "dark" | "light";
 
-export function DeltaChip({ delta, tone }: { delta: number; tone: Tone }) {
-  const up = delta >= 0;
-  const upColor = tone === "dark" ? "text-vision-300" : "text-vision-700";
-  return (
-    <span
-      className={`font-mono text-[11px] font-semibold ${up ? upColor : "text-rust-500"}`}
-      title="Change from last session"
-    >
-      {up ? "+" : "−"}
-      {Math.abs(delta)}
-    </span>
-  );
-}
-
 /** Focus area + recommended drill + coach sign-off + disclosure — shared by
-    every format variant so only the score/metrics visualisation differs. */
+    every format variant so only the measurement visualisation differs. */
 export function ReportTrailer({ tone }: { tone: Tone }) {
   const dark = tone === "dark";
   const border = dark ? "border-cream-200/15" : "border-cream-300";

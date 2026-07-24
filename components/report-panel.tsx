@@ -1,7 +1,7 @@
 import { ReportStatus } from "@/app/generated/prisma/enums";
 import {
   BattingReport,
-  battingOverallScore,
+  battingConsistency,
   parseBattingReport,
 } from "@/components/batting-report";
 import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
@@ -297,12 +297,12 @@ export function ReportPanel({
   // Each analyser emits its own shape; anything unrecognised uses the legacy render.
   const batting = payload ? parseBattingReport(payload) : null;
   const bowling = !batting && payload ? parseBowlingReport(payload) : null;
-  // Bowling is a single delivery, so it has no headline score; batting derives one.
-  const overallScore = batting
-    ? battingOverallScore(batting)
-    : !bowling && payload
-      ? readOverallScore(payload)
-      : null;
+  // Bowling is a single delivery, so it has no headline figure. Batting shows
+  // repeatability across its shots; legacy payloads keep whatever 0-100 score
+  // the pipeline sent, since we cannot recover a measurement from one.
+  const consistency = batting ? battingConsistency(batting) : null;
+  const legacyScore =
+    !batting && !bowling && payload ? readOverallScore(payload) : null;
 
   return (
     <section
@@ -327,14 +327,33 @@ export function ReportPanel({
             </div>
           )}
         </div>
-        {overallScore !== null && (
+        {consistency !== null && (
           <div className="text-right">
             <div
               className={`font-mono leading-none font-semibold ${
                 dark ? "text-[44px] text-gold-500" : "text-4xl"
               }`}
             >
-              {overallScore}
+              {consistency}
+              <span className={dark ? "text-2xl" : "text-xl"}>%</span>
+            </div>
+            <div
+              className={`mt-0.5 font-display tracking-[.2em] uppercase ${
+                dark ? "text-[11px] text-sage-400" : "text-[10px] text-ink-600"
+              }`}
+            >
+              Consistency
+            </div>
+          </div>
+        )}
+        {legacyScore !== null && (
+          <div className="text-right">
+            <div
+              className={`font-mono leading-none font-semibold ${
+                dark ? "text-[44px] text-gold-500" : "text-4xl"
+              }`}
+            >
+              {legacyScore}
             </div>
             <div
               className={`mt-0.5 font-display tracking-[.22em] uppercase ${
