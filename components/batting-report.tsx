@@ -31,8 +31,6 @@ const CONSISTENCY_FIELDS: { field: string; label: string }[] = [
   { field: "stance_ratio_cv", label: "Stance width" },
 ];
 
-const SCORE_BY_LABEL: Record<Label, number> = { good: 100, ok: 65, "needs work": 30 };
-
 type ShotMetric = { label: string; value: Label };
 type ShotStat = { label: string; value: string };
 type Shot = { timeSec: number | null; metrics: ShotMetric[]; stats: ShotStat[] };
@@ -128,12 +126,27 @@ export function parseBattingReport(payload: unknown): ParsedBattingReport | null
   };
 }
 
-/** Overall technique score (0-100) averaged across every shot judgement. */
-export function battingOverallScore(parsed: ParsedBattingReport): number | null {
-  const values = parsed.shots.flatMap((shot) => shot.metrics.map((metric) => metric.value));
+/**
+ * Headline repeatability (0-100) across the analysed shots — the mean of the
+ * per-metric consistency figures, which are themselves derived from the
+ * analyser's shot-to-shot coefficients of variation.
+ *
+ * This replaced a composite "technique score" that mapped the qualitative
+ * labels onto numbers (good=100, ok=65, needs work=30) and averaged them. That
+ * produced a two-significant-figure headline out of a three-way judgement, and
+ * it implied a benchmark that does not exist — there is no published elite
+ * distribution for these metrics to score a player against. Consistency needs
+ * no benchmark: it only ever compares the player to themselves.
+ *
+ * Null when there is only one shot, since repeatability needs something to
+ * repeat against.
+ */
+export function battingConsistency(parsed: ParsedBattingReport): number | null {
+  const values = parsed.consistency.flatMap((item) =>
+    item.consistency === null ? [] : [item.consistency],
+  );
   if (values.length === 0) return null;
-  const total = values.reduce((sum, value) => sum + SCORE_BY_LABEL[value], 0);
-  return Math.round(total / values.length);
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
 function formatTimestamp(seconds: number) {
@@ -147,10 +160,15 @@ function labelColor(value: Label, dark: boolean) {
   return dark ? "text-sage-400" : "text-ink-600";
 }
 
+/**
+ * One analysed shot. The measurements lead, in the units the analyser emits,
+ * because "Stride 62 cm" tells a player what to change and a score does not.
+ * The qualitative judgements still render, but as words rather than converted
+ * into a percentage they cannot support.
+ */
 function ShotRow({ shot, index, tone }: { shot: Shot; index: number; tone: Tone }) {
   const dark = tone === "dark";
   const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
-  const statsLine = shot.stats.map((stat) => `${stat.label} ${stat.value}`).join(" · ");
 
   return (
     <div className={`border-b py-3.5 ${rowBorder}`}>
@@ -163,21 +181,38 @@ function ShotRow({ shot, index, tone }: { shot: Shot; index: number; tone: Tone 
         )}
       </div>
 
-      {shot.metrics.length > 0 && (
-        <div className="mt-2 grid gap-1">
-          {shot.metrics.map((metric) => (
-            <div className="flex items-baseline justify-between gap-3 text-[12.5px]" key={metric.label}>
-              <span className={dark ? "text-cream-200" : "text-ink-900"}>{metric.label}</span>
-              <span className={`font-medium ${labelColor(metric.value, dark)}`}>{metric.value}</span>
+      {shot.stats.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-x-6 gap-y-2">
+          {shot.stats.map((stat) => (
+            <div key={stat.label}>
+              <div
+                className={`font-mono text-[15px] font-semibold tabular-nums ${
+                  dark ? "text-cream-100" : "text-ink-900"
+                }`}
+              >
+                {stat.value}
+              </div>
+              <div
+                className={`mt-0.5 font-mono text-[10px] tracking-[.14em] uppercase ${
+                  dark ? "text-sage-400" : "text-ink-600"
+                }`}
+              >
+                {stat.label}
+              </div>
             </div>
           ))}
         </div>
       )}
 
-      {statsLine && (
-        <p className={`mt-2 font-mono text-[11px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
-          {statsLine}
-        </p>
+      {shot.metrics.length > 0 && (
+        <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
+          {shot.metrics.map((metric) => (
+            <span className="font-mono text-[11px]" key={metric.label}>
+              <span className={dark ? "text-sage-400" : "text-ink-600"}>{metric.label} </span>
+              <span className={`font-semibold ${labelColor(metric.value, dark)}`}>{metric.value}</span>
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );

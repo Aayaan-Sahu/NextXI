@@ -1,11 +1,20 @@
 import { Kicker } from "@/components/ui";
-import { METRICS, OVERALL, SUBTITLE, SUMMARY } from "./report-data";
-import { DeltaChip, ReportTrailer } from "./report-shared";
+import {
+  CONSISTENCY,
+  CONSISTENCY_BY_METRIC,
+  METRICS,
+  SHOTS_ANALYSED,
+  SUBTITLE,
+  SUMMARY,
+} from "./report-data";
+import { ReportTrailer } from "./report-shared";
 
 const CX = 100;
 const CY = 95;
 const MAX_R = 58;
 const N = METRICS.length;
+/** Below this a metric reads as the session's loose element. */
+const LOW_CONSISTENCY = 80;
 
 function point(valuePct: number, i: number, radius = MAX_R) {
   const angle = ((-90 + (i * 360) / N) * Math.PI) / 180;
@@ -17,12 +26,18 @@ function polygon(values: number[]) {
   return values.map((v, i) => point(v, i).join(",")).join(" ");
 }
 
-const youPts = polygon(METRICS.map((m) => m.score));
-const elitePts = polygon(METRICS.map((m) => m.elite));
+const consistencyOf = (short: string) => CONSISTENCY_BY_METRIC[short] ?? 0;
+const youPts = polygon(METRICS.map((m) => consistencyOf(m.short)));
 
-/** Variant B — "Radar": leads with a spider chart of you (gold) against the
-    elite benchmark (mint), so the whole comparison reads in one glance, then a
-    compact numeric legend backs it up. */
+/** Variant B — "Radar": leads with a spider chart of how repeatable each part
+    of the technique was across the session, so the loose element reads in one
+    glance, then a numeric legend backs it up.
+
+    It plots consistency rather than "you vs elite" deliberately: consistency is
+    computed from the shot-to-shot coefficient of variation, so every spoke is a
+    real measurement of the player against themselves. There is no published
+    elite distribution for these metrics to plot a second polygon against, and
+    inventing one is exactly what this report is designed not to do. */
 export function VariantRadar() {
   return (
     <div className="rounded-[12px] bg-pitch-800 bg-[repeating-linear-gradient(0deg,transparent_0_44px,rgba(0,0,0,.10)_44px_46px)] px-6 pt-6 pb-4 text-cream-200 shadow-2xl shadow-black/45 sm:px-7">
@@ -33,15 +48,20 @@ export function VariantRadar() {
         </div>
         <div className="text-right">
           <div className="font-mono text-[44px] leading-none font-semibold text-gold-500">
-            {OVERALL}
+            {CONSISTENCY}
+            <span className="text-2xl">%</span>
           </div>
-          <div className="mt-0.5 font-display text-[11px] tracking-[.22em] text-sage-400 uppercase">
-            Overall / 100
+          <div className="mt-0.5 font-display text-[10.5px] tracking-[.18em] text-sage-400 uppercase">
+            Consistency · {SHOTS_ANALYSED} balls
           </div>
         </div>
       </div>
 
       <p className="py-4 text-[13.5px] leading-[1.6] text-cream-100">{SUMMARY}</p>
+
+      <div className="pb-1">
+        <Kicker tone="dark">Repeatability across {SHOTS_ANALYSED} balls</Kicker>
+      </div>
 
       {/* radar */}
       <div className="flex justify-center">
@@ -77,46 +97,47 @@ export function VariantRadar() {
               </g>
             );
           })}
-          {/* elite benchmark */}
-          <polygon points={elitePts} fill="none" stroke="#7ce8bf" strokeWidth={1} strokeDasharray="2 1.5" />
-          {/* you */}
           <polygon points={youPts} fill="rgba(240,200,160,0.22)" stroke="#f0c8a0" strokeWidth={1.4} />
           {METRICS.map((m, i) => {
-            const [x, y] = point(m.score, i);
-            return <circle key={m.name} cx={x} cy={y} r={1.6} className="fill-gold-500" />;
+            const [x, y] = point(consistencyOf(m.short), i);
+            return (
+              <circle
+                key={m.name}
+                cx={x}
+                cy={y}
+                r={1.6}
+                className={consistencyOf(m.short) < LOW_CONSISTENCY ? "fill-rust-500" : "fill-gold-500"}
+              />
+            );
           })}
         </svg>
       </div>
 
-      {/* legend */}
-      <div className="flex justify-center gap-5 pb-3 font-mono text-[10.5px] tracking-[.12em] text-sage-400 uppercase">
-        <span className="flex items-center gap-1.5">
-          <span className="h-2 w-2 rounded-full bg-gold-500" /> You
-        </span>
-        <span className="flex items-center gap-1.5">
-          <span className="h-0 w-3 border-t-2 border-dashed border-vision-500" /> Elite
-        </span>
-      </div>
-
-      {/* numeric backing */}
+      {/* numeric backing — the measured value next to its repeatability */}
       <div className="border-t border-cream-200/15 pt-1">
-        {METRICS.map((m) => (
-          <div
-            key={m.name}
-            className="flex items-baseline justify-between gap-3 border-b border-cream-200/10 py-2 last:border-b-0"
-          >
-            <span className="text-[12.5px] text-cream-100">{m.name}</span>
-            <span className="flex items-baseline gap-2 font-mono">
-              <span className="text-[10.5px] text-sage-400">elite {m.elite}</span>
-              <DeltaChip delta={m.delta} tone="dark" />
-              <span
-                className={`text-sm font-semibold ${m.score < 80 ? "text-rust-500" : "text-gold-500"}`}
-              >
-                {m.score}
+        {METRICS.map((m) => {
+          const consistency = consistencyOf(m.short);
+          return (
+            <div
+              key={m.name}
+              className="flex items-baseline justify-between gap-3 border-b border-cream-200/10 py-2 last:border-b-0"
+            >
+              <span className="text-[12.5px] text-cream-100">{m.name}</span>
+              <span className="flex items-baseline gap-2.5 font-mono">
+                <span className="text-[11px] text-sage-400 tabular-nums">
+                  {m.value.toFixed(m.decimals)} {m.unit}
+                </span>
+                <span
+                  className={`text-sm font-semibold tabular-nums ${
+                    consistency < LOW_CONSISTENCY ? "text-rust-500" : "text-gold-500"
+                  }`}
+                >
+                  {consistency}%
+                </span>
               </span>
-            </span>
-          </div>
-        ))}
+            </div>
+          );
+        })}
       </div>
 
       <div className="pt-4">
