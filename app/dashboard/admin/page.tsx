@@ -1,15 +1,25 @@
 import { signOut } from "@/app/auth/actions";
-import { CoachStatus } from "@/app/generated/prisma/enums";
+import { CoachStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { Notice, Panel, PrimaryButton, Wordmark } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
+import { isVideoDiscipline, VIDEO_DISCIPLINES } from "@/lib/videos";
 import { approveCoach, rejectCoach } from "./actions";
 
 type SearchParams = Promise<{
   error?: string | string[];
   message?: string | string[];
 }>;
+
+/** Compact age for queue rows, e.g. "4m", "2h", "3d". */
+function formatAge(from: Date, now: Date) {
+  const minutes = Math.max(0, Math.floor((now.getTime() - from.getTime()) / 60_000));
+  if (minutes < 60) return `${minutes}m`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours}h`;
+  return `${Math.floor(hours / 24)}d`;
+}
 
 export default async function AdminDashboardPage({
   searchParams,
@@ -23,11 +33,44 @@ export default async function AdminDashboardPage({
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, accomplishments: true, createdAt: true },
   });
+  // Reports the AI worker still owes us — the ops queue for the pilot.
+  const queuedReports = await prisma.report.findMany({
+    where: {
+      status: {
+        in: [ReportStatus.PENDING, ReportStatus.PROCESSING, ReportStatus.FAILED],
+      },
+    },
+    orderBy: { createdAt: "asc" },
+    select: {
+      id: true,
+      status: true,
+      attempts: true,
+      claimedAt: true,
+      createdAt: true,
+      video: {
+        select: {
+          category: true,
+          createdAt: true,
+          playerId: true,
+          player: { select: { name: true } },
+        },
+      },
+    },
+  });
+
   const profiles = await prisma.profile.findMany({
-    where: { id: { in: pendingCoaches.map((coach) => coach.id) } },
+    where: {
+      id: {
+        in: [
+          ...pendingCoaches.map((coach) => coach.id),
+          ...queuedReports.map((report) => report.video.playerId),
+        ],
+      },
+    },
     select: { id: true, username: true },
   });
   const usernames = new Map(profiles.map((profile) => [profile.id, profile.username]));
+  const now = new Date();
 
   const params = await searchParams;
   const error = firstParam(params.error);
@@ -111,6 +154,63 @@ export default async function AdminDashboardPage({
               </ul>
             ) : (
               <p className="mt-4 text-sm text-ink-600">No coaches awaiting review.</p>
+            )}
+          </Panel>
+        </div>
+
+        <div className="mt-7">
+          <Panel>
+            <h2 className="font-display text-xl leading-tight font-semibold uppercase">
+              Report queue{" "}
+              <span className="font-mono text-[15px] font-medium text-rust-600">
+                ({queuedReports.length})
+              </span>
+            </h2>
+            {queuedReports.length ? (
+              <ul className="mt-4">
+                {queuedReports.map((report) => (
+                  <li
+                    className="flex justify-between gap-5 border-t border-cream-400 py-5 max-sm:flex-col"
+                    key={report.id}
+                  >
+                    <div>
+                      <p className="text-[15px] font-bold">
+                        {report.video.player.name}
+                        {usernames.get(report.video.playerId) ? (
+                          <span className="font-mono text-xs font-medium text-ink-600">
+                            {" "}
+                            @{usernames.get(report.video.playerId)}
+                          </span>
+                        ) : null}
+                      </p>
+                      <p className="mt-2 font-mono text-xs text-ink-600">
+                        {isVideoDiscipline(report.video.category)
+                          ? VIDEO_DISCIPLINES[report.video.category].label
+                          : "Untagged"}{" "}
+                        · uploaded {formatAge(report.video.createdAt, now)} ago
+                      </p>
+                    </div>
+                    <p className="self-start font-mono text-xs text-ink-600 sm:text-right">
+                      <span
+                        className={
+                          report.status === ReportStatus.FAILED
+                            ? "font-semibold text-rust-600"
+                            : "font-semibold text-ink-900"
+                        }
+                      >
+                        {report.status.toLowerCase()}
+                      </span>{" "}
+                      · {report.attempts}{" "}
+                      {report.attempts === 1 ? "attempt" : "attempts"}
+                      {report.claimedAt
+                        ? ` · claimed ${formatAge(report.claimedAt, now)} ago`
+                        : ""}
+                    </p>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-sm text-ink-600">No reports waiting on the pipeline.</p>
             )}
           </Panel>
         </div>

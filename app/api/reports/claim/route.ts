@@ -1,5 +1,9 @@
 import { requireIngestAuth } from "@/app/api/reports/utils";
 import { jsonError } from "@/app/api/videos/utils";
+import {
+  REPORT_ERROR_EXHAUSTED,
+  REPORT_ERROR_UNTAGGED,
+} from "@/lib/report-errors";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 
@@ -12,9 +16,8 @@ const MAX_REPORT_ATTEMPTS = 3;
 /** TTL of the signed video URL handed to the worker. */
 const VIDEO_URL_TTL_SECONDS = 60 * 60;
 
-const EXHAUSTED_ERROR = "The analysis did not complete after several attempts.";
-const UNTAGGED_ERROR =
-  "This video has no discipline tag, so it cannot be analysed.";
+const EXHAUSTED_ERROR = REPORT_ERROR_EXHAUSTED;
+const UNTAGGED_ERROR = REPORT_ERROR_UNTAGGED;
 
 type ClaimedRow = { id: string; video_id: string };
 

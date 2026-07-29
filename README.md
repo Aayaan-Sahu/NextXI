@@ -122,6 +122,7 @@ one from each pair.
 | `NEXT_PUBLIC_SITE_URL`                                         | ➖       | Base URL used for auth redirect/confirmation links                  |
 | `ADMIN_EMAILS`                                                 | ➖       | Comma-separated list of emails granted admin access                 |
 | `REPORTS_INGEST_SECRET`                                        | ➖       | Bearer token the AI pipeline uses to submit coaching reports        |
+| `TEAM_NOTIFY_WEBHOOK_URL`                                      | ➖       | Slack-compatible webhook pinged on signups and finished uploads     |
 
 > Never expose `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY` or
 > `REPORTS_INGEST_SECRET` to the browser — they are server-only.
