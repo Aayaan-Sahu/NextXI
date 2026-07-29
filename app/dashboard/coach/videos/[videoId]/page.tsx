@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
-import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
+import {
+  CoachStatus,
+  PlayerStatus,
+  PlayerVideoStatus,
+  Visibility,
+} from "@/app/generated/prisma/enums";
 import { ReportPanel } from "@/components/report-panel";
 import { PageShell } from "@/components/ui";
 import { CommentForm, VideoComments } from "@/components/video-comments";
@@ -46,24 +51,46 @@ export default async function CoachVideoPage({
       storageBucket: true,
       storagePath: true,
       uploadedAt: true,
-      player: { select: { name: true } },
+      player: { select: { name: true, status: true, visibility: true } },
     },
   });
 
-  if (!video || !(await hasAcceptedConnection(user.id, video.playerId))) notFound();
+  if (!video) notFound();
 
-  // Return to the session when the video was reached through one.
-  const backHref = video.sessionId
-    ? `/dashboard/coach/sessions/${video.sessionId}`
-    : "/dashboard/coach";
-  const backLabel = video.sessionId ? "Back to session" : "All videos";
+  // Same gate as the coach player page: connected coaches can always watch;
+  // otherwise the player must have opted into discovery (PUBLIC) and be active.
+  const connected = await hasAcceptedConnection(user.id, video.playerId);
+  const viewable =
+    connected ||
+    (video.player.visibility === Visibility.PUBLIC &&
+      video.player.status === PlayerStatus.ACTIVE);
+
+  if (!viewable) notFound();
+
+  // Return to the session when the video was reached through one. A coach who
+  // isn't connected got here from the player's page, so return there instead —
+  // the session page is connection-gated.
+  const backHref = connected
+    ? video.sessionId
+      ? `/dashboard/coach/sessions/${video.sessionId}`
+      : "/dashboard/coach"
+    : `/dashboard/coach/players/${video.playerId}`;
+  const backLabel = !connected
+    ? "Back to player"
+    : video.sessionId
+      ? "Back to session"
+      : "All videos";
 
   // Opening the video marks it viewed, dropping it from the coach's dashboard.
-  await prisma.videoView.upsert({
-    where: { videoId_viewerId: { videoId, viewerId: user.id } },
-    update: {},
-    create: { videoId, viewerId: user.id },
-  });
+  // Only for connected coaches: the review queue lists connected players'
+  // videos, and a pre-connection look should still read as new once connected.
+  if (connected) {
+    await prisma.videoView.upsert({
+      where: { videoId_viewerId: { videoId, viewerId: user.id } },
+      update: {},
+      create: { videoId, viewerId: user.id },
+    });
+  }
 
   const supabase = createSupabaseAdminClient();
   const { data, error } = await supabase.storage
@@ -119,9 +146,12 @@ export default async function CoachVideoPage({
           />
           <ReportPanel report={report} />
         </div>
+        {/* Feedback stays connection-gated (the action re-checks server-side). */}
         <VideoComments
           comments={comments}
-          form={<CommentForm error={commentError} videoId={videoId} />}
+          form={
+            connected ? <CommentForm error={commentError} videoId={videoId} /> : undefined
+          }
         />
       </div>
     </PageShell>
