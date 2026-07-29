@@ -14,7 +14,10 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    adapter: new PrismaPg(connectionString),
+    // Cap the pg pool below node-postgres' default of 10: every serverless
+    // instance opens its own pool, so the per-instance max is what keeps the
+    // total connection count under the database limit as instances scale out.
+    adapter: new PrismaPg({ connectionString, max: 5 }),
   });
 
 if (process.env.NODE_ENV !== "production") {
