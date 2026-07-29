@@ -4,8 +4,59 @@ This is the service-to-service contract for the AI team's pipeline to deliver a
 coaching report for an uploaded cricket technique video.
 
 Every video gets a `Report` row automatically when its upload completes. The row
-starts in `pending`. Your pipeline moves it to `ready` (with a payload) or
-`failed` (with an error) by calling the ingress endpoint below.
+starts in `pending`. The pipeline discovers work via the **claim endpoint**
+(below), analyses the video, and moves the report to `ready` (with a payload) or
+`failed` (with an error) by calling the ingress endpoint.
+
+The reference worker lives in the `cricket-ai-model` repo (`worker/worker.py` +
+the `cricket_analysis` package) and implements both sides of this contract.
+
+## Claim endpoint — how the worker finds work
+
+```
+POST /api/reports/claim
+Authorization: Bearer <REPORTS_INGEST_SECRET>
+```
+
+Atomically claims the oldest analysable report and marks it `processing`.
+The worker never holds storage credentials — the response carries a signed
+video URL (1-hour TTL) and the metadata the analysis needs.
+
+Responses:
+
+| Status | Meaning                                                             |
+| ------ | ------------------------------------------------------------------- |
+| `200`  | A job. Body below.                                                  |
+| `204`  | Nothing to analyse right now — poll again later.                    |
+| `401`  | Bad/missing bearer token.                                           |
+| `500`  | Signed-URL creation failed; the claim goes stale and is re-issued.  |
+| `503`  | Ingestion or storage not configured on the server.                  |
+
+```json
+{
+  "videoId": "8f0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
+  "signedUrl": "https://…/object/sign/player-videos/…",
+  "meta": {
+    "heightCm": 175,
+    "category": "BATTING",
+    "variation": "Cover drive",
+    "handedness": "RIGHT"
+  }
+}
+```
+
+Retry semantics are the platform's, not the worker's:
+
+- A `processing` claim older than **15 minutes** is handed out again (worker
+  crashed or hung — no cleanup required on the worker side).
+- A `failed` report with attempts remaining is retried after the same window
+  (the player-facing failure copy promises an automatic retry).
+- The **third** failed attempt dead-letters the report as `failed`.
+- Untagged videos (no discipline) are auto-failed with honest copy instead of
+  sitting "being prepared" forever.
+
+A `ready` report — including a low-coverage `scored: false` one — is final and
+is never re-claimed.
 
 ## Endpoint
 
@@ -191,13 +242,17 @@ of variation for the consistency bars (rendered as `100 * (1 - min(cv, 1))`%).
 `calibration.height_cm` is the player's real height, which the worker reads from
 `players.height_cm`; the analysis normalizes every distance metric against it.
 
-> **Open question for the AI team.** This section documents cm-calibrated
-> output (`stride_length_cm`, `max_head_movement_cm`, `calibration.px_per_cm`).
-> The analyser in `cricket-ai-model/analyze-batting.py` emits *unitless ratios
-> normalised to stance width* (`stride_length_norm`, `backlift_height_norm`) and
-> contains no pixel-to-cm calibration at all. Either a second worker exists that
-> this repo does not contain, or this section is ahead of the model. The UI
-> cannot render real units until that is resolved — please confirm which.
+> **Resolved (Jul 2026).** The cm calibration now exists:
+> `cricket_analysis/calibration.py` derives `px_per_cm` from the pose itself —
+> the 95th-percentile head-to-ankle pixel extent across confidently-detected
+> frames, scaled by the Drillis & Contini (1966) body-segment proportions
+> (head-point-to-ankle ≈ 0.897 × stature) against the player's required
+> `players.height_cm`. No reference object, no manual step. It is a 2D
+> estimate: camera tilt or a never-upright player biases cm values slightly
+> large, and `calibration.visible_fraction` ships in the payload so consumers
+> can judge it. When the clip can't support a calibration (too few confident
+> frames), cm fields are simply omitted and normalised ratios
+> (`*_norm`, in stance-width units) still render.
 
 ## Measurements — PROPOSED schema_version 3
 
@@ -267,6 +322,15 @@ inferred from the bat polygon or extrapolated by the Kalman filter. A report
 built on 34% observation should say so rather than presenting the same
 confident number as one built on 90%. Set `scored: false` below your coverage
 floor and the UI will decline to show measurements rather than guess.
+
+> **Implemented.** The worker gates on provisional floors (batting: pose ≥ 50%
+> of frames AND directly-detected bat ≥ 15%; bowling: pose ≥ 50%) in
+> `cricket_analysis/batting.py` / `bowling.py`. Below the floor it still
+> delivers `status: "ready"` with an empty `shots` array / `delivery` object
+> plus the coverage block — the UI renders its honest "didn't detect a clear
+> shot" / "couldn't measure this delivery" copy. `failed` is reserved for
+> crashes, timeouts, and undownloadable videos, which the platform retries.
+> Bowling coverage uses `ball_detected_frac` instead of the bat fields.
 
 ### Backward compatibility
 

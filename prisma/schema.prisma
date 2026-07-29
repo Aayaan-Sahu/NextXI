@@ -270,9 +270,16 @@ model Report {
   payload       Json?
   error         String?
   modelVersion  String?      @map("model_version")
+  // Worker claim bookkeeping: how many times the pipeline has picked this
+  // report up, and when it last did. A PROCESSING row whose claim is older
+  // than the staleness window is handed out again; the attempt after
+  // MAX_REPORT_ATTEMPTS is dead-lettered as FAILED.
+  attempts      Int          @default(0)
+  claimedAt     DateTime?    @map("claimed_at") @db.Timestamptz(6)
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
+  @@index([status, createdAt], map: "reports_status_created_at_idx")
   @@map("reports")
   @@schema("public")
 }
