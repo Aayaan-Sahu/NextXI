@@ -226,13 +226,27 @@ function RolesField() {
 
 function GuardianFields() {
   return (
-    <Field>
-      Child&apos;s approval code
-      <TextInput name="childCode" placeholder="e.g. ABCD-2345" required type="text" />
-      <span className="text-xs font-normal text-ink-600">
-        Shown on your child&apos;s dashboard after they sign up.
-      </span>
-    </Field>
+    <>
+      <Field>
+        Child&apos;s approval code
+        <TextInput name="childCode" placeholder="e.g. ABCD-2345" required type="text" />
+        <span className="text-xs font-normal text-ink-600">
+          Shown on your child&apos;s dashboard after they sign up.
+        </span>
+      </Field>
+      <label className="flex items-start gap-2.5 text-[13px] leading-relaxed font-normal select-none">
+        <input
+          className="mt-0.5 size-4 shrink-0 accent-pitch-900"
+          name="guardianConsent"
+          required
+          type="checkbox"
+        />
+        <span>
+          I am this player&apos;s parent or legal guardian and consent to their use of
+          NextXI.
+        </span>
+      </label>
+    </>
   );
 }
 

@@ -170,11 +170,15 @@ model Coach {
 }
 
 model Profile {
-  id        String   @id @db.Uuid
-  authUser  AuthUser @relation("ProfileAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  username  String   @unique
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                   String    @id @db.Uuid
+  authUser             AuthUser  @relation("ProfileAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  username             String    @unique
+  // Consent capture: when the account holder agreed to the terms/privacy
+  // policies, and which policy version they agreed to.
+  consentedAt          DateTime? @map("consented_at") @db.Timestamptz(6)
+  consentPolicyVersion String?   @map("consent_policy_version")
+  createdAt            DateTime  @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt            DateTime  @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("profiles")
   @@schema("public")

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { DeleteAccountPanel } from "@/components/delete-account";
 import { EditCoachProfilePanel, EditPlayerProfilePanel } from "@/components/edit-profile";
 import { Notice, PageHeader, PageShell } from "@/components/ui";
 import { getAvatarUrl } from "@/lib/avatars.server";
@@ -53,6 +54,9 @@ export default async function ProfilePage({
             username={profile.username}
           />
         )}
+        <div className="mt-5">
+          <DeleteAccountPanel />
+        </div>
       </div>
     </PageShell>
   );

@@ -65,6 +65,27 @@ export function AuthPanel({
               type="password"
             />
           </Field>
+          {isSignUp && (
+            <label className="flex items-start gap-2.5 text-[13px] leading-relaxed select-none">
+              <input
+                className="mt-0.5 size-4 shrink-0 accent-pitch-900"
+                name="consent"
+                required
+                type="checkbox"
+              />
+              <span>
+                I agree to the{" "}
+                <TextLink href="/terms" target="_blank">
+                  Terms of Use
+                </TextLink>{" "}
+                and{" "}
+                <TextLink href="/privacy" target="_blank">
+                  Privacy Policy
+                </TextLink>
+                .
+              </span>
+            </label>
+          )}
           <PrimaryButton type="submit" variant="rust">
             {isSignUp ? "Create account" : "Sign in"}
           </PrimaryButton>
