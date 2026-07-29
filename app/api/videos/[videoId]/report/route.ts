@@ -1,17 +1,10 @@
-import { timingSafeEqual } from "node:crypto";
 import { Prisma } from "@/app/generated/prisma/client";
 import { ReportStatus } from "@/app/generated/prisma/enums";
+import { requireIngestAuth } from "@/app/api/reports/utils";
 import { isUuid, jsonError } from "@/app/api/videos/utils";
 import { prisma } from "@/lib/prisma";
 
 export const runtime = "nodejs";
-
-/** Constant-time comparison so the bearer token can't be guessed by timing. */
-function tokensMatch(provided: string, expected: string) {
-  const a = Buffer.from(provided);
-  const b = Buffer.from(expected);
-  return a.length === b.length && timingSafeEqual(a, b);
-}
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -25,16 +18,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ videoId: string }> },
 ) {
-  const secret = process.env.REPORTS_INGEST_SECRET;
-  if (!secret) {
-    // The endpoint is deliberately unusable until an operator configures the secret.
-    return jsonError("Report ingestion is not configured.", 503);
-  }
-
-  const authHeader = request.headers.get("authorization") ?? "";
-  if (!tokensMatch(authHeader, `Bearer ${secret}`)) {
-    return jsonError("Invalid or missing bearer token.", 401);
-  }
+  const unauthorized = requireIngestAuth(request);
+  if (unauthorized) return unauthorized;
 
   const { videoId } = await params;
   if (!isUuid(videoId)) return jsonError("videoId must be a UUID.", 400);
