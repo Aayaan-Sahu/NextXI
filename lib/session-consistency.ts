@@ -18,11 +18,11 @@ const MIN_COMPARABLE_SAMPLES = 3;
 /** Modified z-score above which an instance is treated as an anomaly and dropped. */
 const OUTLIER_Z = 3.5;
 
-type MetricPath = { path: readonly string[]; label: string };
+export type MetricPath = { path: readonly string[]; label: string };
 
 // Normalized (fraction-of-height / stance-width) per-shot scalars from a
 // batting report's `shots[]`, safe to pool across videos. Order = display order.
-const SESSION_BATTING_METRICS: readonly MetricPath[] = [
+export const SESSION_BATTING_METRICS: readonly MetricPath[] = [
   { path: ["front_foot_stride", "stride_length_frac_height"], label: "Stride length" },
   { path: ["back_foot_depth", "depth_frac_height"], label: "Back-foot depth" },
   { path: ["head", "head_stability_frac_height"], label: "Head stability" },
@@ -35,7 +35,7 @@ const SESSION_BATTING_METRICS: readonly MetricPath[] = [
 // Per-delivery scalars from a bowling report's `delivery` section (one delivery
 // per video). Paths are relative to the whole payload, not a shot. Distance /
 // height metrics are height-normalized; the brace angle is scale-free.
-const SESSION_BOWLING_METRICS: readonly MetricPath[] = [
+export const SESSION_BOWLING_METRICS: readonly MetricPath[] = [
   { path: ["delivery", "front_knee_brace", "landing_angle_deg"], label: "Front-knee brace" },
   { path: ["delivery", "stride", "length_frac_height"], label: "Delivery stride" },
   { path: ["delivery", "release", "height_frac_height"], label: "Release height" },
@@ -51,7 +51,7 @@ function num(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-function readPath(root: unknown, path: readonly string[]): number | null {
+export function readPath(root: unknown, path: readonly string[]): number | null {
   let current: unknown = root;
   for (const key of path) {
     if (!isRecord(current)) return null;
@@ -71,7 +71,8 @@ export function cv(values: number[]): number | null {
   return Math.sqrt(variance) / Math.abs(mean);
 }
 
-function median(sorted: number[]): number {
+/** Median of an already-sorted array. */
+export function median(sorted: number[]): number {
   const mid = Math.floor(sorted.length / 2);
   return sorted.length % 2 ? sorted[mid] : (sorted[mid - 1] + sorted[mid]) / 2;
 }
@@ -134,7 +135,7 @@ function robustConsistency(values: number[]): number | null {
   return consistencyPct(cvValue);
 }
 
-function battingShots(payload: unknown): Record<string, unknown>[] {
+export function battingShots(payload: unknown): Record<string, unknown>[] {
   if (!isRecord(payload) || !Array.isArray(payload.shots)) return [];
   return payload.shots.filter(isRecord);
 }
