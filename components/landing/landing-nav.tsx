@@ -18,6 +18,14 @@ export function LandingNav() {
           >
             Sign in
           </Link>
+          {/* Hidden on phones, where the bar can't fit a third item; the sign-in
+              card's "Create account" footer link covers that path. */}
+          <Link
+            className="text-sm font-semibold text-sage-400 no-underline max-sm:hidden hover:text-cream-200"
+            href="/auth?mode=sign-up"
+          >
+            Create account
+          </Link>
           <a
             className="rounded-md bg-cream-50 px-4 py-2.5 text-sm font-bold text-rust-700 no-underline hover:bg-cream-100"
             href="#waitlist"

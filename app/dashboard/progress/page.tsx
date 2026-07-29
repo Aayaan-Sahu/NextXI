@@ -4,8 +4,10 @@ import { GoalsReminders } from "@/components/goals-reminders";
 import { ProgressCharts } from "@/components/progress-charts";
 import { MatchLog, StatEntryForm } from "@/components/stat-entry-form";
 import { StatsLink } from "@/components/stats-link";
+import { TechniqueTrends } from "@/components/technique-trends";
 import { Notice, PageHeader, PageShell } from "@/components/ui";
 import { getProfile, isAdmin, requireUser } from "@/lib/auth";
+import { getTechniqueTrends } from "@/lib/metric-trends";
 import { getProgressData } from "@/lib/progress";
 import { firstParam } from "@/lib/search-params";
 
@@ -31,7 +33,10 @@ export default async function ProgressPage({
     redirect("/dashboard/player");
   }
 
-  const { entries, goals, reminders } = await getProgressData(user.id);
+  const [{ entries, goals, reminders }, trends] = await Promise.all([
+    getProgressData(user.id),
+    getTechniqueTrends(user.id),
+  ]);
 
   const params = await searchParams;
   const error = firstParam(params.error);
@@ -47,6 +52,7 @@ export default async function ProgressPage({
       <Notice>{message}</Notice>
       <div className="grid gap-6">
         <ProgressCharts entries={entries} />
+        <TechniqueTrends trends={trends} />
         <StatsLink statsUrl={profile.player.statsUrl} />
         <StatEntryForm />
         <div className="grid items-start gap-5 lg:grid-cols-[1.3fr_1fr]">

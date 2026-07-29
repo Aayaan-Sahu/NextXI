@@ -23,7 +23,12 @@ export async function proxy(request: NextRequest) {
     },
   });
 
-  await supabase.auth.getUser();
+  // Verifies the session JWT locally (asymmetric keys + process-wide JWKS
+  // cache) instead of a network round-trip to the auth server per request.
+  // When the access token is expired or near expiry, getClaims() refreshes the
+  // session over the network first; the resulting TOKEN_REFRESHED event writes
+  // the new cookies onto the response via setAll above.
+  await supabase.auth.getClaims();
 
   return response;
 }

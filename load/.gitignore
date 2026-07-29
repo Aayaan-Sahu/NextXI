@@ -1,0 +1,2 @@
+# Signed-in session cookies for seeded load-test users. Never commit.
+.sessions.json

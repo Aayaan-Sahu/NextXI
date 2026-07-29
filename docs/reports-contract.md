@@ -254,6 +254,27 @@ of variation for the consistency bars (rendered as `100 * (1 - min(cv, 1))`%).
 > frames), cm fields are simply omitted and normalised ratios
 > (`*_norm`, in stance-width units) still render.
 
+### Fraction-of-height fields (session consistency)
+
+Calibrated payloads also carry each measurement as a fraction of the player's
+standing height (`value_px / (calibration.height_cm × calibration.px_per_cm)`,
+4 decimals) — these are the scalars `lib/session-consistency.ts` pools across a
+session's videos:
+
+- Batting, per shot: `front_foot_stride.stride_length_frac_height`,
+  `back_foot_depth.depth_frac_height`, `head.head_stability_frac_height`
+  (same px basis — head stability × setup stance width — as
+  `consistency.head_stability_frac_height_cv`, so the per-shot field and the
+  CV agree).
+- Bowling: `delivery.stride.length_frac_height`,
+  `delivery.release.height_frac_height`.
+
+Like the cm fields, they are present only when `calibration` is present.
+`delivery.run_up.distance_frac_height` and
+`delivery.follow_through.distance_frac_height` are referenced by the session
+panel but have **no producer** — the pipeline measures neither run-up nor
+follow-through yet, so those rows simply stay empty.
+
 ## Measurements — PROPOSED schema_version 3
 
 v3 exists because a 0-100 score is not actionable. "Stride 82/100" does not tell

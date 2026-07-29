@@ -1,9 +1,14 @@
 import { revalidatePath } from "next/cache";
 import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { getApiPlayer, isUuid, jsonError } from "@/app/api/videos/utils";
+import { notifyTeam } from "@/lib/notify";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { buildPlayerVideoThumbnailPath } from "@/lib/videos";
+import {
+  buildPlayerVideoThumbnailPath,
+  isVideoDiscipline,
+  VIDEO_DISCIPLINES,
+} from "@/lib/videos";
 
 export const runtime = "nodejs";
 
@@ -98,6 +103,31 @@ export async function POST(request: Request) {
   revalidatePath("/dashboard/player");
   if (updated.sessionId) {
     revalidatePath(`/dashboard/player/sessions/${updated.sessionId}`);
+  }
+
+  // Tell the team a video is ready for analysis. Non-fatal: the upload has
+  // already been committed, so a lookup or webhook hiccup must not fail it.
+  try {
+    const [player, profile] = await Promise.all([
+      prisma.player.findUnique({
+        where: { id: auth.user.id },
+        select: { name: true },
+      }),
+      prisma.profile.findUnique({
+        where: { id: auth.user.id },
+        select: { username: true },
+      }),
+    ]);
+    const category = isVideoDiscipline(video.category)
+      ? VIDEO_DISCIPLINES[video.category].label
+      : "Untagged";
+
+    await notifyTeam(
+      `Video ready for analysis: ${player?.name ?? "Unknown player"}` +
+        `${profile ? ` (@${profile.username})` : ""} · ${category} · video ${updated.id}`,
+    );
+  } catch {
+    // Ignore: notification bookkeeping never breaks the upload.
   }
 
   return Response.json({

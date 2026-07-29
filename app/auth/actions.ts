@@ -7,7 +7,9 @@ import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code";
+import { notifyTeam } from "@/lib/notify";
 import { isCountry, parsePlayerRoles } from "@/lib/players";
+import { POLICY_VERSION } from "@/lib/policy";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
@@ -61,11 +63,11 @@ function isUniqueError(error: unknown): error is Prisma.PrismaClientKnownRequest
 
 // DOB is stored as UTC midnight, so compare against UTC "today" to avoid
 // timezone off-by-one on birthdays.
-function isUnder18(dob: string) {
+function ageInYears(dob: string) {
   const [y, m, d] = dob.split("-").map(Number);
   const now = new Date();
   const monthDay = (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
-  return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0) < 18;
+  return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0);
 }
 
 async function origin() {
@@ -87,6 +89,10 @@ export async function signUp(formData: FormData) {
 
   if (!email || password.length < 6) {
     authError("sign-up", "Enter an email and a password with at least 6 characters.");
+  }
+
+  if (!formData.get("consent")) {
+    authError("sign-up", "Agree to the Terms of Use and Privacy Policy to create an account.");
   }
 
   const supabase = await createSupabaseServerClient();
@@ -204,6 +210,15 @@ export async function completeOnboarding(formData: FormData) {
       onboardingError(role, "Complete all player fields.");
     }
 
+    // Sanity floor: a date of birth outside 8-100 years is a typo, not a player.
+    const age = ageInYears(dateOfBirth);
+    if (age < 8 || age > 100) {
+      onboardingError(
+        role,
+        "Check the date of birth — players must be between 8 and 100 years old.",
+      );
+    }
+
     if (!isCountry(country)) {
       onboardingError(role, "Select a valid country.");
     }
@@ -215,12 +230,19 @@ export async function completeOnboarding(formData: FormData) {
       onboardingError(role, "Enter a valid weight, or leave it blank.");
     }
 
-    const minor = isUnder18(dateOfBirth);
+    const minor = age < 18;
     let failure: string | null = null;
 
     try {
       await prisma.$transaction([
-        prisma.profile.create({ data: { id: user.id, username } }),
+        prisma.profile.create({
+          data: {
+            consentedAt: new Date(),
+            consentPolicyVersion: POLICY_VERSION,
+            id: user.id,
+            username,
+          },
+        }),
         prisma.player.create({
           data: {
             club,
@@ -246,6 +268,9 @@ export async function completeOnboarding(formData: FormData) {
 
     if (failure) onboardingError(role, failure);
 
+    // Non-fatal by design: notifyTeam swallows its own errors.
+    await notifyTeam(`New player onboarded: ${name} (@${username})`);
+
     redirect("/dashboard");
   }
 
@@ -262,7 +287,14 @@ export async function completeOnboarding(formData: FormData) {
 
     try {
       await prisma.$transaction([
-        prisma.profile.create({ data: { id: user.id, username } }),
+        prisma.profile.create({
+          data: {
+            consentedAt: new Date(),
+            consentPolicyVersion: POLICY_VERSION,
+            id: user.id,
+            username,
+          },
+        }),
         prisma.coach.create({
           data: {
             accomplishments,
@@ -278,6 +310,10 @@ export async function completeOnboarding(formData: FormData) {
 
     if (usernameTaken) onboardingError(role, "Username is taken.");
 
+    await notifyTeam(
+      `New coach signed up: ${name} (@${username}) — awaiting approval at /dashboard/admin`,
+    );
+
     redirect("/dashboard");
   }
 
@@ -287,6 +323,12 @@ export async function completeOnboarding(formData: FormData) {
 
     if (!name) onboardingError(role, "Enter your name.");
     if (!code) onboardingError(role, "Enter the code shown on your child's dashboard.");
+    if (!formData.get("guardianConsent")) {
+      onboardingError(
+        role,
+        "Confirm you are this player's parent or legal guardian and consent to their use of NextXI.",
+      );
+    }
 
     const pendingChild = await prisma.player.findFirst({
       where: { guardianCode: code, status: PlayerStatus.PENDING_GUARDIAN },
@@ -302,7 +344,14 @@ export async function completeOnboarding(formData: FormData) {
 
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.profile.create({ data: { id: user.id, username } });
+        await tx.profile.create({
+          data: {
+            consentedAt: new Date(),
+            consentPolicyVersion: POLICY_VERSION,
+            id: user.id,
+            username,
+          },
+        });
         await tx.guardian.create({ data: { id: user.id, name } });
         // The guarded updateMany is the atomic claim: if another guardian
         // linked this code first, count is 0 and the transaction rolls back.
@@ -324,6 +373,8 @@ export async function completeOnboarding(formData: FormData) {
     }
 
     if (failure) onboardingError(role, failure);
+
+    await notifyTeam(`New guardian onboarded: ${name} (@${username})`);
 
     redirect("/dashboard");
   }

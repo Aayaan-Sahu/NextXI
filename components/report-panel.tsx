@@ -5,7 +5,9 @@ import {
   parseBattingReport,
 } from "@/components/batting-report";
 import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
+import { ReportAutoRefresh } from "@/components/report-auto-refresh";
 import { Kicker } from "@/components/ui";
+import { isFinalReportFailure } from "@/lib/report-errors";
 import type { VideoReport } from "@/lib/videos.server";
 
 const KNOWN_PAYLOAD_KEYS = ["overall_score", "metrics", "feedback", "annotations"];
@@ -369,15 +371,22 @@ export function ReportPanel({
       {(!report ||
         report.status === ReportStatus.PENDING ||
         report.status === ReportStatus.PROCESSING) && (
-        <StatusMessage tone={tone}>Your coaching report is being prepared.</StatusMessage>
+        <>
+          <StatusMessage tone={tone}>Your coaching report is being prepared.</StatusMessage>
+          <ReportAutoRefresh />
+        </>
       )}
 
-      {report?.status === ReportStatus.FAILED && (
-        <StatusMessage tone={tone}>
-          We couldn&apos;t complete the analysis for this video. We&apos;ll retry automatically —
-          please check back later.
-        </StatusMessage>
-      )}
+      {report?.status === ReportStatus.FAILED &&
+        (isFinalReportFailure(report.error) ? (
+          // Dead-lettered: the pipeline has given up, so don't promise a retry.
+          <StatusMessage tone={tone}>{report.error}</StatusMessage>
+        ) : (
+          <StatusMessage tone={tone}>
+            We couldn&apos;t complete the analysis for this video. We&apos;ll retry
+            automatically — please check back later.
+          </StatusMessage>
+        ))}
 
       {ready &&
         report &&

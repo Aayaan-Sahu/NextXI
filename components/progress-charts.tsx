@@ -147,14 +147,22 @@ function BarChart({
   );
 }
 
-function LineChart({
+/**
+ * Shared date-series line chart card. Also drawn on by the technique-trends
+ * section, so it lives here as the one line-chart primitive. `decimals` sets
+ * the precision of the first/last readouts (match stats read fine at 1;
+ * normalized technique fractions need 2).
+ */
+export function LineChart({
   title,
   data,
   empty,
+  decimals = 1,
 }: {
   title: string;
   data: Point[];
   empty: string;
+  decimals?: number;
 }) {
   if (!data.length) {
     return (
@@ -214,11 +222,11 @@ function LineChart({
       </svg>
       <div className="mt-2 flex justify-between font-mono text-[10.5px] text-ink-600">
         <span>
-          {first.value.toFixed(1)} · {shortDate(first.date)}
+          {first.value.toFixed(decimals)} · {shortDate(first.date)}
         </span>
         {count > 1 ? (
           <span>
-            {last.value.toFixed(1)} · {shortDate(last.date)}
+            {last.value.toFixed(decimals)} · {shortDate(last.date)}
           </span>
         ) : null}
       </div>

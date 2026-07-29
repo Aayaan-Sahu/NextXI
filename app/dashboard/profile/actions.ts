@@ -8,8 +8,10 @@ import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { AVATAR_BUCKET } from "@/lib/avatars";
 import { parseCoachSpecialties } from "@/lib/coaches";
+import { notifyTeam } from "@/lib/notify";
 import { isCountry, parsePlayerRoles } from "@/lib/players";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
+import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { isHandedness } from "@/lib/videos";
 
 const MAX_BIO_LENGTH = 500;
@@ -190,4 +192,110 @@ export async function removeAvatar() {
   }
 
   revalidatePath("/dashboard/profile");
+}
+
+export async function deleteAccount(formData: FormData) {
+  const user = await requireUser();
+
+  if (text(formData, "confirm") !== "DELETE") {
+    profileError("Type DELETE to confirm account deletion.");
+  }
+
+  // A guardian leaving would strip their linked player of oversight, so the
+  // player's account has to be deleted first.
+  const linkedChildren = await prisma.player.count({ where: { guardianId: user.id } });
+  if (linkedChildren > 0) {
+    redirect(
+      `/dashboard/guardian?error=${encodeURIComponent(
+        "Your account oversees a linked player, so it can't be deleted. Delete the player's account first.",
+      )}`,
+    );
+  }
+
+  // Collect storage objects before their rows disappear.
+  const [videos, player, coach] = await Promise.all([
+    prisma.playerVideo.findMany({
+      where: { playerId: user.id },
+      select: { storageBucket: true, storagePath: true, thumbnailPath: true },
+    }),
+    prisma.player.findUnique({ where: { id: user.id }, select: { avatarPath: true } }),
+    prisma.coach.findUnique({ where: { id: user.id }, select: { avatarPath: true } }),
+  ]);
+
+  // Rows first (children before parents: messages under connections; reports,
+  // comments, and views under videos; videos under the player), storage
+  // second: an orphaned storage object is preferable to a row whose file is
+  // gone. deleteMany is a no-op for rows the account never had.
+  await prisma.$transaction([
+    prisma.message.deleteMany({
+      where: {
+        OR: [
+          { senderId: user.id },
+          { connection: { OR: [{ userAId: user.id }, { userBId: user.id }] } },
+        ],
+      },
+    }),
+    prisma.connection.deleteMany({
+      where: {
+        OR: [{ userAId: user.id }, { userBId: user.id }, { requestedById: user.id }],
+      },
+    }),
+    prisma.videoComment.deleteMany({
+      where: { OR: [{ authorId: user.id }, { video: { playerId: user.id } }] },
+    }),
+    prisma.videoView.deleteMany({
+      where: { OR: [{ viewerId: user.id }, { video: { playerId: user.id } }] },
+    }),
+    prisma.report.deleteMany({ where: { video: { playerId: user.id } } }),
+    prisma.playerVideo.deleteMany({ where: { playerId: user.id } }),
+    prisma.practiceSession.deleteMany({ where: { playerId: user.id } }),
+    prisma.statEntry.deleteMany({ where: { playerId: user.id } }),
+    prisma.goal.deleteMany({ where: { playerId: user.id } }),
+    prisma.reminder.deleteMany({ where: { playerId: user.id } }),
+    prisma.player.deleteMany({ where: { id: user.id } }),
+    prisma.coach.deleteMany({ where: { id: user.id } }),
+    prisma.guardian.deleteMany({ where: { id: user.id } }),
+    prisma.profile.deleteMany({ where: { id: user.id } }),
+  ]);
+
+  const supabaseAdmin = createSupabaseAdminClient();
+
+  // Best-effort storage cleanup, grouped per bucket.
+  const pathsByBucket = new Map<string, string[]>();
+  for (const video of videos) {
+    const paths = pathsByBucket.get(video.storageBucket) ?? [];
+    paths.push(video.storagePath);
+    if (video.thumbnailPath) paths.push(video.thumbnailPath);
+    pathsByBucket.set(video.storageBucket, paths);
+  }
+  const avatarPath = player?.avatarPath ?? coach?.avatarPath;
+  if (avatarPath) {
+    pathsByBucket.set(AVATAR_BUCKET, [
+      ...(pathsByBucket.get(AVATAR_BUCKET) ?? []),
+      avatarPath,
+    ]);
+  }
+
+  for (const [bucket, paths] of pathsByBucket) {
+    try {
+      await supabaseAdmin.storage.from(bucket).remove(paths);
+    } catch {
+      // Best effort — the account data is already gone from the app.
+    }
+  }
+
+  // Removing the auth user is what actually closes the account. If it fails,
+  // the app rows are already gone, so flag the empty orphaned sign-in for
+  // manual removal instead of stranding the user mid-deletion.
+  const { error: authDeleteError } = await supabaseAdmin.auth.admin.deleteUser(user.id);
+  if (authDeleteError) {
+    // Non-fatal by design: notifyTeam swallows its own errors.
+    await notifyTeam(
+      `Account deletion: auth user ${user.id} could not be removed (${authDeleteError.message}).`,
+    );
+  }
+
+  const supabase = await createSupabaseServerClient();
+  await supabase.auth.signOut();
+  redirect("/");
 }

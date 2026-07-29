@@ -1,12 +1,14 @@
 import { redirect } from "next/navigation";
 import { deleteVideo } from "@/app/dashboard/player/videos/actions";
 import { PlayerStatus } from "@/app/generated/prisma/enums";
+import { CoachFeedback } from "@/components/coach-feedback";
 import { Badge, PageHeader, PageShell, Panel } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
 import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
+import { prisma } from "@/lib/prisma";
 import { getReadyVideoGridItems } from "@/lib/videos.server";
 
 export default async function PlayerDashboardPage() {
@@ -34,7 +36,25 @@ export default async function PlayerDashboardPage() {
     );
   }
 
-  const videos = await getReadyVideoGridItems(user.id);
+  // Latest coach comments across the player's videos, so feedback isn't only
+  // discoverable by reopening each video. Comments are coach-authored only.
+  const [videos, feedback] = await Promise.all([
+    getReadyVideoGridItems(user.id),
+    prisma.videoComment.findMany({
+      where: { video: { playerId: user.id } },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        id: true,
+        authorName: true,
+        authorUsername: true,
+        body: true,
+        createdAt: true,
+        videoId: true,
+        video: { select: { originalFilename: true } },
+      },
+    }),
+  ]);
 
   return (
     <PageShell>
@@ -53,6 +73,17 @@ export default async function PlayerDashboardPage() {
       />
       <div className="grid gap-9">
         <VideoUpload />
+        <CoachFeedback
+          items={feedback.map((comment) => ({
+            id: comment.id,
+            authorName: comment.authorName,
+            authorUsername: comment.authorUsername,
+            body: comment.body,
+            createdAt: comment.createdAt,
+            videoId: comment.videoId,
+            videoFilename: comment.video.originalFilename,
+          }))}
+        />
         <VideoGrid deleteAction={deleteVideo} videos={videos} />
       </div>
     </PageShell>
