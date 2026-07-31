@@ -2,7 +2,7 @@ import "server-only";
 import { PlayerVideoStatus, ReportStatus, VideoCategory } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { formatVideoTags } from "@/lib/videos";
-import { getThumbnailUrlByPath } from "@/lib/videos.server";
+import { effectiveReportStatus, getThumbnailUrlByPath } from "@/lib/videos.server";
 
 /** A player's practice sessions with a cover thumbnail + video count, for the index. */
 export async function getPlayerSessions(playerId: string) {
@@ -69,7 +69,8 @@ export async function getSessionWithVideos(sessionId: string, playerId?: string)
           thumbnailPath: true,
           uploadedAt: true,
           variation: true,
-          report: { select: { status: true, payload: true } },
+          report: { select: { status: true, error: true, payload: true } },
+          _count: { select: { comments: true } },
         },
       },
     },
@@ -87,6 +88,8 @@ export async function getSessionWithVideos(sessionId: string, playerId?: string)
     sizeBytes: video.sizeBytes,
     createdAt: video.createdAt,
     uploadedAt: video.uploadedAt,
+    commentCount: video._count.comments,
+    reportStatus: effectiveReportStatus(video.report),
     tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
     thumbnailUrl: video.thumbnailPath
       ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)

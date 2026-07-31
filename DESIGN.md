@@ -245,15 +245,18 @@ All shared primitives live in `components/ui.tsx`. Build with them first; extend
 - **Corner Style:** 10px (`Panel`, video cards, dialogs); 12px for scoreboards and marketing marquees; 12px (`rounded-xl`) for onboarding/auth cards.
 - **Background:** White on cream pages; `pitch-800` scoreboard for dark report surfaces; `pitch-900` for featured-dark cards (coach role card).
 - **Border:** 1px `cream-400`, always. Hover-affordance cards swap to `gold-500`.
+- **Video-card report chips:** when a card knows its report state, a mono, square-cornered (3px) chip sits top-left on the thumbnail — Analysing = `pitch-950/85` band, `cream-200` text, pulsing `gold-500` dot (`motion-safe:animate-pulse`); Report ready = `gold-500`/`pitch-900`; Analysis failed = `rust-600`/`cream-50`. Warm-layer colors only — the Reserved Mint Rule keeps `vision-*` out of chips.
 - **Shadow Strategy:** None at rest (see Flat Field Rule).
 - **Internal Padding:** 24px (`p-6`); 36px (`p-9`) for auth/onboarding forms.
 
 ### Inputs / Fields
-- **Style:** `cream-50` fill, 1px `cream-500` border, 6px radius, `text-sm`, placeholder `ink-600`.
+- **Style:** `cream-50` fill, 1px `cream-500` border, 6px radius, `text-base sm:pointer-fine:text-sm` (16px on touch devices — coarse pointers — so iOS Safari doesn't auto-zoom a focused field in either orientation; 14px only on fine-pointer desktops), placeholder `ink-600`.
 - **Focus:** `border-gold-500` + `ring-2 ring-gold-500/25`.
 - **Disabled (selects):** `cream-100` fill, `sage-400` text.
 - **Field labels:** `text-xs font-bold` stacked with 6px gap.
-- **Errors:** shared `Notice` tone="error" — `rust-600/10` tint band, `rust-600/30` border, `rust-700` text.
+- **Errors:** shared `Notice` tone="error" — `rust-600/10` tint band, `rust-600/30` border, `rust-700` text, `animate-crease-rise` entrance.
+- **Passwords:** `PasswordInput` (`components/password-input.tsx`) — TextInput plus an ink eye toggle; never a bare `type="password"` field.
+- **Submits:** `SubmitButton` (`components/submit-button.tsx`) — PrimaryButton that disables with an inline spinner while the server action is pending. The auth panels use it today; converting the remaining server-action submits is the known gap.
 
 ### Navigation
 - **App nav:** 64px `rust-600` bar with a 2px `gold-500` stitch line under the band, 1280px inner container. Links `text-sm font-semibold`: active = `cream-200` text + 2px `gold-500` underline; inactive = `sage-400` → hover `cream-200`. Mobile: hamburger disclosure sheet on `cream-50` with a 2px gold left rail + `cream-200` fill + rust text for the active item.
@@ -272,11 +275,11 @@ Hand-rolled, no chart library. Tracks: `cream-300` (light) or `black/30` (dark),
 ## 6. Do's and Don'ts
 
 ### Do:
-- **Do** build from `components/ui.tsx` primitives (`PrimaryButton`, `SecondaryButton`, `TextInput`, `Panel`, `Kicker`, `Badge`, `Notice`, `StatusBoard`, `EmptyState`, `GatePanel`) and extend them there when a variant is missing. A shared `Select` is the known gap — add it to `ui.tsx`, don't write a fourth local `selectStyles`.
+- **Do** build from `components/ui.tsx` primitives (`PrimaryButton`, `SecondaryButton`, `TextInput`, `Select`, `Panel`, `Kicker`, `Badge`, `Notice`, `StatusBoard`, `EmptyState`, `GatePanel`) and extend them there when a variant is missing. The shared `Select` closed the old local-`selectStyles` gap — never write a local select style again.
 - **Do** keep faint text on rust/dark surfaces in the leather family (`sage-400`) or cream-alpha — never gray on color.
 - **Do** set every machine fact in mono per the Lower-Third Rule, with " · " separators.
 - **Do** write empty states with `EmptyState` (dashed cream box, optional scanline media, one `text-sm text-ink-600` sentence, optional gold CTA).
-- **Do** open role homes with `StatusBoard` (kicker + display name + real mono stats) so the first viewport still reads NextXI without the nav.
+- **Do** open role homes with `StatusBoard` (kicker + title + real mono stats) so the first viewport still reads NextXI without the nav. Coach and guardian homes title with the display name; the player home titles with a time-of-day greeting + first name and carries a one-sentence `note` line (voice, numeral-free — exact facts stay in the mono stats).
 - **Do** treat gated states (guardian code, coach under review) as `GatePanel` scoreboard readouts, not footnote paragraphs.
 - **Do** guard every infinite or scroll-driven animation with `useReducedMotion` / `prefers-reduced-motion`, following `hero-scrub-video.tsx`.
 - **Do** render the real `ReportPanel` wherever a report is shown — product, marketing, or demo — with staged data clearly staged (PRODUCT.md: never dressed up as live analysis).

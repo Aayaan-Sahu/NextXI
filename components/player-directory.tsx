@@ -5,10 +5,7 @@ import {
   PLAYER_ROLE_LABELS,
   PLAYER_ROLE_OPTIONS,
 } from "@/lib/players";
-import { Panel } from "@/components/ui";
-
-const selectStyles =
-  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-sm text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
+import { Panel, Select } from "@/components/ui";
 
 /**
  * Searchable player discovery for coaches. A plain GET form: filters live in
@@ -29,9 +26,8 @@ export function PlayerDirectory({
     <Panel title="Find a player">
       <form className="flex flex-wrap items-center gap-2.5" method="GET">
         <input name="searched" type="hidden" value="1" />
-        <select
+        <Select
           aria-label="Discipline"
-          className={selectStyles}
           defaultValue={discipline}
           name="discipline"
         >
@@ -41,10 +37,9 @@ export function PlayerDirectory({
               {option.label}
             </option>
           ))}
-        </select>
-        <select
+        </Select>
+        <Select
           aria-label="Country"
-          className={selectStyles}
           defaultValue={country}
           name="country"
         >
@@ -54,7 +49,7 @@ export function PlayerDirectory({
               {option.flag} {option.label}
             </option>
           ))}
-        </select>
+        </Select>
         <button
           className="shrink-0 cursor-pointer rounded-md bg-pitch-900 px-[18px] py-2.5 text-[13px] font-semibold text-cream-200 hover:bg-pitch-800"
           type="submit"

@@ -15,6 +15,7 @@ import {
   Form,
   Kicker,
   PrimaryButton,
+  Select,
   Switch,
   TextArea,
   TextInput,
@@ -22,9 +23,6 @@ import {
 import { COACH_SPECIALTY_OPTIONS } from "@/lib/coaches";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 import { HANDEDNESS_LABELS } from "@/lib/videos";
-
-const selectStyles =
-  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
 
 function HandednessSelect({
   defaultValue,
@@ -38,18 +36,14 @@ function HandednessSelect({
   return (
     <Field>
       {label}
-      <select
-        className={selectStyles}
-        defaultValue={defaultValue ?? ""}
-        name={name}
-      >
+      <Select defaultValue={defaultValue ?? ""} name={name}>
         <option value="">Not set</option>
         {Object.entries(HANDEDNESS_LABELS).map(([key, optionLabel]) => (
           <option key={key} value={key}>
             {optionLabel}
           </option>
         ))}
-      </select>
+      </Select>
     </Field>
   );
 }

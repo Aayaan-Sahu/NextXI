@@ -1,14 +1,12 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { Select } from "@/components/ui";
 import {
   HANDEDNESS_LABELS,
   isVideoDiscipline,
   VIDEO_DISCIPLINES,
 } from "@/lib/videos";
-
-const selectStyles =
-  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-sm text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:bg-cream-100 disabled:text-sage-400";
 
 /** URL-driven tag filters; the page filters server-side from searchParams. */
 export function VideoFilterBar() {
@@ -35,9 +33,8 @@ export function VideoFilterBar() {
       <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-ink-600 uppercase">
         Filter
       </span>
-      <select
+      <Select
         aria-label="Discipline"
-        className={selectStyles}
         onChange={(event) =>
           applyFilters({ discipline: event.target.value, variation: "" })
         }
@@ -49,10 +46,9 @@ export function VideoFilterBar() {
             {label}
           </option>
         ))}
-      </select>
-      <select
+      </Select>
+      <Select
         aria-label="Variation or shot"
-        className={selectStyles}
         disabled={!isVideoDiscipline(discipline)}
         onChange={(event) => applyFilters({ variation: event.target.value })}
         value={variation}
@@ -64,10 +60,9 @@ export function VideoFilterBar() {
               {option}
             </option>
           ))}
-      </select>
-      <select
+      </Select>
+      <Select
         aria-label="Handedness"
-        className={selectStyles}
         onChange={(event) => applyFilters({ handedness: event.target.value })}
         value={handedness}
       >
@@ -77,7 +72,7 @@ export function VideoFilterBar() {
             {label} handed
           </option>
         ))}
-      </select>
+      </Select>
     </div>
   );
 }

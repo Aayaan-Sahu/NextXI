@@ -1,6 +1,5 @@
 import { redirect } from "next/navigation";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
-import { MessagesRealtime } from "@/components/messages-realtime";
 import { MessagesShell } from "@/components/messages-shell";
 import { isAdmin, requireUser } from "@/lib/auth";
 import { getConversations } from "@/lib/messages";
@@ -16,11 +15,11 @@ export default async function MessagesLayout({
 
   const conversations = await getConversations(user.id);
 
+  // The MessagesRealtime provider is mounted by the dashboard layout above,
+  // so threads and the nav badge share one websocket subscription.
   return (
-    <MessagesRealtime connectionIds={conversations.map((c) => c.connectionId)}>
-      <MessagesShell sidebar={<ConversationSidebar conversations={conversations} />}>
-        {children}
-      </MessagesShell>
-    </MessagesRealtime>
+    <MessagesShell sidebar={<ConversationSidebar conversations={conversations} />}>
+      {children}
+    </MessagesShell>
   );
 }

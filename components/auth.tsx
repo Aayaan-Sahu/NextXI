@@ -5,13 +5,14 @@ import {
   signUp,
   updatePassword,
 } from "@/app/auth/actions";
+import { PasswordInput } from "@/components/password-input";
+import { SubmitButton } from "@/components/submit-button";
 import {
   AuthCard,
   AuthShell,
   Field,
   Form,
   Notice,
-  PrimaryButton,
   TextInput,
   TextLink,
 } from "@/components/ui";
@@ -33,6 +34,10 @@ export function AuthPanel({
         footer={
           isSignUp ? (
             <>
+              <p className="mb-1.5">
+                Under-18s need a parent or guardian to approve their account
+                after sign-up.
+              </p>
               Already have an account?{" "}
               <TextLink href="/auth?mode=sign-in">Sign in</TextLink>
             </>
@@ -58,12 +63,11 @@ export function AuthPanel({
                 <TextLink href="/auth/reset-password">Forgot your password?</TextLink>
               )}
             </span>
-            <TextInput
+            <PasswordInput
               autoComplete={isSignUp ? "new-password" : "current-password"}
               minLength={6}
               name="password"
               required
-              type="password"
             />
           </Field>
           {isSignUp && (
@@ -87,9 +91,9 @@ export function AuthPanel({
               </span>
             </label>
           )}
-          <PrimaryButton type="submit" variant="rust">
+          <SubmitButton variant="rust">
             {isSignUp ? "Create account" : "Sign in"}
-          </PrimaryButton>
+          </SubmitButton>
         </Form>
 
         <Notice tone="error">{error}</Notice>
@@ -123,12 +127,11 @@ export function ResetPasswordPanel({
           {hasUser ? (
             <Field>
               New password
-              <TextInput
+              <PasswordInput
                 autoComplete="new-password"
                 minLength={6}
                 name="password"
                 required
-                type="password"
               />
             </Field>
           ) : (
@@ -137,9 +140,9 @@ export function ResetPasswordPanel({
               <TextInput autoComplete="email" name="email" required type="email" />
             </Field>
           )}
-          <PrimaryButton type="submit" variant="rust">
+          <SubmitButton variant="rust">
             {hasUser ? "Update password" : "Send reset email"}
-          </PrimaryButton>
+          </SubmitButton>
         </Form>
 
         <Notice>{message}</Notice>
@@ -177,9 +180,9 @@ export function CheckEmailPanel({
               type="email"
             />
           </Field>
-          <PrimaryButton type="submit" variant="rust">
+          <SubmitButton variant="rust">
             Resend verification email
-          </PrimaryButton>
+          </SubmitButton>
         </Form>
 
         <Notice>{message}</Notice>

@@ -2,13 +2,18 @@ import { redirect } from "next/navigation";
 import { PlayerStatus } from "@/app/generated/prisma/enums";
 import { createSession } from "@/app/dashboard/player/sessions/actions";
 import { SessionList } from "@/components/session-list";
-import { Field, PageHeader, PageShell, Panel, PrimaryButton, TextInput } from "@/components/ui";
+import {
+  Field,
+  PageHeader,
+  PageShell,
+  Panel,
+  PrimaryButton,
+  Select,
+  TextInput,
+} from "@/components/ui";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getPlayerSessions } from "@/lib/sessions.server";
 import { VIDEO_DISCIPLINES } from "@/lib/videos";
-
-const selectStyles =
-  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
 
 export default async function PlayerSessionsPage() {
   const user = await requireUser();
@@ -38,7 +43,7 @@ export default async function PlayerSessionsPage() {
             </Field>
             <Field className="flex-1">
               Discipline
-              <select className={selectStyles} defaultValue="" name="category" required>
+              <Select defaultValue="" name="category" required>
                 <option disabled value="">
                   Select…
                 </option>
@@ -47,7 +52,7 @@ export default async function PlayerSessionsPage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </Select>
             </Field>
             <PrimaryButton type="submit">Create</PrimaryButton>
           </form>

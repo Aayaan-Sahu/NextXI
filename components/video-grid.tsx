@@ -1,4 +1,5 @@
 import Link from "next/link";
+import type { ReportStatus } from "@/app/generated/prisma/enums";
 import { EmptyState } from "@/components/ui";
 import { formatVideoSize } from "@/lib/videos";
 
@@ -11,7 +12,29 @@ type GridVideo = {
   createdAt: Date;
   playerName?: string;
   tagLabel?: string;
+  /** When set, the card carries a coaching-report status chip. */
+  reportStatus?: ReportStatus | null;
+  commentCount?: number;
 };
+
+/** Report chip per status — mono, square-cornered, per the Lower-Third Rule. */
+function ReportChip({ status }: { status: ReportStatus }) {
+  const chipStyles =
+    "pointer-events-none absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1 font-mono text-[10px] font-semibold tracking-[.14em] uppercase";
+
+  if (status === "READY") {
+    return <span className={`${chipStyles} bg-gold-500 text-pitch-900`}>Report ready</span>;
+  }
+  if (status === "FAILED") {
+    return <span className={`${chipStyles} bg-rust-600 text-cream-50`}>Analysis failed</span>;
+  }
+  return (
+    <span className={`${chipStyles} bg-pitch-950/85 text-cream-200`}>
+      <span aria-hidden className="size-1.5 rounded-full bg-gold-500 motion-safe:animate-pulse" />
+      Analysing
+    </span>
+  );
+}
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
@@ -61,25 +84,29 @@ export function VideoGrid({
             className="block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
             href={`${linkBase}/${video.id}`}
           >
-            {video.thumbnailUrl ? (
-              // Signed, short-lived storage URL; next/image would need remote host config.
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                alt=""
-                className="aspect-video w-full bg-pitch-800 object-cover"
-                src={video.thumbnailUrl}
-              />
-            ) : (
-              <div className="grid aspect-video place-items-center bg-thumb-scanlines text-[26px] text-gold-500">
-                ▶
-              </div>
-            )}
+            <div className="relative">
+              {video.thumbnailUrl ? (
+                // Signed, short-lived storage URL; next/image would need remote host config.
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  alt=""
+                  className="aspect-video w-full bg-pitch-800 object-cover"
+                  src={video.thumbnailUrl}
+                />
+              ) : (
+                <div className="grid aspect-video place-items-center bg-thumb-scanlines text-[26px] text-gold-500">
+                  ▶
+                </div>
+              )}
+              {video.reportStatus ? <ReportChip status={video.reportStatus} /> : null}
+            </div>
             <div className="px-4 pt-3.5 pb-3">
               <div className="truncate text-sm font-semibold text-ink-900">
                 {video.originalFilename}
               </div>
               <div className="mt-1 font-mono text-[11.5px] text-ink-600">
                 {formatDate(video.uploadedAt ?? video.createdAt)} · {formatVideoSize(video.sizeBytes)}
+                {video.commentCount ? ` · ${video.commentCount} note${video.commentCount === 1 ? "" : "s"}` : null}
               </div>
               {video.tagLabel && (
                 <div

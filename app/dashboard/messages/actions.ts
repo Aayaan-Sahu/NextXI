@@ -1,5 +1,6 @@
 "use server";
 
+import { revalidatePath } from "next/cache";
 import { CoachStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
@@ -75,4 +76,7 @@ export async function markThreadRead(connectionId: string) {
   if (!connection) return;
 
   await markConversationRead(user.id, connectionId);
+
+  // The layout's unread badge reads this state — refresh the whole tree.
+  revalidatePath("/dashboard", "layout");
 }

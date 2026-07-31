@@ -31,6 +31,24 @@ export type Thread = {
 };
 
 /**
+ * Total unread messages across a user's accepted connections — the nav badge
+ * count. Same semantics as getConversations' per-conversation unread groupBy,
+ * collapsed into one indexed count.
+ */
+export async function getUnreadMessageCount(userId: string): Promise<number> {
+  return prisma.message.count({
+    where: {
+      senderId: { not: userId },
+      readAt: null,
+      connection: {
+        status: ConnectionStatus.ACCEPTED,
+        OR: [{ userAId: userId }, { userBId: userId }],
+      },
+    },
+  });
+}
+
+/**
  * Returns the connection if `userId` is a participant and the connection is
  * accepted; otherwise null. This is the authorization gate for messaging.
  */

@@ -141,8 +141,8 @@ export function Notice({
     <p
       className={
         tone === "error"
-          ? "mt-4 rounded-md border border-rust-600/30 bg-rust-600/10 px-3 py-2.5 text-sm text-rust-700"
-          : "mt-4 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm text-ink-600"
+          ? "mt-4 animate-crease-rise rounded-md border border-rust-600/30 bg-rust-600/10 px-3 py-2.5 text-sm text-rust-700"
+          : "mt-4 animate-crease-rise rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm text-ink-600"
       }
     >
       {children}
@@ -207,8 +207,11 @@ export function FieldGroup({ className = "", ...props }: ComponentProps<"div">) 
   return <div {...props} className={`grid gap-1.5 text-xs font-bold ${className}`} />;
 }
 
-const inputStyles =
-  "rounded-md border border-cream-500 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 placeholder:text-ink-600 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25";
+/* 16px on touch devices: smaller inputs trigger iOS Safari's focus auto-zoom,
+   in portrait or landscape — so the 14px size is gated on a fine pointer, not
+   viewport width. */
+export const inputStyles =
+  "rounded-md border border-cream-500 bg-cream-50 px-3 py-2.5 text-base font-normal text-ink-900 placeholder:text-ink-600 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 sm:pointer-fine:text-sm";
 
 export function TextInput(props: ComponentProps<"input">) {
   return <input {...props} className={inputStyles} />;
@@ -216,6 +219,16 @@ export function TextInput(props: ComponentProps<"input">) {
 
 export function TextArea(props: ComponentProps<"textarea">) {
   return <textarea {...props} className={`resize-y ${inputStyles}`} />;
+}
+
+/** The shared select — one style for every dropdown, no local selectStyles. */
+export function Select(props: ComponentProps<"select">) {
+  return (
+    <select
+      {...props}
+      className={`${inputStyles} disabled:bg-cream-100 disabled:text-sage-400`}
+    />
+  );
 }
 
 /**
@@ -297,7 +310,7 @@ export function Spinner() {
   return (
     <span
       aria-label="Loading"
-      className="inline-block size-5 animate-spin rounded-full border-2 border-cream-500 border-t-pitch-900"
+      className="inline-block size-5 motion-safe:animate-spin rounded-full border-2 border-cream-500 border-t-pitch-900"
       role="status"
     />
   );
@@ -310,12 +323,15 @@ export function Spinner() {
 export function StatusBoard({
   actions,
   kicker,
+  note,
   stats,
   title,
   tone = "light",
 }: {
   actions?: ReactNode;
   kicker: string;
+  /** One human sentence under the title — voice, not machine facts. */
+  note?: ReactNode;
   stats?: string[];
   title: string;
   tone?: "light" | "dark";
@@ -346,6 +362,11 @@ export function StatusBoard({
           >
             {title}
           </h1>
+          {note ? (
+            <p className={`mt-2 text-sm ${dark ? "text-cream-200/85" : "text-ink-600"}`}>
+              {note}
+            </p>
+          ) : null}
           {stats && stats.length > 0 ? (
             <p
               className={`mt-2.5 font-mono text-[11.5px] ${

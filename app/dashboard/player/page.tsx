@@ -1,7 +1,14 @@
 import { redirect } from "next/navigation";
 import { deleteVideo } from "@/app/dashboard/player/videos/actions";
-import { PlayerStatus } from "@/app/generated/prisma/enums";
+import {
+  PlayerStatus,
+  PlayerVideoStatus,
+  ReportStatus,
+  Visibility,
+} from "@/app/generated/prisma/enums";
 import { CoachFeedback } from "@/components/coach-feedback";
+import { LatestReportCard } from "@/components/latest-report-card";
+import { ReportAutoRefresh } from "@/components/report-auto-refresh";
 import {
   DashboardReveal,
   DashboardRevealItem,
@@ -11,7 +18,9 @@ import {
   GatePanel,
   Kicker,
   PageShell,
+  Panel,
   StatusBoard,
+  TextLink,
 } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
@@ -19,7 +28,8 @@ import { getProfile, requireUser } from "@/lib/auth";
 import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
-import { getReadyVideoGridItems } from "@/lib/videos.server";
+import { formatVideoTags } from "@/lib/videos";
+import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
 
 function formatShortDate(date: Date) {
   return date.toLocaleDateString("en-US", {
@@ -27,6 +37,41 @@ function formatShortDate(date: Date) {
     month: "short",
     day: "numeric",
   });
+}
+
+/** London clock, not the server's — the player base is UK cricket. */
+function timeOfDayGreeting() {
+  const hour = Number(
+    new Intl.DateTimeFormat("en-GB", {
+      hour: "numeric",
+      hour12: false,
+      timeZone: "Europe/London",
+    }).format(new Date()),
+  );
+  if (hour >= 5 && hour < 12) return "Morning";
+  if (hour >= 12 && hour < 18) return "Afternoon";
+  return "Evening";
+}
+
+/** Whole-day index of a date on the London calendar (en-CA gives YYYY-MM-DD). */
+function londonDayNumber(date: Date) {
+  return (
+    Date.parse(
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(date),
+    ) / 86_400_000
+  );
+}
+
+/**
+ * One human sentence on upload recency. Numeral-free on purpose — exact
+ * machine facts live in the mono stats line, per the Lower-Third Rule.
+ */
+function uploadNudge(latest: Date | null) {
+  if (!latest) return "No uploads yet — your first clip gets your first coaching report.";
+  const days = londonDayNumber(new Date()) - londonDayNumber(latest);
+  if (days <= 1) return "Fresh footage just in — nice work keeping it regular.";
+  if (days <= 7) return "Fresh footage this week — nice work keeping the rhythm.";
+  return "It's been a while since your last upload — the next report is one clip away.";
 }
 
 export default async function PlayerDashboardPage() {
@@ -60,8 +105,9 @@ export default async function PlayerDashboardPage() {
 
   // Latest coach comments across the player's videos, so feedback isn't only
   // discoverable by reopening each video. Comments are coach-authored only.
-  const [videos, feedback] = await Promise.all([
+  const [videos, pulse, feedback, latestReport, guardianRow] = await Promise.all([
     getReadyVideoGridItems(user.id),
+    getPlayerVideoPulse(user.id),
     prisma.videoComment.findMany({
       where: { video: { playerId: user.id } },
       orderBy: { createdAt: "desc" },
@@ -76,19 +122,45 @@ export default async function PlayerDashboardPage() {
         video: { select: { originalFilename: true } },
       },
     }),
+    // Newest READY report across all videos (session-filed ones included —
+    // the grid excludes those, but the video detail page renders them fine).
+    prisma.report.findFirst({
+      where: {
+        status: ReportStatus.READY,
+        video: { playerId: user.id, status: PlayerVideoStatus.READY },
+      },
+      orderBy: { updatedAt: "desc" },
+      select: {
+        payload: true,
+        updatedAt: true,
+        video: {
+          select: { id: true, category: true, variation: true, handedness: true },
+        },
+      },
+    }),
+    prisma.player.findUnique({
+      where: { id: user.id },
+      select: { guardian: { select: { name: true } } },
+    }),
   ]);
+  const guardianName = guardianRow?.guardian?.name ?? null;
 
-  const latestUpload = videos[0]
-    ? formatShortDate(videos[0].uploadedAt ?? videos[0].createdAt)
-    : null;
+  // Header numbers come from the account-wide pulse (sessions included), so
+  // they always agree with the latest-report card; the grid below is
+  // standalone-only by design.
+  const latestUpload = pulse.latestUploadAt ? formatShortDate(pulse.latestUploadAt) : null;
+  const firstName = profile.player.name.split(" ")[0] || profile.player.name;
   const stats = [
-    `${videos.length} video${videos.length === 1 ? "" : "s"}`,
+    `${pulse.totalVideos} video${pulse.totalVideos === 1 ? "" : "s"}`,
+    `${pulse.reportsReady} report${pulse.reportsReady === 1 ? "" : "s"} ready`,
     latestUpload ? `Latest ${latestUpload}` : "No uploads yet",
     `${feedback.length} recent note${feedback.length === 1 ? "" : "s"}`,
   ];
+  const revealBase = latestReport ? 2 : 1;
 
   return (
     <PageShell>
+      {pulse.analysing ? <ReportAutoRefresh /> : null}
       <DashboardReveal className="grid gap-9">
         <DashboardRevealItem index={0}>
           <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
@@ -103,18 +175,34 @@ export default async function PlayerDashboardPage() {
                 ) : undefined
               }
               kicker="PLAYER HOME"
+              note={uploadNudge(pulse.latestUploadAt)}
               stats={stats}
-              title={profile.player.name}
+              title={`${timeOfDayGreeting()}, ${firstName}.`}
             />
           </div>
         </DashboardRevealItem>
 
-        <DashboardRevealItem className="grid gap-3" index={1}>
+        {latestReport ? (
+          <DashboardRevealItem index={1}>
+            <LatestReportCard
+              href={`/dashboard/player/videos/${latestReport.video.id}`}
+              payload={latestReport.payload}
+              tagLabel={formatVideoTags(
+                latestReport.video.category,
+                latestReport.video.variation,
+                latestReport.video.handedness,
+              )}
+              updatedAt={latestReport.updatedAt}
+            />
+          </DashboardRevealItem>
+        ) : null}
+
+        <DashboardRevealItem className="grid gap-3" index={revealBase}>
           <Kicker>Footage</Kicker>
           <VideoUpload />
         </DashboardRevealItem>
 
-        <DashboardRevealItem index={2}>
+        <DashboardRevealItem index={revealBase + 1}>
           <CoachFeedback
             items={feedback.map((comment) => ({
               id: comment.id,
@@ -128,9 +216,30 @@ export default async function PlayerDashboardPage() {
           />
         </DashboardRevealItem>
 
-        <DashboardRevealItem className="grid gap-3" index={3}>
+        <DashboardRevealItem className="grid gap-3" index={revealBase + 2}>
           <Kicker>Library</Kicker>
           <VideoGrid deleteAction={deleteVideo} videos={videos} />
+        </DashboardRevealItem>
+
+        <DashboardRevealItem index={revealBase + 3}>
+          <Panel>
+            <Kicker>Profile visibility</Kicker>
+            <div className="mt-4 grid gap-1.5 text-sm">
+              <p className="text-ink-900">
+                {profile.player.visibility === Visibility.PUBLIC
+                  ? "Public — any approved coach can find you in the player directory and view your profile, videos, and coaching reports without connecting."
+                  : "Private — only coaches you've connected with can see your profile."}
+              </p>
+              <p className="text-ink-600">
+                {guardianName
+                  ? `Guardian linked: ${guardianName}.`
+                  : "No guardian linked to this account."}
+              </p>
+            </div>
+            <div className="mt-4">
+              <TextLink href="/dashboard/profile">Manage visibility</TextLink>
+            </div>
+          </Panel>
         </DashboardRevealItem>
       </DashboardReveal>
     </PageShell>

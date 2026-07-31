@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
 import { RecordingGuideButton } from "@/components/recording-guide";
-import { Field, PrimaryButton } from "@/components/ui";
+import { Field, PrimaryButton, Select } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
   HANDEDNESS_LABELS,
@@ -106,9 +106,6 @@ async function uploadThumbnail(thumbnail: Blob, signedUrl: string) {
     // Ignore: the video card falls back to a placeholder.
   }
 }
-
-const selectStyles =
-  "rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm font-normal text-ink-900 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 disabled:bg-cream-100 disabled:text-sage-400";
 
 export function VideoUpload({
   session,
@@ -238,8 +235,7 @@ export function VideoUpload({
       <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-1">
         <Field>
           Discipline
-          <select
-            className={selectStyles}
+          <Select
             disabled={uploading || Boolean(session)}
             onChange={(event) => {
               setDiscipline(event.target.value as VideoDiscipline | "");
@@ -253,12 +249,11 @@ export function VideoUpload({
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
         <Field>
           {discipline === "BATTING" ? "Shot" : "Variation"}
-          <select
-            className={selectStyles}
+          <Select
             disabled={uploading || !discipline}
             onChange={(event) => setVariation(event.target.value)}
             value={variation}
@@ -270,12 +265,11 @@ export function VideoUpload({
                   {option}
                 </option>
               ))}
-          </select>
+          </Select>
         </Field>
         <Field>
           Handedness
-          <select
-            className={selectStyles}
+          <Select
             disabled={uploading}
             onChange={(event) => setHandedness(event.target.value as HandednessOption | "")}
             value={handedness}
@@ -286,7 +280,7 @@ export function VideoUpload({
                 {label}
               </option>
             ))}
-          </select>
+          </Select>
         </Field>
       </div>
       <section

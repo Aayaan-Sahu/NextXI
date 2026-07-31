@@ -7,7 +7,7 @@ import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { describeUsers, getAcceptedCounterpartIds } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
-import { getThumbnailUrlByPath } from "@/lib/videos.server";
+import { effectiveReportStatus, getThumbnailUrlByPath } from "@/lib/videos.server";
 import { formatVideoTags, isHandedness, isVideoDiscipline } from "@/lib/videos";
 
 export default async function CoachDashboardPage({
@@ -83,6 +83,8 @@ export default async function CoachDashboardPage({
           name: true,
         },
       },
+      report: { select: { status: true, error: true } },
+      _count: { select: { comments: true } },
     },
   });
 
@@ -118,9 +120,11 @@ export default async function CoachDashboardPage({
           <VideoGrid
             emptyMessage="No unviewed videos. Visit a player from the Players panel to rewatch their videos."
             linkBase="/dashboard/coach/videos"
-            videos={videos.map((video) => ({
+            videos={videos.map(({ _count, report, ...video }) => ({
               ...video,
+              commentCount: _count.comments,
               playerName: video.player.name,
+              reportStatus: effectiveReportStatus(report),
               tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
               thumbnailUrl: video.thumbnailPath
                 ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)

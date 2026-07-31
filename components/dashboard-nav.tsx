@@ -14,11 +14,13 @@ export function DashboardNav({
   homeHref,
   initial,
   limited = false,
+  unreadMessages = 0,
 }: {
   avatarUrl?: string | null;
   homeHref: string;
   initial: string;
   limited?: boolean;
+  unreadMessages?: number;
 }) {
   const pathname = usePathname();
   // Two disclosures share the bar (nav links, account); opening one closes the
@@ -43,6 +45,9 @@ export function DashboardNav({
         { href: "/dashboard/messages", label: "Messages" },
       ];
 
+  const badgeCount = unreadMessages > 99 ? "99+" : unreadMessages;
+  const showBadge = (href: string) => href === "/dashboard/messages" && unreadMessages > 0;
+
   // Most-specific match wins, so "Sessions" (not "Home") lights up under
   // /dashboard/player/sessions even though "Home" is a path prefix.
   const activeHref = links
@@ -64,7 +69,7 @@ export function DashboardNav({
         <button
           aria-expanded={navOpen}
           aria-label="Menu"
-          className="-ml-3 flex size-11 shrink-0 cursor-pointer items-center justify-center text-cream-200 md:hidden"
+          className="relative -ml-3 flex size-11 shrink-0 cursor-pointer items-center justify-center text-cream-200 md:hidden"
           onClick={() => {
             setNavOpen((open) => !open);
             setAccountOpen(false);
@@ -86,6 +91,11 @@ export function DashboardNav({
               <path d="M4 6h16M4 12h16M4 18h16" />
             )}
           </svg>
+          {unreadMessages > 0 && !navOpen ? (
+            <span className="absolute top-0.5 right-0 rounded-full bg-gold-500 px-1.5 py-px text-[10px] leading-[14px] font-bold text-rust-700">
+              {badgeCount}
+            </span>
+          ) : null}
         </button>
         {navOpen ? (
           <>
@@ -108,6 +118,11 @@ export function DashboardNav({
                   onClick={() => setNavOpen(false)}
                 >
                   {link.label}
+                  {showBadge(link.href) ? (
+                    <span className="ml-2 inline-flex rounded-full bg-rust-600 px-2 py-0.5 text-[11px] font-bold text-cream-200">
+                      {badgeCount}
+                    </span>
+                  ) : null}
                 </Link>
               ))}
             </div>
@@ -121,13 +136,18 @@ export function DashboardNav({
             <Link
               className={
                 link.href === activeHref
-                  ? "flex items-center self-stretch border-b-2 border-gold-500 text-cream-200 no-underline"
-                  : "flex items-center self-stretch border-b-2 border-transparent text-sage-400 no-underline hover:text-cream-200"
+                  ? "flex items-center gap-1.5 self-stretch border-b-2 border-gold-500 text-cream-200 no-underline"
+                  : "flex items-center gap-1.5 self-stretch border-b-2 border-transparent text-sage-400 no-underline hover:text-cream-200"
               }
               href={link.href}
               key={link.href}
             >
               {link.label}
+              {showBadge(link.href) ? (
+                <span className="rounded-full bg-gold-500 px-1.5 py-px text-[10px] leading-[14px] font-bold text-rust-700">
+                  {badgeCount}
+                </span>
+              ) : null}
             </Link>
           ))}
         </div>

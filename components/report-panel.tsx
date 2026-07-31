@@ -17,7 +17,7 @@ type Tone = "light" | "dark";
 type Metric = { name: string; score: number; comment?: string };
 type Annotation = { timestamp_s: number; note: string };
 
-function isRecord(value: unknown): value is Record<string, unknown> {
+export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
@@ -26,7 +26,7 @@ function clampScore(value: number) {
 }
 
 /** Reads a 0-100 number if present and finite. */
-function readOverallScore(payload: Record<string, unknown>): number | null {
+export function readOverallScore(payload: Record<string, unknown>): number | null {
   const raw = payload.overall_score;
   return typeof raw === "number" && Number.isFinite(raw) ? clampScore(raw) : null;
 }
@@ -55,7 +55,7 @@ function readAnnotations(payload: Record<string, unknown>): Annotation[] {
   });
 }
 
-function readFeedback(payload: Record<string, unknown>): string | null {
+export function readFeedback(payload: Record<string, unknown>): string | null {
   return typeof payload.feedback === "string" && payload.feedback.trim()
     ? payload.feedback
     : null;
