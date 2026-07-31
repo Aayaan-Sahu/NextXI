@@ -91,6 +91,20 @@ export async function getReadyVideoGridItems(playerId: string) {
   }));
 }
 
+/** Whole-day index of a date on the London calendar (en-CA gives YYYY-MM-DD). */
+export function londonDayNumber(date: Date) {
+  return (
+    Date.parse(
+      new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(date),
+    ) / 86_400_000
+  );
+}
+
+/** Monday-start week index on the London calendar. */
+function londonWeekNumber(date: Date) {
+  return Math.floor((londonDayNumber(date) + 3) / 7);
+}
+
 /**
  * Account-wide numbers for the player home header. Unlike the grid query this
  * spans session-filed videos too, so the stats can never contradict the
@@ -108,6 +122,25 @@ export async function getPlayerVideoPulse(playerId: string) {
   });
 
   const statuses = videos.map((video) => effectiveReportStatus(video.report));
+
+  // Streak: consecutive London weeks with at least one upload, anchored on
+  // this week when it has one, else last week (a streak still extendable);
+  // otherwise the streak is over and reads as 0.
+  const weeks = new Set(
+    videos.map((video) => londonWeekNumber(video.uploadedAt ?? video.createdAt)),
+  );
+  const thisWeek = londonWeekNumber(new Date());
+  let streakWeeks = 0;
+  let cursor: number | null = weeks.has(thisWeek)
+    ? thisWeek
+    : weeks.has(thisWeek - 1)
+      ? thisWeek - 1
+      : null;
+  while (cursor !== null && weeks.has(cursor)) {
+    streakWeeks += 1;
+    cursor -= 1;
+  }
+
   return {
     totalVideos: videos.length,
     latestUploadAt: videos[0] ? (videos[0].uploadedAt ?? videos[0].createdAt) : null,
@@ -115,6 +148,7 @@ export async function getPlayerVideoPulse(playerId: string) {
     analysing: statuses.some(
       (status) => status === ReportStatus.PENDING || status === ReportStatus.PROCESSING,
     ),
+    streakWeeks,
   };
 }
 

@@ -29,7 +29,11 @@ import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { formatVideoTags } from "@/lib/videos";
-import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
+import {
+  getPlayerVideoPulse,
+  getReadyVideoGridItems,
+  londonDayNumber,
+} from "@/lib/videos.server";
 
 function formatShortDate(date: Date) {
   return date.toLocaleDateString("en-US", {
@@ -51,15 +55,6 @@ function timeOfDayGreeting() {
   if (hour >= 5 && hour < 12) return "Morning";
   if (hour >= 12 && hour < 18) return "Afternoon";
   return "Evening";
-}
-
-/** Whole-day index of a date on the London calendar (en-CA gives YYYY-MM-DD). */
-function londonDayNumber(date: Date) {
-  return (
-    Date.parse(
-      new Intl.DateTimeFormat("en-CA", { timeZone: "Europe/London" }).format(date),
-    ) / 86_400_000
-  );
 }
 
 /**
@@ -155,6 +150,7 @@ export default async function PlayerDashboardPage() {
     `${pulse.reportsReady} report${pulse.reportsReady === 1 ? "" : "s"} ready`,
     latestUpload ? `Latest ${latestUpload}` : "No uploads yet",
     `${feedback.length} recent note${feedback.length === 1 ? "" : "s"}`,
+    ...(pulse.streakWeeks >= 2 ? [`${pulse.streakWeeks}-week upload streak`] : []),
   ];
   const revealBase = latestReport ? 2 : 1;
 
