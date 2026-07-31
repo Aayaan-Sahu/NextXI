@@ -1,3 +1,6 @@
+"use client";
+
+import { useState } from "react";
 import {
   requestPasswordReset,
   resendVerification,
@@ -19,17 +22,30 @@ import {
 
 type AuthMode = "sign-in" | "sign-up";
 
+const modeLinkStyles =
+  "cursor-pointer font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline";
+
 export function AuthPanel({
   error,
-  mode,
+  mode: initialMode,
 }: {
   error?: string;
   mode: AuthMode;
 }) {
+  const [mode, setMode] = useState<AuthMode>(initialMode);
   const isSignUp = mode === "sign-up";
+
+  // Shallow URL sync: the switch is instant and client-side, but the URL
+  // stays shareable and the back button still lands on the right mode.
+  function switchMode(next: AuthMode) {
+    setMode(next);
+    window.history.replaceState(null, "", `/auth?mode=${next}`);
+  }
 
   return (
     <AuthShell>
+      {/* Keyed on mode so a switch crossfades the card in. */}
+      <div className="animate-crease-fade" key={mode}>
       <AuthCard
         footer={
           isSignUp ? (
@@ -39,12 +55,16 @@ export function AuthPanel({
                 after sign-up.
               </p>
               Already have an account?{" "}
-              <TextLink href="/auth?mode=sign-in">Sign in</TextLink>
+              <button className={modeLinkStyles} onClick={() => switchMode("sign-in")} type="button">
+                Sign in
+              </button>
             </>
           ) : (
             <>
               New to NextXI?{" "}
-              <TextLink href="/auth?mode=sign-up">Create account</TextLink>
+              <button className={modeLinkStyles} onClick={() => switchMode("sign-up")} type="button">
+                Create account
+              </button>
             </>
           )
         }
@@ -96,8 +116,10 @@ export function AuthPanel({
           </SubmitButton>
         </Form>
 
-        <Notice tone="error">{error}</Notice>
+        {/* A server-reported error belongs to the mode it happened in. */}
+        <Notice tone="error">{mode === initialMode ? error : null}</Notice>
       </AuthCard>
+      </div>
     </AuthShell>
   );
 }
