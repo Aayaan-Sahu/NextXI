@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import {
   createGoal,
   createReminder,
@@ -6,7 +7,7 @@ import {
   toggleGoalComplete,
   toggleReminderComplete,
 } from "@/app/dashboard/progress/actions";
-import { Field, Form, Panel, PrimaryButton, TextInput } from "@/components/ui";
+import { Field, Form, Panel, TextInput } from "@/components/ui";
 import type { GoalItem, ReminderItem } from "@/lib/progress";
 
 function formatDate(date: Date) {
@@ -138,7 +139,7 @@ function GoalsPanel({ goals }: { goals: GoalItem[] }) {
               type="text"
             />
           </label>
-          <PrimaryButton type="submit">Add goal</PrimaryButton>
+          <SubmitButton>Add goal</SubmitButton>
         </div>
         <div className="grid gap-4 sm:grid-cols-3">
           <Field>
@@ -195,7 +196,7 @@ function RemindersPanel({ reminders }: { reminders: ReminderItem[] }) {
               type="text"
             />
           </label>
-          <PrimaryButton type="submit">Add reminder</PrimaryButton>
+          <SubmitButton>Add reminder</SubmitButton>
         </div>
         <Field>
           Due date

@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { SubmitButton } from "@/components/submit-button";
 import { updateProfile } from "@/app/dashboard/profile/actions";
 import {
   Visibility,
@@ -14,7 +15,6 @@ import {
   FieldGroup,
   Form,
   Kicker,
-  PrimaryButton,
   Select,
   Switch,
   TextArea,
@@ -119,6 +119,11 @@ export function EditPlayerProfilePanel({
       }
       kicker="Player profile"
     >
+      <p className="-mt-2 mb-4 text-[12.5px] leading-relaxed text-ink-600">
+        Public profiles appear in the coach directory, where any approved coach
+        can view your profile, videos, and coaching reports. Private profiles
+        are visible only to coaches you&apos;re connected with.
+      </p>
       <Form action={updateProfile} id="player-profile-form">
         <AvatarField
           avatarPath={player.avatarPath}
@@ -211,7 +216,7 @@ export function EditPlayerProfilePanel({
           />
         </Field>
         <div className="mt-1.5">
-          <PrimaryButton type="submit">Save changes</PrimaryButton>
+          <SubmitButton>Save changes</SubmitButton>
         </div>
       </Form>
     </ProfileCard>
@@ -301,7 +306,7 @@ export function EditCoachProfilePanel({
           />
         </Field>
         <div className="mt-1.5">
-          <PrimaryButton type="submit">Save changes</PrimaryButton>
+          <SubmitButton>Save changes</SubmitButton>
         </div>
       </Form>
     </ProfileCard>

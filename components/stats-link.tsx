@@ -1,5 +1,6 @@
+import { SubmitButton } from "@/components/submit-button";
 import { removeStatsLink, saveStatsLink } from "@/app/dashboard/progress/actions";
-import { Field, Form, Panel, PrimaryButton, TextInput } from "@/components/ui";
+import { Field, Form, Panel, TextInput } from "@/components/ui";
 
 /**
  * Lets a player attach a link to their public stats (Play-Cricket, ESPNcricinfo,
@@ -55,9 +56,9 @@ export function StatsLink({ statsUrl }: { statsUrl: string | null }) {
               type="text"
             />
           </Field>
-          <PrimaryButton type="submit">
+          <SubmitButton>
             {statsUrl ? "Update link" : "Save link"}
-          </PrimaryButton>
+          </SubmitButton>
         </div>
       </Form>
     </Panel>

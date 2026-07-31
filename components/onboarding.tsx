@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SubmitButton } from "@/components/submit-button";
 import { completeOnboarding, signOut } from "@/app/auth/actions";
 import {
   CheckboxChip,
@@ -7,7 +8,6 @@ import {
   Form,
   Kicker,
   Notice,
-  PrimaryButton,
   TextArea,
   TextInput,
   TextLink,
@@ -163,7 +163,7 @@ function RoleForm({ error, role }: { error?: string; role: OnboardingRole }) {
           ) : (
             <GuardianFields />
           )}
-          <PrimaryButton type="submit">Create {role} profile</PrimaryButton>
+          <SubmitButton>Create {role} profile</SubmitButton>
         </Form>
         <Notice tone="error">{error}</Notice>
       </section>

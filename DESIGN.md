@@ -256,7 +256,7 @@ All shared primitives live in `components/ui.tsx`. Build with them first; extend
 - **Field labels:** `text-xs font-bold` stacked with 6px gap.
 - **Errors:** shared `Notice` tone="error" — `rust-600/10` tint band, `rust-600/30` border, `rust-700` text, `animate-crease-rise` entrance.
 - **Passwords:** `PasswordInput` (`components/password-input.tsx`) — TextInput plus an ink eye toggle; never a bare `type="password"` field.
-- **Submits:** `SubmitButton` (`components/submit-button.tsx`) — PrimaryButton that disables with an inline spinner while the server action is pending. The auth panels use it today; converting the remaining server-action submits is the known gap.
+- **Submits:** every server-action form submits through `SubmitButton` (`components/submit-button.tsx`) — PrimaryButton that disables with an inline spinner while the action is pending. The one exception is the messages composer, which submits through its own optimistic client handler.
 
 ### Navigation
 - **App nav:** 64px `rust-600` bar with a 2px `gold-500` stitch line under the band, 1280px inner container. Links `text-sm font-semibold`: active = `cream-200` text + 2px `gold-500` underline; inactive = `sage-400` → hover `cream-200`. Mobile: hamburger disclosure sheet on `cream-50` with a 2px gold left rail + `cream-200` fill + rust text for the active item.

@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { redirect } from "next/navigation";
 import { ConnectionStatus } from "@/app/generated/prisma/enums";
 import { linkChild } from "@/app/dashboard/guardian/actions";
@@ -11,7 +12,6 @@ import {
   Notice,
   PageShell,
   Panel,
-  PrimaryButton,
   StatusBoard,
   TextInput,
   TextLink,
@@ -54,7 +54,7 @@ function LinkChildForm({ selectedChildId }: { selectedChildId?: string }) {
         Guardian code
         <TextInput name="childCode" placeholder="e.g. ABCD-2345" required type="text" />
       </Field>
-      <PrimaryButton type="submit">Link child</PrimaryButton>
+      <SubmitButton>Link child</SubmitButton>
     </form>
   );
 }

@@ -1,3 +1,4 @@
+import { SubmitButton } from "@/components/submit-button";
 import { redirect } from "next/navigation";
 import { PlayerStatus } from "@/app/generated/prisma/enums";
 import { createSession } from "@/app/dashboard/player/sessions/actions";
@@ -7,7 +8,6 @@ import {
   PageHeader,
   PageShell,
   Panel,
-  PrimaryButton,
   Select,
   TextInput,
 } from "@/components/ui";
@@ -54,7 +54,7 @@ export default async function PlayerSessionsPage() {
                 ))}
               </Select>
             </Field>
-            <PrimaryButton type="submit">Create</PrimaryButton>
+            <SubmitButton>Create</SubmitButton>
           </form>
         </Panel>
         <SessionList sessions={sessions} />

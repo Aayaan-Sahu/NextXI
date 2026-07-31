@@ -1,5 +1,6 @@
 "use client";
 
+import { SubmitButton } from "@/components/submit-button";
 import { useState } from "react";
 import {
   respondToConnectionRequest,
@@ -7,7 +8,7 @@ import {
   sendConnectionRequest,
 } from "@/app/dashboard/connections/actions";
 import type { ConnectionPanelData, ConnectionPerson } from "@/lib/connections";
-import { Kicker, Panel, PrimaryButton, SecondaryButton, TextInput } from "@/components/ui";
+import { Kicker, Panel, SecondaryButton, TextInput } from "@/components/ui";
 
 const smallGoldButton =
   "cursor-pointer rounded-md bg-gold-500 px-3.5 py-[7px] text-[12.5px] font-bold text-pitch-900 hover:bg-gold-600";
@@ -113,7 +114,7 @@ function RevokeButton({ person }: { person: ConnectionPerson }) {
               </SecondaryButton>
               <form action={revokeConnection}>
                 <input name="connectionId" type="hidden" value={person.connectionId} />
-                <PrimaryButton type="submit">Revoke</PrimaryButton>
+                <SubmitButton>Revoke</SubmitButton>
               </form>
             </div>
           </div>

@@ -1,6 +1,7 @@
+import { SubmitButton } from "@/components/submit-button";
 import { signOut } from "@/app/auth/actions";
 import { CoachStatus, ReportStatus } from "@/app/generated/prisma/enums";
-import { Notice, Panel, PrimaryButton, Wordmark } from "@/components/ui";
+import { Notice, Panel, Wordmark } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
@@ -137,7 +138,7 @@ export default async function AdminDashboardPage({
                     <div className="flex gap-2.5 self-start">
                       <form action={approveCoach}>
                         <input name="coachId" type="hidden" value={coach.id} />
-                        <PrimaryButton type="submit">Approve</PrimaryButton>
+                        <SubmitButton>Approve</SubmitButton>
                       </form>
                       <form action={rejectCoach}>
                         <input name="coachId" type="hidden" value={coach.id} />

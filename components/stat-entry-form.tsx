@@ -1,5 +1,6 @@
+import { SubmitButton } from "@/components/submit-button";
 import { addStatEntry, deleteStatEntry } from "@/app/dashboard/progress/actions";
-import { Field, Form, Panel, PrimaryButton, TextInput } from "@/components/ui";
+import { Field, Form, Panel, TextInput } from "@/components/ui";
 import type { StatEntryItem } from "@/lib/progress";
 
 function formatDate(date: Date) {
@@ -108,7 +109,7 @@ export function StatEntryForm() {
         </div>
 
         <div className="mt-0.5">
-          <PrimaryButton type="submit">Save match</PrimaryButton>
+          <SubmitButton>Save match</SubmitButton>
         </div>
       </Form>
     </Panel>

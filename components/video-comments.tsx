@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
+import { SubmitButton } from "@/components/submit-button";
 import { addVideoComment } from "@/app/dashboard/coach/videos/actions";
-import { Form, Kicker, Notice, Panel, PrimaryButton, TextArea } from "@/components/ui";
+import { Form, Kicker, Notice, Panel, TextArea } from "@/components/ui";
 
 export type VideoCommentItem = {
   id: string;
@@ -64,7 +65,7 @@ export function CommentForm({ error, videoId }: { error?: string; videoId: strin
           required
           rows={4}
         />
-        <PrimaryButton type="submit">Post feedback</PrimaryButton>
+        <SubmitButton>Post feedback</SubmitButton>
       </Form>
     </div>
   );
