@@ -2,8 +2,8 @@ import type { ReactNode } from "react";
 
 /**
  * Restrained mount reveal for auth brand copy and the form column.
- * CSS-driven so SSR never ships opacity:0, and reduced-motion is honored
- * via globals.css.
+ * CSS-driven (`forwards`, not `both`) so delayed/SSR paint stays visible;
+ * reduced-motion is honored via globals.css.
  */
 export function AuthMount({
   children,

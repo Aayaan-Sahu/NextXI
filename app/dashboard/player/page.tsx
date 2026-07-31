@@ -19,6 +19,7 @@ import {
   Kicker,
   PageShell,
   Panel,
+  StatusBand,
   StatusBoard,
   TextLink,
 } from "@/components/ui";
@@ -79,7 +80,7 @@ export default async function PlayerDashboardPage() {
   if (profile.player.status === PlayerStatus.PENDING_GUARDIAN) {
     return (
       <PageShell>
-        <div className="-mx-6 mb-2 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+        <StatusBand className="mb-2">
           <GatePanel
             code={formatGuardianCode(profile.player.guardianCode ?? "")}
             description={
@@ -93,7 +94,7 @@ export default async function PlayerDashboardPage() {
             kicker="AWAITING GUARDIAN"
             title={`Welcome ${profile.player.name}`}
           />
-        </div>
+        </StatusBand>
       </PageShell>
     );
   }
@@ -159,7 +160,7 @@ export default async function PlayerDashboardPage() {
       {pulse.analysing ? <ReportAutoRefresh /> : null}
       <DashboardReveal className="grid gap-9">
         <DashboardRevealItem index={0}>
-          <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+          <StatusBand>
             <StatusBoard
               actions={
                 profile.player.roles.length > 0 ? (
@@ -175,7 +176,7 @@ export default async function PlayerDashboardPage() {
               stats={stats}
               title={`${timeOfDayGreeting()}, ${firstName}.`}
             />
-          </div>
+          </StatusBand>
         </DashboardRevealItem>
 
         {latestReport ? (
@@ -214,7 +215,7 @@ export default async function PlayerDashboardPage() {
 
         <DashboardRevealItem className="grid gap-3" index={revealBase + 2}>
           <Kicker>Library</Kicker>
-          <VideoGrid deleteAction={deleteVideo} videos={videos} />
+          <VideoGrid deleteAction={deleteVideo} emptyMedia videos={videos} />
         </DashboardRevealItem>
 
         <DashboardRevealItem index={revealBase + 3}>

@@ -50,8 +50,9 @@ export function Kicker({
 }
 
 /**
- * Split auth layout: seam-stitch brand pane + cream form pane on md+,
- * compact brand band stacked above a true-float card on mobile.
+ * Split auth layout: seam-stitch brand pane + cream form pane on md+.
+ * Mobile keeps full-bleed seam so the true-float card sits on the brand band
+ * (not a cream sheet), matching DESIGN.md shadow vocabulary.
  */
 export function AuthShell({
   brandKicker = "MATCH DAY",
@@ -62,7 +63,7 @@ export function AuthShell({
   brandLine?: string;
 }) {
   return (
-    <main className="flex min-h-dvh flex-col md:grid md:grid-cols-2">
+    <main className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-2 md:bg-transparent">
       <aside className="relative flex shrink-0 flex-col overflow-hidden bg-seam-stitch px-6 py-8 sm:px-10 md:min-h-dvh md:px-12 md:py-14">
         <div className="md:hidden">
           <Wordmark size="lg" tone="dark" />
@@ -76,11 +77,11 @@ export function AuthShell({
         </AuthMount>
         <div
           aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-thumb-scanlines opacity-30 md:h-24"
+          className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-24 bg-thumb-scanlines opacity-30 md:block"
         />
       </aside>
-      <div className="flex flex-1 items-center justify-center bg-cream-200 px-6 py-10 sm:px-12 md:py-14">
-        <AuthMount className="w-full max-w-[560px]" variant="form">
+      <div className="relative flex flex-1 items-center justify-center px-6 py-10 sm:px-12 md:bg-cream-200 md:py-14">
+        <AuthMount className="relative z-10 w-full max-w-[560px]" variant="form">
           {children}
         </AuthMount>
       </div>
@@ -92,7 +93,7 @@ export function AuthCard({
   children,
   description,
   footer,
-  kicker = "PLAYER GATE",
+  kicker = "ACCOUNT",
   title,
 }: Children & {
   description?: string;
@@ -152,6 +153,20 @@ export function Notice({
 
 export function PageShell({ children }: Children) {
   return <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12">{children}</main>;
+}
+
+/** Soft cream tonal band behind StatusBoard / GatePanel on role homes. */
+export function StatusBand({
+  children,
+  className = "",
+}: Children & { className?: string }) {
+  return (
+    <div
+      className={`-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12 ${className}`}
+    >
+      {children}
+    </div>
+  );
 }
 
 export function PageHeader({
@@ -396,7 +411,10 @@ export function EmptyState({
   return (
     <div className="rounded-[10px] border border-dashed border-cream-500 bg-cream-50/60 px-6 py-10 text-center">
       {media ? (
-        <div className="mx-auto mb-4 grid aspect-video w-full max-w-[220px] place-items-center rounded-md bg-thumb-scanlines text-[26px] text-gold-500">
+        <div
+          aria-hidden
+          className="mx-auto mb-4 grid aspect-video w-full max-w-[220px] place-items-center rounded-md bg-thumb-scanlines text-[26px] text-gold-500"
+        >
           ▶
         </div>
       ) : null}

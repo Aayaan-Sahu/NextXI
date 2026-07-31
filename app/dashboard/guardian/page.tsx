@@ -12,6 +12,7 @@ import {
   Notice,
   PageShell,
   Panel,
+  StatusBand,
   StatusBoard,
   TextInput,
   TextLink,
@@ -80,22 +81,23 @@ export default async function GuardianDashboardPage({
   if (!child) {
     return (
       <PageShell>
-        <div className="-mx-6 mb-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+        <StatusBand className="mb-6">
           <GatePanel
             description={
-              <div>
-                <p className="mb-4">
-                  Your account isn&apos;t linked to a player yet. Enter the code shown on
-                  your child&apos;s dashboard to link their account.
-                </p>
-                <Notice tone="error">{error}</Notice>
-                <LinkChildForm />
-              </div>
+              <p className="mb-4">
+                Your account isn&apos;t linked to a player yet. Enter the code shown on
+                your child&apos;s dashboard to link their account.
+              </p>
             }
             kicker="GUARDIAN GATE"
             title={`Welcome ${profile.guardian.name}`}
-          />
-        </div>
+          >
+            <div className="mt-4 grid gap-4">
+              <Notice tone="error">{error}</Notice>
+              <LinkChildForm />
+            </div>
+          </GatePanel>
+        </StatusBand>
       </PageShell>
     );
   }
@@ -121,7 +123,7 @@ export default async function GuardianDashboardPage({
   return (
     <PageShell>
       <div className="grid gap-6">
-        <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+        <StatusBand>
           <StatusBoard
             actions={
               child.roles.length > 0 ? (
@@ -136,7 +138,7 @@ export default async function GuardianDashboardPage({
             stats={stats}
             title={child.name}
           />
-        </div>
+        </StatusBand>
         <GuardianChildSwitcher
           basePath="/dashboard/guardian"
           players={children}
@@ -204,6 +206,7 @@ export default async function GuardianDashboardPage({
         <div className="grid gap-3">
           <Kicker>Library</Kicker>
           <VideoGrid
+            emptyMedia
             emptyMessage="No videos yet. Videos your child uploads will appear here."
             linkBase="/dashboard/guardian/videos"
             videos={videos}

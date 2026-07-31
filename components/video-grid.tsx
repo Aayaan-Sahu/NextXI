@@ -61,19 +61,22 @@ export function VideoGrid({
   videos,
   linkBase = "/dashboard/player/videos",
   emptyMessage = "No videos yet. Upload your first clip in Footage above.",
+  emptyMedia = false,
   deleteAction,
   deleteLabel = "Delete",
 }: {
   videos: GridVideo[];
   linkBase?: string;
   emptyMessage?: string;
+  /** Opt into the scanline play thumb — for library empties, not coach queues. */
+  emptyMedia?: boolean;
   /** When provided, each card gets a trash button that submits the video id. */
   deleteAction?: (formData: FormData) => Promise<void>;
   /** Accessible verb for the action button, e.g. "Remove from session". */
   deleteLabel?: string;
 }) {
   if (!videos.length) {
-    return <EmptyState media>{emptyMessage}</EmptyState>;
+    return <EmptyState media={emptyMedia}>{emptyMessage}</EmptyState>;
   }
 
   return (

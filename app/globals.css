@@ -68,8 +68,8 @@
   );
 }
 
-/* Product mount reveals — CSS so first paint stays visible and animations
-   complete even when JS animation frames are throttled. */
+/* Product mount reveals. `forwards` (not `both`) so delayed items stay at
+   their natural opacity:1 during animation-delay — `both` blanked first paint. */
 @keyframes crease-fade {
   from {
     opacity: 0;
@@ -91,11 +91,11 @@
 }
 
 @utility animate-crease-fade {
-  animation: crease-fade 0.25s ease-out both;
+  animation: crease-fade 0.25s ease-out forwards;
 }
 
 @utility animate-crease-rise {
-  animation: crease-rise 0.28s ease-out both;
+  animation: crease-rise 0.28s ease-out forwards;
 }
 
 @media (prefers-reduced-motion: reduce) {

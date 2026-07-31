@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { CoachPlayers } from "@/components/coach-players";
-import { GatePanel, Kicker, PageShell, StatusBoard } from "@/components/ui";
+import { GatePanel, Kicker, PageShell, StatusBand, StatusBoard } from "@/components/ui";
 import { VideoFilterBar } from "@/components/video-filter-bar";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -26,7 +26,7 @@ export default async function CoachDashboardPage({
 
     return (
       <PageShell>
-        <div className="-mx-6 mb-2 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+        <StatusBand className="mb-2">
           <GatePanel
             description={
               <p>
@@ -38,7 +38,7 @@ export default async function CoachDashboardPage({
             kicker={rejected ? "NOT APPROVED" : "UNDER REVIEW"}
             title={`Welcome ${profile.coach.name}`}
           />
-        </div>
+        </StatusBand>
       </PageShell>
     );
   }
@@ -100,13 +100,13 @@ export default async function CoachDashboardPage({
   return (
     <PageShell>
       <div className="grid gap-8">
-        <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+        <StatusBand>
           <StatusBoard
             kicker="COACH HOME"
             stats={stats}
             title={profile.coach.name}
           />
-        </div>
+        </StatusBand>
         <div className="grid gap-3">
           <Kicker>Review queue</Kicker>
           <p className="text-[14.5px] text-ink-600">

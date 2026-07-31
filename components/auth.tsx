@@ -68,7 +68,7 @@ export function AuthPanel({
             </>
           )
         }
-        kicker={isSignUp ? "NEW PLAYER" : "PLAYER GATE"}
+        kicker={isSignUp ? "JOIN" : "GATE"}
         title={isSignUp ? "Create account" : "Sign in"}
       >
         <Form action={isSignUp ? signUp : signIn} className="mt-6">
