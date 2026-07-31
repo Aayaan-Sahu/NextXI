@@ -184,6 +184,9 @@ A committed three-color brand (leather red, pavilion cream, stitching gold) with
 - **Scorer's Ink** (#2a251e `ink-900` body text; #6b6353 `ink-600` secondary text and empty states — darkened from the original #948d7c, which sat at 3.3:1 on white and failed WCAG AA; the current value holds ≥4.5:1 on every cream step).
 - **Sun-Faded Seam** (#e0b0b0, `sage-400`): Faint text on red and dark surfaces — inactive nav links, timestamps, receipts, placeholders, completed items. It is a tint of the leather family, which is why faint text on rust never looks gray.
 
+### Loading
+Route-level waits render skeletons (`SkeletonBlock`: `cream-300` shimmer blocks mirroring the page anatomy — status band, panel, card grid), not a lone spinner. Spinners remain for in-flight actions (SubmitButton) only.
+
 ### Named Rules
 **The Gold Thread Rule.** Gold is the only interactive accent. Focus, active, hover-emphasis, progress, and high scores all speak gold; introducing a second accent color is prohibited.
 
@@ -206,6 +209,9 @@ A committed three-color brand (leather red, pavilion cream, stitching gold) with
 - **Body** (400, 14px dominant; 14.5–15px for lead paragraphs, 12.5–13.5px for secondary rows; leading 1.55–1.65): All prose, labels, list content. Names bold at 14.5px.
 - **Label** (IBM Plex Mono 600, 10–11.5px, tracking 0.08–0.3em, uppercase where standalone): The `Kicker` eyebrow (11px/0.2em — gold on dark, rust on light), timestamps, file sizes, @usernames, chart labels, receipts, scores.
 
+### Loading
+Route-level waits render skeletons (`SkeletonBlock`: `cream-300` shimmer blocks mirroring the page anatomy — status band, panel, card grid), not a lone spinner. Spinners remain for in-flight actions (SubmitButton) only.
+
 ### Named Rules
 **The Lower-Third Rule.** Every machine-produced or record-keeping fact — dates, sizes, scores, timestamps, @usernames, model versions — is set in IBM Plex Mono, small, and joined with " · " middle dots. Prose never goes mono; data never goes sans.
 
@@ -220,7 +226,10 @@ Crease is flat by default. Depth is conveyed tonally — cream page → white ca
 - **True float** (`shadow-2xl` + `shadow-black/40–45`): Surfaces detached from the page: the **mobile** auth card on the seam-stitch brand band, the revoke confirm dialog, the marketing report showcase. Desktop auth uses a hairline white panel on cream (no float shadow) — the split brand/form layout is the brand→product threshold. That is the complete list.
 
 ### Auth layout
-Product auth (`/auth`, reset, check-email) is a **split composition**: seam-stitch brand pane (wordmark, match-day kicker, one voice line, scanline foot) beside a cream form pane. On mobile the brand band stacks above a true-float white card. Form titles stay short ("Sign in" / "Create account"); a light-tone `Kicker` sits above the H1. Mount motion: CSS `animate-crease-fade` / `animate-crease-rise` (~250ms), disabled under `prefers-reduced-motion`.
+Product auth (`/auth`, reset, check-email) is a **split composition**: seam-stitch brand pane (wordmark, match-day kicker, one voice line, scanline foot) beside a cream form pane. On mobile the brand band stacks above a true-float white card. Form titles stay short ("Sign in" / "Create account"); a light-tone `Kicker` sits above the H1. Mount motion: CSS `animate-crease-fade` / `animate-crease-rise` (~250ms), disabled under `prefers-reduced-motion`. The sign-in ⇄ create-account switch is instant and client-side (mode-keyed crossfade, shallow `history.replaceState` URL sync).
+
+### Loading
+Route-level waits render skeletons (`SkeletonBlock`: `cream-300` shimmer blocks mirroring the page anatomy — status band, panel, card grid), not a lone spinner. Spinners remain for in-flight actions (SubmitButton) only.
 
 ### Named Rules
 **The Flat Field Rule.** Surfaces are flat at rest. A shadow is a statement that the element floats above the page (menu, dialog, the one marketing showcase) — never decoration on a resting card. If a card needs emphasis, change its border or its tone, not its altitude.
@@ -245,6 +254,7 @@ All shared primitives live in `components/ui.tsx`. Build with them first; extend
 - **Corner Style:** 10px (`Panel`, video cards, dialogs); 12px for scoreboards and marketing marquees; 12px (`rounded-xl`) for onboarding/auth cards.
 - **Background:** White on cream pages; `pitch-800` scoreboard for dark report surfaces; `pitch-900` for featured-dark cards (coach role card).
 - **Border:** 1px `cream-400`, always. Hover-affordance cards swap to `gold-500`.
+- **Video-card hover:** border swaps to `gold-500`, the thumbnail zooms ~3% (`motion-safe`), and a `pitch-950/35` veil with a cream play glyph fades in. No shadow, no lift — the Flat Field Rule holds on hover.
 - **Video-card report chips:** when a card knows its report state, a mono, square-cornered (3px) chip sits top-left on the thumbnail — Analysing = `pitch-950/85` band, `cream-200` text, pulsing `gold-500` dot (`motion-safe:animate-pulse`); Report ready = `gold-500`/`pitch-900`; Analysis failed = `rust-600`/`cream-50`. Warm-layer colors only — the Reserved Mint Rule keeps `vision-*` out of chips.
 - **Shadow Strategy:** None at rest (see Flat Field Rule).
 - **Internal Padding:** 24px (`p-6`); 36px (`p-9`) for auth/onboarding forms.
