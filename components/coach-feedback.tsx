@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Kicker, Panel } from "@/components/ui";
+import { EmptyState, Kicker, Panel } from "@/components/ui";
 
 export type CoachFeedbackItem = {
   id: string;
@@ -64,9 +64,9 @@ export function CoachFeedback({ items }: { items: CoachFeedbackItem[] }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm text-ink-600">
-          No coach feedback yet. Comments from connected coaches show up here.
-        </p>
+        <div className="mt-4">
+          <EmptyState>No coach feedback yet. Connect a coach to start.</EmptyState>
+        </div>
       )}
     </Panel>
   );

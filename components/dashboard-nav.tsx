@@ -54,7 +54,8 @@ export function DashboardNav({
 
   return (
     // `relative` anchors the mobile disclosure panel to the bar's bottom edge.
-    <header className="relative bg-rust-600">
+    // Gold stitch line under the rust band keeps brand from ending abruptly.
+    <header className="relative border-b-2 border-gold-500 bg-rust-600">
       <nav className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-4 px-6 sm:px-12 md:gap-10">
         {/* A player's inline link row needs ~592px min-content (wordmark +
             five links + avatar), which fits the 672px md leaves after sm:px-12

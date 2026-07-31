@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { EmptyState } from "@/components/ui";
 import { formatVideoSize } from "@/lib/videos";
 
 type GridVideo = {
@@ -36,7 +37,7 @@ function TrashIcon() {
 export function VideoGrid({
   videos,
   linkBase = "/dashboard/player/videos",
-  emptyMessage = "No videos yet. Upload your first video above.",
+  emptyMessage = "No videos yet. Upload your first clip in Footage above.",
   deleteAction,
   deleteLabel = "Delete",
 }: {
@@ -49,7 +50,7 @@ export function VideoGrid({
   deleteLabel?: string;
 }) {
   if (!videos.length) {
-    return <p className="text-sm text-ink-600">{emptyMessage}</p>;
+    return <EmptyState media>{emptyMessage}</EmptyState>;
   }
 
   return (
@@ -99,7 +100,7 @@ export function VideoGrid({
               <input name="id" type="hidden" value={video.id} />
               <button
                 aria-label={`${deleteLabel} ${video.originalFilename}`}
-                className="cursor-pointer rounded p-1 text-sage-400 hover:bg-cream-200 hover:text-rust-600"
+                className="grid size-8 cursor-pointer place-items-center rounded-md border border-cream-400 bg-white text-ink-600 hover:border-rust-600 hover:text-rust-700"
                 type="submit"
               >
                 <TrashIcon />

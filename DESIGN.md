@@ -217,7 +217,10 @@ Crease is flat by default. Depth is conveyed tonally — cream page → white ca
 
 ### Shadow Vocabulary
 - **Floating panels** (`shadow-md`): Nav dropdown menus and the mobile nav sheet — the only mid-weight shadow.
-- **True float** (`shadow-2xl` + `shadow-black/40–45`): Surfaces detached from the page: the auth card on the seam-stitch hero, the revoke confirm dialog, the marketing report showcase. That is the complete list.
+- **True float** (`shadow-2xl` + `shadow-black/40–45`): Surfaces detached from the page: the **mobile** auth card on the seam-stitch brand band, the revoke confirm dialog, the marketing report showcase. Desktop auth uses a hairline white panel on cream (no float shadow) — the split brand/form layout is the brand→product threshold. That is the complete list.
+
+### Auth layout
+Product auth (`/auth`, reset, check-email) is a **split composition**: seam-stitch brand pane (wordmark, match-day kicker, one voice line, scanline foot) beside a cream form pane. On mobile the brand band stacks above a true-float white card. Form titles stay short ("Sign in" / "Create account"); a light-tone `Kicker` sits above the H1. Mount motion: CSS `animate-crease-fade` / `animate-crease-rise` (~250ms), disabled under `prefers-reduced-motion`.
 
 ### Named Rules
 **The Flat Field Rule.** Surfaces are flat at rest. A shadow is a statement that the element floats above the page (menu, dialog, the one marketing showcase) — never decoration on a resting card. If a card needs emphasis, change its border or its tone, not its altitude.
@@ -253,7 +256,7 @@ All shared primitives live in `components/ui.tsx`. Build with them first; extend
 - **Errors:** shared `Notice` tone="error" — `rust-600/10` tint band, `rust-600/30` border, `rust-700` text.
 
 ### Navigation
-- **App nav:** 64px `rust-600` bar, 1280px inner container. Links `text-sm font-semibold`: active = `cream-200` text + 2px `gold-500` underline; inactive = `sage-400` → hover `cream-200`. Mobile: hamburger disclosure sheet on `cream-50` with a 2px gold left rail + `cream-200` fill + rust text for the active item.
+- **App nav:** 64px `rust-600` bar with a 2px `gold-500` stitch line under the band, 1280px inner container. Links `text-sm font-semibold`: active = `cream-200` text + 2px `gold-500` underline; inactive = `sage-400` → hover `cream-200`. Mobile: hamburger disclosure sheet on `cream-50` with a 2px gold left rail + `cream-200` fill + rust text for the active item.
 - **Landing nav:** same anatomy on `rust-700` with a cream CTA button.
 - **Account menu:** gold avatar circle (rust initial), 176px `cream-50` dropdown, `shadow-md`.
 
@@ -269,10 +272,12 @@ Hand-rolled, no chart library. Tracks: `cream-300` (light) or `black/30` (dark),
 ## 6. Do's and Don'ts
 
 ### Do:
-- **Do** build from `components/ui.tsx` primitives (`PrimaryButton`, `SecondaryButton`, `TextInput`, `Panel`, `Kicker`, `Badge`, `Notice`) and extend them there when a variant is missing. A shared `Select` is the known gap — add it to `ui.tsx`, don't write a fourth local `selectStyles`.
+- **Do** build from `components/ui.tsx` primitives (`PrimaryButton`, `SecondaryButton`, `TextInput`, `Panel`, `Kicker`, `Badge`, `Notice`, `StatusBoard`, `EmptyState`, `GatePanel`) and extend them there when a variant is missing. A shared `Select` is the known gap — add it to `ui.tsx`, don't write a fourth local `selectStyles`.
 - **Do** keep faint text on rust/dark surfaces in the leather family (`sage-400`) or cream-alpha — never gray on color.
 - **Do** set every machine fact in mono per the Lower-Third Rule, with " · " separators.
-- **Do** write empty states as one `text-sm text-ink-600` sentence with a nudge ("No messages yet. Say hello.").
+- **Do** write empty states with `EmptyState` (dashed cream box, optional scanline media, one `text-sm text-ink-600` sentence, optional gold CTA).
+- **Do** open role homes with `StatusBoard` (kicker + display name + real mono stats) so the first viewport still reads NextXI without the nav.
+- **Do** treat gated states (guardian code, coach under review) as `GatePanel` scoreboard readouts, not footnote paragraphs.
 - **Do** guard every infinite or scroll-driven animation with `useReducedMotion` / `prefers-reduced-motion`, following `hero-scrub-video.tsx`.
 - **Do** render the real `ReportPanel` wherever a report is shown — product, marketing, or demo — with staged data clearly staged (PRODUCT.md: never dressed up as live analysis).
 

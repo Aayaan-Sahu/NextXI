@@ -4,13 +4,15 @@ import { linkChild } from "@/app/dashboard/guardian/actions";
 import { GuardianChildSwitcher } from "@/components/guardian-child-switcher";
 import {
   Badge,
+  EmptyState,
   Field,
+  GatePanel,
   Kicker,
   Notice,
-  PageHeader,
   PageShell,
   Panel,
   PrimaryButton,
+  StatusBoard,
   TextInput,
   TextLink,
 } from "@/components/ui";
@@ -78,15 +80,22 @@ export default async function GuardianDashboardPage({
   if (!child) {
     return (
       <PageShell>
-        <PageHeader subtitle={user.email} title={`Welcome ${profile.guardian.name}`} />
-        <Notice tone="error">{error}</Notice>
-        <Panel title="Link your child">
-          <p className="mb-4 text-sm text-ink-600">
-            Your account isn&apos;t linked to a player yet. Enter the code shown on your
-            child&apos;s dashboard to link their account.
-          </p>
-          <LinkChildForm />
-        </Panel>
+        <div className="-mx-6 mb-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+          <GatePanel
+            description={
+              <div>
+                <p className="mb-4">
+                  Your account isn&apos;t linked to a player yet. Enter the code shown on
+                  your child&apos;s dashboard to link their account.
+                </p>
+                <Notice tone="error">{error}</Notice>
+                <LinkChildForm />
+              </div>
+            }
+            kicker="GUARDIAN GATE"
+            title={`Welcome ${profile.guardian.name}`}
+          />
+        </div>
       </PageShell>
     );
   }
@@ -104,31 +113,39 @@ export default async function GuardianDashboardPage({
     ["Weight", child.weightKg ? `${child.weightKg} kg` : null],
   ].filter((entry): entry is [string, string] => Boolean(entry[1]));
 
+  const stats = [
+    `${videos.length} video${videos.length === 1 ? "" : "s"}`,
+    `${connections?.length ?? 0} connection${(connections?.length ?? 0) === 1 ? "" : "s"}`,
+  ];
+
   return (
     <PageShell>
-      <PageHeader
-        subtitle="You approved this account and can review everything your child shares."
-        title={`${child.name}'s player account`}
-      />
-      <GuardianChildSwitcher
-        basePath="/dashboard/guardian"
-        players={children}
-        selectedId={child.id}
-      />
-      <Notice tone="error">{error}</Notice>
-      <Notice>{message}</Notice>
       <div className="grid gap-6">
+        <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
+          <StatusBoard
+            actions={
+              child.roles.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {child.roles.map((role) => (
+                    <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
+                  ))}
+                </div>
+              ) : undefined
+            }
+            kicker="GUARDIAN HOME"
+            stats={stats}
+            title={child.name}
+          />
+        </div>
+        <GuardianChildSwitcher
+          basePath="/dashboard/guardian"
+          players={children}
+          selectedId={child.id}
+        />
+        <Notice tone="error">{error}</Notice>
+        <Notice>{message}</Notice>
         <Panel>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <Kicker>Profile</Kicker>
-            {child.roles.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {child.roles.map((role) => (
-                  <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
-                ))}
-              </div>
-            )}
-          </div>
+          <Kicker>Profile</Kicker>
           <dl className="mt-[18px] grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {facts.map(([label, value]) => (
               <div key={label}>
@@ -177,16 +194,21 @@ export default async function GuardianDashboardPage({
               ))}
             </ul>
           ) : (
-            <p className="mt-3 text-sm text-ink-600">
-              No connections yet. Requests your child sends or receives will appear here.
-            </p>
+            <div className="mt-4">
+              <EmptyState>
+                No connections yet. Requests your child sends or receives will appear here.
+              </EmptyState>
+            </div>
           )}
         </Panel>
-        <VideoGrid
-          emptyMessage="No videos yet. Videos your child uploads will appear here."
-          linkBase="/dashboard/guardian/videos"
-          videos={videos}
-        />
+        <div className="grid gap-3">
+          <Kicker>Library</Kicker>
+          <VideoGrid
+            emptyMessage="No videos yet. Videos your child uploads will appear here."
+            linkBase="/dashboard/guardian/videos"
+            videos={videos}
+          />
+        </div>
         <Panel title="Link another child">
           <p className="mb-4 text-sm text-ink-600">
             Enter the code shown on your child&apos;s dashboard to link their account.

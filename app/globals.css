@@ -67,3 +67,40 @@
     rgb(0 0 0 / 0.12) 24px 48px
   );
 }
+
+/* Product mount reveals — CSS so first paint stays visible and animations
+   complete even when JS animation frames are throttled. */
+@keyframes crease-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes crease-rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@utility animate-crease-fade {
+  animation: crease-fade 0.25s ease-out both;
+}
+
+@utility animate-crease-rise {
+  animation: crease-rise 0.28s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-crease-fade,
+  .animate-crease-rise {
+    animation: none;
+  }
+}

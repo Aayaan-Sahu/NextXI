@@ -1,6 +1,7 @@
 import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { signOut } from "@/app/auth/actions";
+import { AuthMount } from "@/components/auth-mount";
 
 type Children = {
   children: ReactNode;
@@ -48,13 +49,41 @@ export function Kicker({
   );
 }
 
-export function AuthShell({ children }: Children) {
+/**
+ * Split auth layout: seam-stitch brand pane + cream form pane on md+,
+ * compact brand band stacked above a true-float card on mobile.
+ */
+export function AuthShell({
+  brandKicker = "MATCH DAY",
+  brandLine = "Upload technique. Earn the scoreboard.",
+  children,
+}: Children & {
+  brandKicker?: string;
+  brandLine?: string;
+}) {
   return (
-    <main className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-seam-stitch p-6 sm:p-12">
-      <div className="absolute top-8 left-6 sm:top-10 sm:left-12">
-        <Wordmark size="lg" tone="dark" />
+    <main className="flex min-h-dvh flex-col md:grid md:grid-cols-2">
+      <aside className="relative flex shrink-0 flex-col overflow-hidden bg-seam-stitch px-6 py-8 sm:px-10 md:min-h-dvh md:px-12 md:py-14">
+        <div className="md:hidden">
+          <Wordmark size="lg" tone="dark" />
+        </div>
+        <div className="hidden md:block">
+          <Wordmark size="xl" tone="dark" />
+        </div>
+        <AuthMount className="relative z-10 mt-6 max-w-sm md:mt-10" variant="fade">
+          <Kicker tone="dark">{brandKicker}</Kicker>
+          <p className="mt-3 text-[15px] leading-relaxed text-cream-200">{brandLine}</p>
+        </AuthMount>
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-thumb-scanlines opacity-30 md:h-24"
+        />
+      </aside>
+      <div className="flex flex-1 items-center justify-center bg-cream-200 px-6 py-10 sm:px-12 md:py-14">
+        <AuthMount className="w-full max-w-[560px]" variant="form">
+          {children}
+        </AuthMount>
       </div>
-      {children}
     </main>
   );
 }
@@ -63,16 +92,19 @@ export function AuthCard({
   children,
   description,
   footer,
+  kicker = "PLAYER GATE",
   title,
 }: Children & {
   description?: string;
   footer?: ReactNode;
+  kicker?: string;
   title: string;
 }) {
   return (
-    <section className="relative w-full max-w-[560px] overflow-hidden rounded-xl bg-white text-ink-900 shadow-2xl shadow-black/45">
+    <section className="relative w-full overflow-hidden rounded-xl bg-white text-ink-900 shadow-2xl shadow-black/45 md:rounded-[10px] md:border md:border-cream-400 md:shadow-none">
       <div className="p-9">
-        <h1 className="font-display text-[26px] leading-tight font-bold uppercase">
+        <Kicker>{kicker}</Kicker>
+        <h1 className="mt-2.5 font-display text-[26px] leading-tight font-bold uppercase">
           {title}
         </h1>
         {description && <p className="mt-2 text-sm text-ink-600">{description}</p>}
@@ -268,6 +300,132 @@ export function Spinner() {
       className="inline-block size-5 animate-spin rounded-full border-2 border-cream-500 border-t-pitch-900"
       role="status"
     />
+  );
+}
+
+/**
+ * Compact home status strip — who you are and what's live.
+ * Light tone is the product default; dark is a thin match-day strip.
+ */
+export function StatusBoard({
+  actions,
+  kicker,
+  stats,
+  title,
+  tone = "light",
+}: {
+  actions?: ReactNode;
+  kicker: string;
+  stats?: string[];
+  title: string;
+  tone?: "light" | "dark";
+}) {
+  const dark = tone === "dark";
+
+  return (
+    <section
+      className={
+        dark
+          ? "relative overflow-hidden rounded-[12px] bg-pitch-800 px-6 py-5 text-cream-200"
+          : "rounded-[10px] border border-cream-400 bg-white px-6 py-5"
+      }
+    >
+      {dark ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
+        />
+      ) : null}
+      <div className="relative flex flex-wrap items-end justify-between gap-4">
+        <div className="min-w-0">
+          <Kicker tone={dark ? "dark" : "light"}>{kicker}</Kicker>
+          <h1
+            className={`mt-2 font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-[32px] ${
+              dark ? "text-cream-200" : "text-ink-900"
+            }`}
+          >
+            {title}
+          </h1>
+          {stats && stats.length > 0 ? (
+            <p
+              className={`mt-2.5 font-mono text-[11.5px] ${
+                dark ? "text-sage-400" : "text-ink-600"
+              }`}
+            >
+              {stats.join(" · ")}
+            </p>
+          ) : null}
+        </div>
+        {actions}
+      </div>
+    </section>
+  );
+}
+
+/** Dashed empty-state box with optional scanline media and gold CTA. */
+export function EmptyState({
+  action,
+  children,
+  media = false,
+}: {
+  action?: ReactNode;
+  children: ReactNode;
+  media?: boolean;
+}) {
+  return (
+    <div className="rounded-[10px] border border-dashed border-cream-500 bg-cream-50/60 px-6 py-10 text-center">
+      {media ? (
+        <div className="mx-auto mb-4 grid aspect-video w-full max-w-[220px] place-items-center rounded-md bg-thumb-scanlines text-[26px] text-gold-500">
+          ▶
+        </div>
+      ) : null}
+      <div className="text-sm text-ink-600">{children}</div>
+      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
+    </div>
+  );
+}
+
+/**
+ * Gated-account hero: large mono code (guardian approval) or review message
+ * treated as a scoreboard readout rather than a footnote.
+ */
+export function GatePanel({
+  children,
+  code,
+  description,
+  kicker,
+  title,
+}: {
+  children?: ReactNode;
+  code?: string;
+  description: ReactNode;
+  kicker: string;
+  title: string;
+}) {
+  return (
+    <section className="overflow-hidden rounded-[12px] border border-cream-400 bg-white">
+      <div className="relative bg-pitch-800 px-6 py-7 text-cream-200 sm:px-8">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
+        />
+        <div className="relative">
+          <Kicker tone="dark">{kicker}</Kicker>
+          <h1 className="mt-2 font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-[32px]">
+            {title}
+          </h1>
+          {code ? (
+            <p className="mt-6 font-mono text-[2rem] tracking-[0.28em] text-gold-500 sm:text-[2.75rem]">
+              {code}
+            </p>
+          ) : null}
+        </div>
+      </div>
+      <div className="px-6 py-6 sm:px-8">
+        <div className="text-sm leading-relaxed text-ink-600">{description}</div>
+        {children}
+      </div>
+    </section>
   );
 }
 

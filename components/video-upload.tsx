@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
 import { RecordingGuideButton } from "@/components/recording-guide";
-import { Field, Panel, PrimaryButton } from "@/components/ui";
+import { Field, PrimaryButton } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
   HANDEDNESS_LABELS,
@@ -234,7 +234,7 @@ export function VideoUpload({
   }
 
   return (
-    <Panel>
+    <section className="rounded-[10px] border border-dashed border-cream-500 bg-white p-6">
       <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-1">
         <Field>
           Discipline
@@ -342,6 +342,6 @@ export function VideoUpload({
 
         {error ? <p className="text-sm text-rust-700">{error}</p> : null}
       </section>
-    </Panel>
+    </section>
   );
 }

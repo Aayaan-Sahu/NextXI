@@ -43,7 +43,8 @@ export function AuthPanel({
             </>
           )
         }
-        title={isSignUp ? "Create your account" : "Sign in to your account"}
+        kicker={isSignUp ? "NEW PLAYER" : "PLAYER GATE"}
+        title={isSignUp ? "Create account" : "Sign in"}
       >
         <Form action={isSignUp ? signUp : signIn} className="mt-6">
           <Field>
@@ -107,7 +108,7 @@ export function ResetPasswordPanel({
   message?: string;
 }) {
   return (
-    <AuthShell>
+    <AuthShell brandKicker="ACCOUNT" brandLine="Reset access. Get back to the crease.">
       <AuthCard
         description={
           hasUser
@@ -115,7 +116,8 @@ export function ResetPasswordPanel({
             : "We will send you a link to reset your password."
         }
         footer={<TextLink href="/auth">Back to sign in</TextLink>}
-        title={hasUser ? "Set a new password" : "Reset your password"}
+        kicker="PASSWORD"
+        title={hasUser ? "Set a new password" : "Reset password"}
       >
         <Form action={hasUser ? updatePassword : requestPasswordReset} className="mt-6">
           {hasUser ? (
@@ -157,10 +159,11 @@ export function CheckEmailPanel({
   message?: string;
 }) {
   return (
-    <AuthShell>
+    <AuthShell brandKicker="VERIFY" brandLine="Confirm your email. Then earn the scoreboard.">
       <AuthCard
         description="If this is a new account, confirm it from the verification email. If the account already exists, sign in or reset your password."
         footer={<TextLink href="/auth">Back to sign in</TextLink>}
+        kicker="INBOX"
         title="Check your email"
       >
         <Form action={resendVerification} className="mt-6">
