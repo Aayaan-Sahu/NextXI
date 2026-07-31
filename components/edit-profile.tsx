@@ -120,7 +120,7 @@ export function EditPlayerProfilePanel({
       kicker="Player profile"
     >
       <p className="-mt-2 mb-4 text-[12.5px] leading-relaxed text-ink-600">
-        Public profiles appear in the coach directory, where any approved coach
+        Public profiles appear in the player directory, where any approved coach
         can view your profile, videos, and coaching reports. Private profiles
         are visible only to coaches you&apos;re connected with.
       </p>

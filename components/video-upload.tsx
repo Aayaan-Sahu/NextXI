@@ -132,6 +132,9 @@ export function VideoUpload({
   function stashFile(file: File | null | undefined) {
     if (!file || uploading) return;
 
+    // Cleared before validation so a rejected pick can retry the same file.
+    if (inputRef.current) inputRef.current.value = "";
+
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
@@ -140,7 +143,6 @@ export function VideoUpload({
 
     setError(null);
     setPendingFile(file);
-    if (inputRef.current) inputRef.current.value = "";
   }
 
   function resetTags() {
@@ -260,31 +262,24 @@ export function VideoUpload({
     }
   }
 
-  const idle = !uploading && pendingFile === null;
-
   return (
+    // Drag handlers stay attached in every state so a stray drop never
+    // navigates the tab to the file: mid-upload drops are inert (stashFile
+    // guards), and a drop over a staged file replaces it.
     <section
       className={`relative rounded-[10px] border border-dashed p-6 ${
         dragActive ? "border-gold-500 bg-cream-50" : "border-cream-500 bg-white"
       }`}
-      onDragLeave={idle ? () => setDragActive(false) : undefined}
-      onDragOver={
-        idle
-          ? (event) => {
-              event.preventDefault();
-              setDragActive(true);
-            }
-          : undefined
-      }
-      onDrop={
-        idle
-          ? (event) => {
-              event.preventDefault();
-              setDragActive(false);
-              stashFile(event.dataTransfer.files[0]);
-            }
-          : undefined
-      }
+      onDragLeave={() => setDragActive(false)}
+      onDragOver={(event) => {
+        event.preventDefault();
+        if (!uploading) setDragActive(true);
+      }}
+      onDrop={(event) => {
+        event.preventDefault();
+        setDragActive(false);
+        stashFile(event.dataTransfer.files[0]);
+      }}
     >
       <RecordingGuideButton />
       <input

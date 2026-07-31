@@ -321,16 +321,6 @@ export function SecondaryButton(props: ComponentProps<"button">) {
   );
 }
 
-export function Spinner() {
-  return (
-    <span
-      aria-label="Loading"
-      className="inline-block size-5 motion-safe:animate-spin rounded-full border-2 border-cream-500 border-t-pitch-900"
-      role="status"
-    />
-  );
-}
-
 /**
  * Compact home status strip — who you are and what's live.
  * Light tone is the product default; dark is a thin match-day strip.
@@ -468,19 +458,9 @@ export function GatePanel({
   );
 }
 
-export function LoadingScreen() {
-  return (
-    <div className="flex flex-1 items-center justify-center py-24">
-      <Spinner />
-    </div>
-  );
-}
-
-/** Shimmer placeholder block for skeleton loading screens. */
+/** Shimmer placeholder block for skeleton loading screens; caller sets the radius. */
 export function SkeletonBlock({ className = "" }: { className?: string }) {
-  return (
-    <div aria-hidden className={`motion-safe:animate-pulse rounded-md bg-cream-300 ${className}`} />
-  );
+  return <div aria-hidden className={`motion-safe:animate-pulse bg-cream-300 ${className}`} />;
 }
 
 export function SignOutButton() {

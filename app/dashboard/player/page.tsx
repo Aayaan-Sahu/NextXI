@@ -215,7 +215,7 @@ export default async function PlayerDashboardPage() {
 
         <DashboardRevealItem className="grid gap-3" index={revealBase + 2}>
           <Kicker>Library</Kicker>
-          <VideoGrid deleteAction={deleteVideo} emptyMedia videos={videos} />
+          <VideoGrid deleteAction={deleteVideo} emptyMedia stagger={false} videos={videos} />
         </DashboardRevealItem>
 
         <DashboardRevealItem index={revealBase + 3}>

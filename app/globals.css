@@ -94,8 +94,10 @@
   animation: crease-fade 0.25s ease-out forwards;
 }
 
+/* `both` so a delayed stagger holds the from-state during its delay window
+   instead of flashing in, out, and back in. */
 @utility animate-crease-rise {
-  animation: crease-rise 0.28s ease-out forwards;
+  animation: crease-rise 0.28s ease-out both;
 }
 
 @media (prefers-reduced-motion: reduce) {

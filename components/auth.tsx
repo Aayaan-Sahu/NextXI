@@ -33,12 +33,22 @@ export function AuthPanel({
   mode: AuthMode;
 }) {
   const [mode, setMode] = useState<AuthMode>(initialMode);
+  // A mode switch dismisses the server error for good — toggling back must
+  // not replay a stale failure. A NEW error prop (fresh failed submit)
+  // un-dismisses via the render-time prop check below.
+  const [dismissed, setDismissed] = useState(false);
+  const [lastError, setLastError] = useState(error);
+  if (error !== lastError) {
+    setLastError(error);
+    setDismissed(false);
+  }
   const isSignUp = mode === "sign-up";
 
   // Shallow URL sync: the switch is instant and client-side, but the URL
   // stays shareable and the back button still lands on the right mode.
   function switchMode(next: AuthMode) {
     setMode(next);
+    setDismissed(true);
     window.history.replaceState(null, "", `/auth?mode=${next}`);
   }
 
@@ -117,7 +127,7 @@ export function AuthPanel({
         </Form>
 
         {/* A server-reported error belongs to the mode it happened in. */}
-        <Notice tone="error">{mode === initialMode ? error : null}</Notice>
+        <Notice tone="error">{!dismissed && mode === initialMode ? error : null}</Notice>
       </AuthCard>
       </div>
     </AuthShell>

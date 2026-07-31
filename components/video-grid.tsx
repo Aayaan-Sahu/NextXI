@@ -64,6 +64,7 @@ export function VideoGrid({
   emptyMedia = false,
   deleteAction,
   deleteLabel = "Delete",
+  stagger = true,
 }: {
   videos: GridVideo[];
   linkBase?: string;
@@ -74,6 +75,8 @@ export function VideoGrid({
   deleteAction?: (formData: FormData) => Promise<void>;
   /** Accessible verb for the action button, e.g. "Remove from session". */
   deleteLabel?: string;
+  /** Off when a reveal wrapper already animates the section, to avoid doubling. */
+  stagger?: boolean;
 }) {
   if (!videos.length) {
     return <EmptyState media={emptyMedia}>{emptyMessage}</EmptyState>;
@@ -83,9 +86,9 @@ export function VideoGrid({
     <ul className="grid grid-cols-3 gap-5 max-md:grid-cols-2 max-sm:grid-cols-1">
       {videos.map((video, index) => (
         <li
-          className="relative animate-crease-rise"
+          className={stagger ? "relative animate-crease-rise" : "relative"}
           key={video.id}
-          style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
+          style={stagger ? { animationDelay: `${Math.min(index, 8) * 50}ms` } : undefined}
         >
           <Link
             className="group block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
