@@ -78,21 +78,33 @@ export function VideoGrid({
 
   return (
     <ul className="grid grid-cols-3 gap-5 max-md:grid-cols-2 max-sm:grid-cols-1">
-      {videos.map((video) => (
-        <li className="relative" key={video.id}>
+      {videos.map((video, index) => (
+        <li
+          className="relative animate-crease-rise"
+          key={video.id}
+          style={{ animationDelay: `${Math.min(index, 8) * 50}ms` }}
+        >
           <Link
-            className="block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
+            className="group block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
             href={`${linkBase}/${video.id}`}
           >
-            <div className="relative">
+            <div className="relative overflow-hidden">
               {video.thumbnailUrl ? (
-                // Signed, short-lived storage URL; next/image would need remote host config.
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  alt=""
-                  className="aspect-video w-full bg-pitch-800 object-cover"
-                  src={video.thumbnailUrl}
-                />
+                <>
+                  {/* Signed, short-lived storage URL; next/image would need remote host config. */}
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    alt=""
+                    className="aspect-video w-full bg-pitch-800 object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.03]"
+                    src={video.thumbnailUrl}
+                  />
+                  <div
+                    aria-hidden
+                    className="pointer-events-none absolute inset-0 grid place-items-center bg-pitch-950/35 text-[26px] text-cream-200 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
+                  >
+                    ▶
+                  </div>
+                </>
               ) : (
                 <div className="grid aspect-video place-items-center bg-thumb-scanlines text-[26px] text-gold-500">
                   ▶

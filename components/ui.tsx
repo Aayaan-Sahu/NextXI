@@ -458,6 +458,13 @@ export function LoadingScreen() {
   );
 }
 
+/** Shimmer placeholder block for skeleton loading screens. */
+export function SkeletonBlock({ className = "" }: { className?: string }) {
+  return (
+    <div aria-hidden className={`motion-safe:animate-pulse rounded-md bg-cream-300 ${className}`} />
+  );
+}
+
 export function SignOutButton() {
   return (
     <form action={signOut}>
