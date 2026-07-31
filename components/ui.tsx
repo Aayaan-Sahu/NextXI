@@ -290,8 +290,8 @@ export function PrimaryButton({
       {...props}
       className={
         variant === "rust"
-          ? "cursor-pointer rounded-md bg-rust-600 px-4 py-2.5 text-sm font-bold text-cream-50 hover:bg-rust-700"
-          : "cursor-pointer rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600"
+          ? "cursor-pointer rounded-md bg-rust-600 px-4 py-2.5 text-sm font-bold text-cream-50 hover:bg-rust-700 disabled:cursor-default disabled:opacity-55 disabled:hover:bg-rust-600"
+          : "cursor-pointer rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600 disabled:cursor-default disabled:opacity-55 disabled:hover:bg-gold-500"
       }
     />
   );

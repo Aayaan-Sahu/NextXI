@@ -7,6 +7,7 @@ import { RecordingGuideButton } from "@/components/recording-guide";
 import { Field, PrimaryButton, Select } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
+  formatVideoSize,
   HANDEDNESS_LABELS,
   MAX_VIDEO_SIZE_BYTES,
   VIDEO_BUCKET,
@@ -119,21 +120,48 @@ export function VideoUpload({
   const [error, setError] = useState<string | null>(null);
   const [progress, setProgress] = useState(0);
   const [uploading, setUploading] = useState(false);
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
   const [discipline, setDiscipline] = useState<VideoDiscipline | "">(session?.category ?? "");
   const [variation, setVariation] = useState("");
   const [handedness, setHandedness] = useState<HandednessOption | "">("");
 
-  async function handleFile(file: File | null | undefined) {
-    if (!file || uploading) return;
+  const tagsComplete = Boolean(discipline && variation && handedness);
 
-    if (!discipline || !variation || !handedness) {
-      setError("Choose a discipline, variation, and handedness before uploading.");
-      return;
-    }
+  // Dropzone-first: a picked file is stashed, tagged, then uploaded — the
+  // form never leads with three empty dropdowns.
+  function stashFile(file: File | null | undefined) {
+    if (!file || uploading) return;
 
     const validationError = validateFile(file);
     if (validationError) {
       setError(validationError);
+      return;
+    }
+
+    setError(null);
+    setPendingFile(file);
+    if (inputRef.current) inputRef.current.value = "";
+  }
+
+  function resetTags() {
+    setVariation("");
+    setHandedness("");
+    if (!session) setDiscipline("");
+  }
+
+  function clearPending() {
+    if (uploading) return;
+    setPendingFile(null);
+    setError(null);
+    resetTags();
+  }
+
+  async function startUpload() {
+    const file = pendingFile;
+    if (!file || uploading) return;
+
+    if (!tagsComplete) {
+      setError("Choose a discipline, variation, and handedness first.");
       return;
     }
     if (!supabasePublishableKey) {
@@ -222,120 +250,151 @@ export function VideoUpload({
       }
 
       router.refresh();
+      setPendingFile(null);
+      resetTags();
     } catch (uploadError) {
+      // The stashed file stays put, so a failed upload retries with one click.
       setError(uploadError instanceof Error ? uploadError.message : "Upload failed.");
     } finally {
       setUploading(false);
-      if (inputRef.current) inputRef.current.value = "";
     }
   }
 
-  return (
-    <section className="rounded-[10px] border border-dashed border-cream-500 bg-white p-6">
-      <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-1">
-        <Field>
-          Discipline
-          <Select
-            disabled={uploading || Boolean(session)}
-            onChange={(event) => {
-              setDiscipline(event.target.value as VideoDiscipline | "");
-              setVariation("");
-            }}
-            value={discipline}
-          >
-            <option value="">Select…</option>
-            {Object.entries(VIDEO_DISCIPLINES).map(([key, { label }]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-        <Field>
-          {discipline === "BATTING" ? "Shot" : "Variation"}
-          <Select
-            disabled={uploading || !discipline}
-            onChange={(event) => setVariation(event.target.value)}
-            value={variation}
-          >
-            <option value="">Select…</option>
-            {discipline &&
-              VIDEO_DISCIPLINES[discipline].variations.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-          </Select>
-        </Field>
-        <Field>
-          Handedness
-          <Select
-            disabled={uploading}
-            onChange={(event) => setHandedness(event.target.value as HandednessOption | "")}
-            value={handedness}
-          >
-            <option value="">Select…</option>
-            {Object.entries(HANDEDNESS_LABELS).map(([key, label]) => (
-              <option key={key} value={key}>
-                {label}
-              </option>
-            ))}
-          </Select>
-        </Field>
-      </div>
-      <section
-        className={`relative mt-4 flex flex-col items-center gap-2 rounded-lg border-2 border-dashed px-6 py-[38px] text-center ${
-          dragActive ? "border-gold-500 bg-cream-50" : "border-cream-500"
-        }`}
-        onDragLeave={() => setDragActive(false)}
-        onDragOver={(event) => {
-          event.preventDefault();
-          setDragActive(true);
-        }}
-        onDrop={(event) => {
-          event.preventDefault();
-          setDragActive(false);
-          handleFile(event.dataTransfer.files[0]);
-        }}
-      >
-        <RecordingGuideButton />
-        <input
-          accept={acceptedTypes}
-          className="hidden"
-          disabled={uploading}
-          onChange={(event) => handleFile(event.target.files?.[0])}
-          ref={inputRef}
-          type="file"
-        />
+  const idle = !uploading && pendingFile === null;
 
-        {uploading ? (
+  return (
+    <section
+      className={`relative rounded-[10px] border border-dashed p-6 ${
+        dragActive ? "border-gold-500 bg-cream-50" : "border-cream-500 bg-white"
+      }`}
+      onDragLeave={idle ? () => setDragActive(false) : undefined}
+      onDragOver={
+        idle
+          ? (event) => {
+              event.preventDefault();
+              setDragActive(true);
+            }
+          : undefined
+      }
+      onDrop={
+        idle
+          ? (event) => {
+              event.preventDefault();
+              setDragActive(false);
+              stashFile(event.dataTransfer.files[0]);
+            }
+          : undefined
+      }
+    >
+      <RecordingGuideButton />
+      <input
+        accept={acceptedTypes}
+        className="hidden"
+        onChange={(event) => stashFile(event.target.files?.[0])}
+        ref={inputRef}
+        type="file"
+      />
+
+      {uploading ? (
+        <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
+          <p className="w-full max-w-[420px] truncate font-mono text-xs text-ink-600">
+            {pendingFile?.name}
+          </p>
           <div className="grid w-full max-w-[420px] gap-2">
             <div className="h-1.5 overflow-hidden rounded-sm bg-cream-300">
-              <div
-                className="h-full bg-gold-500"
-                style={{ width: `${progress}%` }}
-              />
+              <div className="h-full bg-gold-500" style={{ width: `${progress}%` }} />
             </div>
             <p className="font-mono text-xs text-ink-600">{progress}% uploaded</p>
           </div>
-        ) : (
-          <>
-            <p className="font-display text-[19px] font-semibold tracking-[.03em] uppercase">
-              Drag and drop a video to upload
+        </div>
+      ) : pendingFile ? (
+        <div className="grid animate-crease-rise gap-4">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pr-10">
+            <p className="min-w-0 truncate font-mono text-[12.5px] text-ink-900">
+              {pendingFile.name}
+              <span className="text-ink-600"> · {formatVideoSize(pendingFile.size)}</span>
             </p>
-            <p className="text-[13px] text-ink-600">
-              MP4, MOV, or WebM, up to 500 MB.
-            </p>
-            <div className="mt-2.5">
-              <PrimaryButton onClick={() => inputRef.current?.click()} type="button">
-                Browse files
-              </PrimaryButton>
-            </div>
-          </>
-        )}
+            <button
+              className="cursor-pointer text-[13px] font-semibold text-rust-600 hover:text-rust-700"
+              onClick={clearPending}
+              type="button"
+            >
+              Choose a different file
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-1">
+            <Field>
+              Discipline
+              <Select
+                disabled={Boolean(session)}
+                onChange={(event) => {
+                  setDiscipline(event.target.value as VideoDiscipline | "");
+                  setVariation("");
+                }}
+                value={discipline}
+              >
+                <option value="">Select…</option>
+                {Object.entries(VIDEO_DISCIPLINES).map(([key, { label }]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+            <Field>
+              {discipline === "BATTING" ? "Shot" : "Variation"}
+              <Select
+                disabled={!discipline}
+                onChange={(event) => setVariation(event.target.value)}
+                value={variation}
+              >
+                <option value="">Select…</option>
+                {discipline &&
+                  VIDEO_DISCIPLINES[discipline].variations.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+              </Select>
+            </Field>
+            <Field>
+              Handedness
+              <Select
+                onChange={(event) => setHandedness(event.target.value as HandednessOption | "")}
+                value={handedness}
+              >
+                <option value="">Select…</option>
+                {Object.entries(HANDEDNESS_LABELS).map(([key, label]) => (
+                  <option key={key} value={key}>
+                    {label}
+                  </option>
+                ))}
+              </Select>
+            </Field>
+          </div>
+          <div>
+            <PrimaryButton disabled={!tagsComplete} onClick={startUpload} type="button">
+              Start upload
+            </PrimaryButton>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center gap-2 px-6 py-[38px] text-center">
+          <p className="font-display text-[19px] font-semibold tracking-[.03em] uppercase">
+            Drag and drop a video to upload
+          </p>
+          <p className="text-[13px] text-ink-600">
+            MP4, MOV, or WebM, up to 500 MB. You&apos;ll tag it before it uploads.
+          </p>
+          <div className="mt-2.5">
+            <PrimaryButton onClick={() => inputRef.current?.click()} type="button">
+              Browse files
+            </PrimaryButton>
+          </div>
+        </div>
+      )}
 
-        {error ? <p className="text-sm text-rust-700">{error}</p> : null}
-      </section>
+      {error ? <p className="mt-3 text-center text-sm text-rust-700">{error}</p> : null}
     </section>
   );
 }
