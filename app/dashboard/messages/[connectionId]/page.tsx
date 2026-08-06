@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { MessageThread } from "@/components/messaging";
+import { Kicker } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { getThread } from "@/lib/messages";
 
@@ -23,24 +24,29 @@ export default async function ThreadPage({ params }: { params: Params }) {
 
   return (
     <>
-      <header className="flex items-center gap-3 border-b border-cream-400 bg-cream-100 px-4 py-3.5 md:px-6">
-        <Link
-          aria-label="Back to conversations"
-          className="-ml-2.5 flex size-11 shrink-0 items-center justify-center rounded-full text-lg text-ink-900 no-underline active:bg-cream-200 md:hidden"
-          href="/dashboard/messages"
-        >
-          ←
-        </Link>
-        <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-pitch-900 text-[15px] font-bold text-gold-500">
-          {thread.counterpart.name.charAt(0).toUpperCase()}
-        </span>
-        <div className="min-w-0">
-          <p className="truncate text-[15px] leading-tight font-bold">
-            {thread.counterpart.name}
-          </p>
-          {subtitle ? (
-            <p className="truncate font-mono text-[11.5px] text-ink-600">{subtitle}</p>
-          ) : null}
+      <header className="border-b border-cream-400 bg-white px-4 py-4 md:px-6">
+        <div className="flex items-center gap-3">
+          <Link
+            aria-label="Back to conversations"
+            className="-ml-2.5 flex size-11 shrink-0 items-center justify-center rounded-full text-lg text-ink-900 no-underline active:bg-cream-200 md:hidden"
+            href="/dashboard/messages"
+          >
+            ←
+          </Link>
+          <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-pitch-900 text-[15px] font-bold text-gold-500">
+            {thread.counterpart.name.charAt(0).toUpperCase()}
+          </span>
+          <div className="min-w-0">
+            <Kicker>Conversation</Kicker>
+            <p className="mt-1 truncate font-display text-[20px] leading-tight font-bold tracking-[.02em] uppercase text-ink-900">
+              {thread.counterpart.name}
+            </p>
+            {subtitle ? (
+              <p className="mt-0.5 truncate font-mono text-[11.5px] text-ink-600">
+                {subtitle}
+              </p>
+            ) : null}
+          </div>
         </div>
       </header>
       <MessageThread

@@ -2,8 +2,12 @@ import { redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
 import { CoachDirectory } from "@/components/coach-directory";
 import { ConnectionsPanel } from "@/components/connections";
+import {
+  DashboardReveal,
+  DashboardRevealItem,
+} from "@/components/dashboard-reveal";
 import { PlayerDirectory } from "@/components/player-directory";
-import { Notice, PageHeader, PageShell } from "@/components/ui";
+import { Notice, PageShell, StatusBand, StatusBoard } from "@/components/ui";
 import { isAdmin, requireUser } from "@/lib/auth";
 import {
   getCoachDirectory,
@@ -22,6 +26,16 @@ type SearchParams = Promise<{
   country?: string | string[];
   searched?: string | string[];
 }>;
+
+function connectionNote(incoming: number, connected: number) {
+  if (incoming > 0) {
+    return "Someone's waiting on a yes — clear the inbox first, then keep building the XI.";
+  }
+  if (connected === 0) {
+    return "Your network starts with one request — find a coach or player and send it.";
+  }
+  return "Keep the circle tight — coaches who know your game, players who push it.";
+}
 
 export default async function ConnectionsPage({
   searchParams,
@@ -61,32 +75,52 @@ export default async function ConnectionsPage({
       : Promise.resolve(null),
   ]);
 
+  const incoming = connectionData.incomingPending.length;
+  const outgoing = connectionData.outgoingPending.length;
+  const connected = connectionData.accepted.length;
+  const stats = [
+    `${connected} connected`,
+    `${incoming} incoming`,
+    `${outgoing} outgoing`,
+  ];
+
   return (
     <PageShell>
-      <PageHeader
-        subtitle="Find players and coaches by username and manage your requests."
-        title="Connections"
-      />
-      <Notice tone="error">{connectionError}</Notice>
-      <Notice>{connectionMessage}</Notice>
-      <div
-        className={`grid items-start gap-6 ${
-          canSearchPlayers
-            ? "lg:grid-cols-[1fr_1.25fr]"
-            : "lg:grid-cols-[1.25fr_1fr]"
-        }`}
-      >
-        {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
-        <ConnectionsPanel data={connectionData} />
-        {canSearchPlayers ? (
-          <PlayerDirectory
-            country={country}
-            discipline={discipline}
-            players={players ?? []}
-            searched={searched}
-          />
-        ) : null}
-      </div>
+      <DashboardReveal className="grid gap-9">
+        <DashboardRevealItem index={0}>
+          <StatusBand>
+            <StatusBoard
+              kicker="CONNECTIONS"
+              note={connectionNote(incoming, connected)}
+              stats={stats}
+              title="Your network."
+            />
+          </StatusBand>
+        </DashboardRevealItem>
+
+        <DashboardRevealItem index={1}>
+          <Notice tone="error">{connectionError}</Notice>
+          <Notice>{connectionMessage}</Notice>
+          <div
+            className={`grid items-start gap-6 ${
+              canSearchPlayers
+                ? "lg:grid-cols-[1fr_1.25fr]"
+                : "lg:grid-cols-[1.25fr_1fr]"
+            }`}
+          >
+            {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
+            <ConnectionsPanel data={connectionData} />
+            {canSearchPlayers ? (
+              <PlayerDirectory
+                country={country}
+                discipline={discipline}
+                players={players ?? []}
+                searched={searched}
+              />
+            ) : null}
+          </div>
+        </DashboardRevealItem>
+      </DashboardReveal>
     </PageShell>
   );
 }

@@ -5,7 +5,7 @@ import {
   PLAYER_ROLE_LABELS,
   PLAYER_ROLE_OPTIONS,
 } from "@/lib/players";
-import { Panel, Select } from "@/components/ui";
+import { Kicker, Panel, Select } from "@/components/ui";
 
 /**
  * Searchable player discovery for coaches. A plain GET form: filters live in
@@ -23,8 +23,9 @@ export function PlayerDirectory({
   searched: boolean;
 }) {
   return (
-    <Panel title="Find a player">
-      <form className="flex flex-wrap items-center gap-2.5" method="GET">
+    <Panel>
+      <Kicker>Find a player</Kicker>
+      <form className="mt-4 flex flex-wrap items-center gap-2.5" method="GET">
         <input name="searched" type="hidden" value="1" />
         <Select
           aria-label="Discipline"
@@ -73,21 +74,26 @@ export function PlayerDirectory({
                 className="flex items-center justify-between gap-4 py-4 hover:text-rust-700"
                 href={`/dashboard/coach/players/${player.id}`}
               >
-                <div className="min-w-0">
-                  <p className="text-[14.5px] font-bold">{player.name}</p>
-                  {player.roles.length ? (
-                    <p className="mt-1 text-[12.5px] text-ink-600">
-                      {player.roles
-                        .map((role) => PLAYER_ROLE_LABELS[role])
-                        .join(" · ")}
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-[12.5px] text-ink-600">
-                      No disciplines listed.
-                    </p>
-                  )}
+                <div className="flex min-w-0 items-center gap-3">
+                  <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-pitch-800 text-[15px] font-bold text-cream-200">
+                    {player.name.charAt(0).toUpperCase()}
+                  </span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-bold">{player.name}</p>
+                    {player.roles.length ? (
+                      <p className="mt-0.5 truncate text-[12.5px] text-ink-600">
+                        {player.roles
+                          .map((role) => PLAYER_ROLE_LABELS[role])
+                          .join(" · ")}
+                      </p>
+                    ) : (
+                      <p className="mt-0.5 text-[12.5px] text-ink-600">
+                        No disciplines listed.
+                      </p>
+                    )}
+                  </div>
                 </div>
-                <span className="shrink-0 text-[12.5px] font-semibold whitespace-nowrap text-ink-600">
+                <span className="shrink-0 font-mono text-[11.5px] font-semibold whitespace-nowrap text-ink-600">
                   {player.country}
                 </span>
               </Link>

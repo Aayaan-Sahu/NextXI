@@ -1,11 +1,11 @@
 import { requestConnectionToCoach } from "@/app/dashboard/connections/actions";
 import type { CoachDirectoryEntry } from "@/lib/connections";
-import { Panel, TextInput } from "@/components/ui";
+import { Kicker, Panel, TextInput } from "@/components/ui";
 
 function ConnectAction({ coach }: { coach: CoachDirectoryEntry }) {
   if (coach.state === "accepted") {
     return (
-      <span className="text-[12.5px] font-semibold whitespace-nowrap text-ink-600">
+      <span className="font-mono text-[11.5px] font-semibold whitespace-nowrap text-ink-600">
         Connected
       </span>
     );
@@ -13,7 +13,7 @@ function ConnectAction({ coach }: { coach: CoachDirectoryEntry }) {
 
   if (coach.state === "pending") {
     return (
-      <span className="text-[12.5px] font-semibold whitespace-nowrap text-ink-600">
+      <span className="font-mono text-[11.5px] font-semibold whitespace-nowrap text-ink-600">
         Requested
       </span>
     );
@@ -41,8 +41,9 @@ export function CoachDirectory({
   query: string;
 }) {
   return (
-    <Panel title="Find a coach">
-      <form className="flex gap-2.5" method="GET">
+    <Panel>
+      <Kicker>Find a coach</Kicker>
+      <form className="mt-4 flex gap-2.5" method="GET">
         <div className="grid min-w-0 flex-1">
           <TextInput
             aria-label="Search coaches by name"
@@ -67,25 +68,30 @@ export function CoachDirectory({
               className="flex items-center justify-between gap-4 border-t border-cream-400 py-4"
               key={coach.id}
             >
-              <div className="min-w-0">
-                <p className="text-[14.5px] font-bold">
-                  {coach.name}
-                  {coach.username ? (
-                    <span className="font-mono text-xs font-medium text-ink-600">
-                      {" "}
-                      @{coach.username}
-                    </span>
-                  ) : null}
-                </p>
-                {coach.accomplishments.length ? (
-                  <p className="mt-1 text-[12.5px] text-ink-600">
-                    {coach.accomplishments.join(" · ")}
+              <div className="flex min-w-0 items-center gap-3">
+                <span className="flex size-[38px] shrink-0 items-center justify-center rounded-full bg-pitch-800 text-[15px] font-bold text-cream-200">
+                  {coach.name.charAt(0).toUpperCase()}
+                </span>
+                <div className="min-w-0">
+                  <p className="truncate text-sm font-bold">
+                    {coach.name}
+                    {coach.username ? (
+                      <span className="font-mono text-xs font-medium text-ink-600">
+                        {" "}
+                        @{coach.username}
+                      </span>
+                    ) : null}
                   </p>
-                ) : (
-                  <p className="mt-1 text-[12.5px] text-ink-600">
-                    No accomplishments listed.
-                  </p>
-                )}
+                  {coach.accomplishments.length ? (
+                    <p className="mt-0.5 truncate text-[12.5px] text-ink-600">
+                      {coach.accomplishments.join(" · ")}
+                    </p>
+                  ) : (
+                    <p className="mt-0.5 text-[12.5px] text-ink-600">
+                      No accomplishments listed.
+                    </p>
+                  )}
+                </div>
               </div>
               <ConnectAction coach={coach} />
             </li>
