@@ -34,7 +34,7 @@ function relativeTime(date: Date) {
 export function CoachFeedback({ items }: { items: CoachFeedbackItem[] }) {
   return (
     <Panel>
-      <Kicker>Recent coach feedback</Kicker>
+      <Kicker as="h2">Recent coach feedback</Kicker>
       {items.length ? (
         <ul className="mt-4 grid gap-[18px]">
           {items.map((item) => (

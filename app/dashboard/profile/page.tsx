@@ -36,9 +36,13 @@ export default async function ProfilePage({
     profile.role === "player" ? profile.player.avatarPath : profile.coach.avatarPath,
   );
 
+  // The h1 names the page, not the person: a heading of "Aarav Sharma" leaves
+  // a screen-reader user with nothing identifying where they've landed. The
+  // identity facts belong in the mono stats line with the rest of the record.
   const displayName =
     profile.role === "player" ? profile.player.name : profile.coach.name;
   const stats = [
+    displayName,
     profile.username ? `@${profile.username}` : "No username",
     profile.role === "player" ? "Player" : "Coach",
     user.email ?? "No email",
@@ -52,9 +56,9 @@ export default async function ProfilePage({
             <StatusBand>
               <StatusBoard
                 kicker="PROFILE"
-                note="Keep your details current — coaches and connections see this side of you."
+                note="Keep your details current — this is what coaches and connections see."
                 stats={stats}
-                title={displayName}
+                title="Edit profile"
               />
             </StatusBand>
           </DashboardRevealItem>

@@ -59,7 +59,7 @@ export default async function PlayerSessionsPage() {
 
         <DashboardRevealItem index={1}>
           <Panel>
-            <Kicker>New session</Kicker>
+            <Kicker as="h2">New session</Kicker>
             <form
               action={createSession}
               className="mt-4 flex items-end gap-3 max-sm:flex-col max-sm:items-stretch"

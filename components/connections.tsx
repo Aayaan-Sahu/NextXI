@@ -212,7 +212,7 @@ export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
   return (
     <div className="grid content-start gap-5">
       <Panel>
-        <Kicker>Send a request</Kicker>
+        <Kicker as="h2">Send a request</Kicker>
         <form action={sendConnectionRequest} className="mt-4 flex gap-2.5">
           <div className="grid min-w-0 flex-1">
             <TextInput
@@ -236,17 +236,17 @@ export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
 
       <Panel>
         <section>
-          <Kicker>Incoming requests</Kicker>
+          <Kicker as="h2">Incoming requests</Kicker>
           <IncomingList people={data.incomingPending} />
         </section>
 
         <section className="mt-5 border-t border-cream-400 pt-5">
-          <Kicker>Outgoing requests</Kicker>
+          <Kicker as="h2">Outgoing requests</Kicker>
           <PendingList people={data.outgoingPending} />
         </section>
 
         <section className="mt-5 border-t border-cream-400 pt-5">
-          <Kicker>Connected</Kicker>
+          <Kicker as="h2">Connected</Kicker>
           <AcceptedList people={data.accepted} />
         </section>
       </Panel>

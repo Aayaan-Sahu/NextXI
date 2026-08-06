@@ -38,9 +38,11 @@ export default async function ThreadPage({ params }: { params: Params }) {
           </span>
           <div className="min-w-0">
             <Kicker>Conversation</Kicker>
-            <p className="mt-1 truncate font-display text-[20px] leading-tight font-bold tracking-[.02em] uppercase text-ink-900">
+            {/* The page h1: below md the sidebar (and its "Inbox" heading) is
+                display:none, so this is the route's only heading. */}
+            <h1 className="mt-1 truncate font-display text-[20px] leading-tight font-bold tracking-[.02em] uppercase text-ink-900">
               {thread.counterpart.name}
-            </p>
+            </h1>
             {subtitle ? (
               <p className="mt-0.5 truncate font-mono text-[11.5px] text-ink-600">
                 {subtitle}

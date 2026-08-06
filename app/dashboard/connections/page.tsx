@@ -27,14 +27,26 @@ type SearchParams = Promise<{
   searched?: string | string[];
 }>;
 
-function connectionNote(incoming: number, connected: number) {
-  if (incoming > 0) {
-    return "Someone's waiting on a yes — clear the inbox first, then keep building the XI.";
+/**
+ * Role-neutral: this page serves players and coaches alike, so the voice can't
+ * assume a player's XI. A coach awaiting approval gets its own line — every
+ * send path rejects them with "still under review" (see actions.ts), and
+ * neither directory renders for that role, so telling them to find someone
+ * would point at UI they never see.
+ */
+function connectionNote(
+  incoming: number,
+  connected: number,
+  underReview: boolean,
+) {
+  if (underReview) {
+    return "Your coach account is still under review — connections open once an admin approves it.";
   }
+  if (incoming > 0) return "Requests are waiting on your answer.";
   if (connected === 0) {
-    return "Your network starts with one request — find a coach or player and send it.";
+    return "Nothing connected yet — send a request by username to start.";
   }
-  return "Keep the circle tight — coaches who know your game, players who push it.";
+  return "Connections decide who can message you and who sees your work.";
 }
 
 export default async function ConnectionsPage({
@@ -75,6 +87,7 @@ export default async function ConnectionsPage({
       : Promise.resolve(null),
   ]);
 
+  const underReview = Boolean(coach) && !canSearchPlayers;
   const incoming = connectionData.incomingPending.length;
   const outgoing = connectionData.outgoingPending.length;
   const connected = connectionData.accepted.length;
@@ -91,7 +104,7 @@ export default async function ConnectionsPage({
           <StatusBand>
             <StatusBoard
               kicker="CONNECTIONS"
-              note={connectionNote(incoming, connected)}
+              note={connectionNote(incoming, connected, underReview)}
               stats={stats}
               title="Your network."
             />

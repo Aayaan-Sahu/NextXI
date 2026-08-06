@@ -42,7 +42,7 @@ export function CoachDirectory({
 }) {
   return (
     <Panel>
-      <Kicker>Find a coach</Kicker>
+      <Kicker as="h2">Find a coach</Kicker>
       <form className="mt-4 flex gap-2.5" method="GET">
         <div className="grid min-w-0 flex-1">
           <TextInput

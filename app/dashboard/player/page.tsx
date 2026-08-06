@@ -195,7 +195,7 @@ export default async function PlayerDashboardPage() {
         ) : null}
 
         <DashboardRevealItem className="grid gap-3" index={revealBase}>
-          <Kicker>Footage</Kicker>
+          <Kicker as="h2">Footage</Kicker>
           <VideoUpload />
         </DashboardRevealItem>
 
@@ -214,13 +214,13 @@ export default async function PlayerDashboardPage() {
         </DashboardRevealItem>
 
         <DashboardRevealItem className="grid gap-3" index={revealBase + 2}>
-          <Kicker>Library</Kicker>
+          <Kicker as="h2">Library</Kicker>
           <VideoGrid deleteAction={deleteVideo} emptyMedia stagger={false} videos={videos} />
         </DashboardRevealItem>
 
         <DashboardRevealItem index={revealBase + 3}>
           <Panel>
-            <Kicker>Profile visibility</Kicker>
+            <Kicker as="h2">Profile visibility</Kicker>
             <div className="mt-4 grid gap-1.5 text-sm">
               <p className="text-ink-900">
                 {profile.player.visibility === Visibility.PUBLIC

@@ -25,6 +25,7 @@ export function ConversationSidebar({
 }) {
   const { connectionId } = useParams<{ connectionId?: string }>();
   const [query, setQuery] = useState("");
+  const InboxHeading = connectionId ? "h2" : "h1";
 
   const trimmed = query.trim();
   const visible = trimmed
@@ -58,9 +59,11 @@ export function ConversationSidebar({
     >
       <div className="border-b border-cream-400 bg-cream-100/80 px-4 py-5 md:px-5">
         <Kicker>Messages</Kicker>
-        <h1 className="mt-2 font-display text-[26px] leading-[1.05] font-bold tracking-[.02em] uppercase text-ink-900">
+        {/* One h1 per state: on the index this list IS the page, but with a
+            thread open the counterpart's name is the h1 and this demotes. */}
+        <InboxHeading className="mt-2 font-display text-[26px] leading-[1.05] font-bold tracking-[.02em] uppercase text-ink-900">
           Inbox
-        </h1>
+        </InboxHeading>
         <p className="mt-2.5 font-mono text-[11.5px] text-ink-600">
           {stats.join(" · ")}
         </p>

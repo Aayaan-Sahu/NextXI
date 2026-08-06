@@ -24,7 +24,7 @@ export function PlayerDirectory({
 }) {
   return (
     <Panel>
-      <Kicker>Find a player</Kicker>
+      <Kicker as="h2">Find a player</Kicker>
       <form className="mt-4 flex flex-wrap items-center gap-2.5" method="GET">
         <input name="searched" type="hidden" value="1" />
         <Select
