@@ -147,7 +147,7 @@ export default async function GuardianDashboardPage({
         <Notice tone="error">{error}</Notice>
         <Notice>{message}</Notice>
         <Panel>
-          <Kicker>Profile</Kicker>
+          <Kicker as="h2">Profile</Kicker>
           <dl className="mt-[18px] grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5">
             {facts.map(([label, value]) => (
               <div key={label}>
@@ -161,7 +161,7 @@ export default async function GuardianDashboardPage({
         </Panel>
         <Panel>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <Kicker>Connections</Kicker>
+            <Kicker as="h2">Connections</Kicker>
             <TextLink href={`/dashboard/guardian/messages?child=${child.id}`}>
               View messages
             </TextLink>
@@ -204,7 +204,7 @@ export default async function GuardianDashboardPage({
           )}
         </Panel>
         <div className="grid gap-3">
-          <Kicker>Library</Kicker>
+          <Kicker as="h2">Library</Kicker>
           <VideoGrid
             emptyMedia
             emptyMessage="No videos yet. Videos your child uploads will appear here."

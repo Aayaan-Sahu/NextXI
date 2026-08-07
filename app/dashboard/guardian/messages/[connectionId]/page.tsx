@@ -1,7 +1,16 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  DashboardReveal,
+  DashboardRevealItem,
+} from "@/components/dashboard-reveal";
 import { GuardianMessageThread } from "@/components/guardian-message-thread";
-import { PageHeader, PageShell } from "@/components/ui";
+import {
+  Kicker,
+  PageShell,
+  StatusBand,
+  StatusBoard,
+  TextLink,
+} from "@/components/ui";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getChildThread, getGuardianChildren, selectChild } from "@/lib/guardian";
 import { firstParam } from "@/lib/search-params";
@@ -41,27 +50,30 @@ export default async function GuardianThreadPage({
 
   return (
     <PageShell>
-      <Link
-        className="inline-block text-[13px] font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
-        href={`/dashboard/guardian/messages?child=${child.id}`}
-      >
-        ← All conversations
-      </Link>
-      <div className="mt-[18px]">
-        <PageHeader
-          subtitle={
-            <>
-              {subtitle ? (
-                <span className="font-mono text-[11.5px] text-ink-600">{subtitle}</span>
-              ) : null}
-              {subtitle ? " — " : null}A read-only view of {child.name}&apos;s
-              conversation. Only {child.name} can send messages here.
-            </>
-          }
-          title={`${child.name} & ${thread.counterpart.name}`}
-        />
-      </div>
-      <GuardianMessageThread childName={child.name} thread={thread} />
+      <DashboardReveal className="grid gap-9">
+        <DashboardRevealItem index={0}>
+          <div className="mb-3">
+            <TextLink href={`/dashboard/guardian/messages?child=${child.id}`}>
+              ← All conversations
+            </TextLink>
+          </div>
+          <StatusBand>
+            <StatusBoard
+              kicker="GUARDIAN THREAD"
+              note={`Read-only — only ${child.name} can send messages here.`}
+              stats={subtitle ? [subtitle, "Read only"] : ["Read only"]}
+              title={`${child.name} & ${thread.counterpart.name}`}
+            />
+          </StatusBand>
+        </DashboardRevealItem>
+
+        <DashboardRevealItem index={1}>
+          <div className="mb-3">
+            <Kicker>Conversation</Kicker>
+          </div>
+          <GuardianMessageThread childName={child.name} thread={thread} />
+        </DashboardRevealItem>
+      </DashboardReveal>
     </PageShell>
   );
 }

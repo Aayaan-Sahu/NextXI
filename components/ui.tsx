@@ -33,19 +33,31 @@ export function Wordmark({
   );
 }
 
-/** Small monospace section label, e.g. "Coaching report". */
+/**
+ * Small monospace section label, e.g. "Coaching report".
+ *
+ * Pass `as="h2"` (or "h3") whenever the eyebrow is the heading for a content
+ * group — panels, list sections, page groups. Kicker replaced `Panel title`
+ * on several surfaces, and a bare <div> there leaves screen-reader heading
+ * navigation with nothing to land on. Tailwind preflight resets heading
+ * margins and size, so the tag swap is a zero-pixel change.
+ *
+ * Leave it a <div> only for eyebrows that decorate a nearby heading rather
+ * than acting as one (the StatusBoard/GatePanel kicker above their h1).
+ */
 export function Kicker({
+  as: Tag = "div",
   children,
   tone = "light",
-}: Children & { tone?: "light" | "dark" }) {
+}: Children & { as?: "div" | "h2" | "h3"; tone?: "light" | "dark" }) {
   return (
-    <div
+    <Tag
       className={`font-mono text-[11px] font-semibold tracking-[.2em] uppercase ${
         tone === "dark" ? "text-gold-500" : "text-rust-600"
       }`}
     >
       {children}
-    </div>
+    </Tag>
   );
 }
 

@@ -137,7 +137,13 @@ export function MessagesRealtime({
 export function useMessageChanges(connectionId: string, onChange: Listener) {
   const context = useContext(MessagesRealtimeContext);
   const handler = useRef(onChange);
-  handler.current = onChange;
+
+  // Kept current in an effect, not during render: writing a ref while
+  // rendering is a React violation (react-hooks/refs) and misbehaves under
+  // concurrent re-renders that never commit.
+  useEffect(() => {
+    handler.current = onChange;
+  });
 
   useEffect(() => {
     if (!context) return;

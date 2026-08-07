@@ -94,10 +94,16 @@
   animation: crease-fade 0.25s ease-out forwards;
 }
 
-/* `both` so a delayed stagger holds the from-state during its delay window
-   instead of flashing in, out, and back in. */
+/* `backwards`, not `both`: the backwards half holds the from-state during a
+   delayed stagger's delay window (without it the item flashes in, out, and
+   back in). The forwards half must stay off — it retains `transform:
+   translateY(0)` after the run, and any computed transform makes the element
+   the containing block for `position: fixed` descendants, which un-anchors
+   the revoke/delete confirm dialogs from the viewport. The resting style is
+   already the end state (opacity 1, no transform), so dropping forwards is
+   visually identical. */
 @utility animate-crease-rise {
-  animation: crease-rise 0.28s ease-out both;
+  animation: crease-rise 0.28s ease-out backwards;
 }
 
 @media (prefers-reduced-motion: reduce) {
