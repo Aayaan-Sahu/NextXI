@@ -20,10 +20,10 @@ export function MessagesShell({
   const threadOpen = pathname.startsWith("/dashboard/messages/");
 
   return (
-    <main className="flex h-[calc(100dvh-4rem)] w-full">
+    <main className="mx-auto flex h-[calc(100dvh-4rem)] w-full max-w-[1280px] overflow-hidden border-cream-400 bg-cream-200 sm:border-x">
       {sidebar}
       <section
-        className={`min-w-0 flex-1 flex-col bg-cream-200 ${
+        className={`min-w-0 flex-1 flex-col bg-cream-50 ${
           threadOpen ? "flex" : "hidden md:flex"
         }`}
       >

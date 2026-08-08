@@ -179,7 +179,7 @@ A committed three-color brand (leather red, pavilion cream, stitching gold) with
 - **Phosphor Mint** (#7ce8bf, `vision-500`, with faces #b5f5dc `vision-300` and #2ea77d `vision-700`): The machine-vision voice. Tracking trails, joint markers, live readouts, the pulsing "Tracking" dot — always on dark, always mono type, always alongside white-alpha strokes and square corners.
 
 ### Neutral
-- **Pavilion Cream** (#efead9 `cream-200` page ground; #f7f0e3 `cream-100` bands and bars; #fdfbf6 `cream-50` inputs and dropdowns; #e4dec9 `cream-300` tracks; #ddd6c2 `cream-400` the universal hairline border; #e6ddc9 `cream-500` emphasized borders): The warm paper the product is printed on. Card surfaces are pure white (#ffffff) so they read one step brighter than the page.
+- **Pavilion Cream** (#efead9 `cream-200` page ground; #f7f0e3 `cream-100` bands and bars; #fdfbf6 `cream-50` inputs, dropdowns, and the messages thread ground; #e4dec9 `cream-300` tracks; #ddd6c2 `cream-400` the universal hairline border; #e6ddc9 `cream-500` emphasized borders): The warm paper the product is printed on. Card surfaces are pure white (#ffffff) so they read one step brighter than the page.
 - **Leather-Black Pitch** (#171310 `pitch-950` letterbox and scrims; #211c17 `pitch-900` dark sections and emphasis buttons; #2c2620 `pitch-800` the scoreboard; #38312a `pitch-700`): Charcoal with leather warmth, never pure black.
 - **Scorer's Ink** (#2a251e `ink-900` body text; #6b6353 `ink-600` secondary text and empty states — darkened from the original #948d7c, which sat at 3.3:1 on white and failed WCAG AA; the current value holds ≥4.5:1 on every cream step).
 - **Sun-Faded Seam** (#e0b0b0, `sage-400`): Faint text on red and dark surfaces — inactive nav links, timestamps, receipts, placeholders, completed items. It is a tint of the leather family, which is why faint text on rust never looks gray.
@@ -209,6 +209,8 @@ Route-level waits render skeletons (`SkeletonBlock`: `cream-300` shimmer blocks 
 - **Body** (400, 14px dominant; 14.5–15px for lead paragraphs, 12.5–13.5px for secondary rows; leading 1.55–1.65): All prose, labels, list content. Names bold at 14.5px.
 - **Label** (IBM Plex Mono 600, 10–11.5px, tracking 0.08–0.3em, uppercase where standalone): The `Kicker` eyebrow (11px/0.2em — gold on dark, rust on light), timestamps, file sizes, @usernames, chart labels, receipts, scores.
 
+**Kicker carries heading semantics.** Where a Kicker labels a content group it replaces what used to be `Panel title` (an `<h2>`), so pass `as="h2"` — otherwise the section ships with no heading for screen-reader navigation. Tailwind preflight resets heading margin and size, so the tag is a zero-pixel choice. Leave the default `<div>` only for eyebrows that decorate an adjacent heading rather than acting as one (the `StatusBoard` / `GatePanel` kicker sitting above their `h1`).
+
 ### Loading
 Route-level waits render skeletons (`SkeletonBlock`: `cream-300` shimmer blocks mirroring the page anatomy — status band, panel, card grid), not a lone spinner. Spinners remain for in-flight actions (SubmitButton) only.
 
@@ -226,7 +228,7 @@ Crease is flat by default. Depth is conveyed tonally — cream page → white ca
 - **True float** (`shadow-2xl` + `shadow-black/40–45`): Surfaces detached from the page: the **mobile** auth card on the seam-stitch brand band, the revoke confirm dialog, the marketing report showcase. Desktop auth uses a hairline white panel on cream (no float shadow) — the split brand/form layout is the brand→product threshold. That is the complete list.
 
 ### Auth layout
-Product auth (`/auth`, reset, check-email) is a **split composition**: seam-stitch brand pane (wordmark, match-day kicker, one voice line, scanline foot) beside a cream form pane on `md+`. On mobile the page stays full-bleed seam-stitch so the true-float white card sits on the brand band (not a cream sheet). Form titles stay short ("Sign in" / "Create account"); role-agnostic kickers (`GATE` / `JOIN` / `ACCOUNT`) sit above the H1. Mount motion: CSS `animate-crease-fade` / `animate-crease-rise` (~250ms, `forwards` fill — never `both`, which blanked delayed first paint), disabled under `prefers-reduced-motion`. The sign-in ⇄ create-account switch is instant and client-side (mode-keyed crossfade, shallow `history.replaceState` URL sync).
+Product auth (`/auth`, reset, check-email) is a **split composition**: seam-stitch brand pane (wordmark, match-day kicker, one voice line, scanline foot) beside a cream form pane on `md+`. On mobile the page stays full-bleed seam-stitch so the true-float white card sits on the brand band (not a cream sheet). Form titles stay short ("Sign in" / "Create account"); role-agnostic kickers (`GATE` / `JOIN` / `ACCOUNT`) sit above the H1. Mount motion: CSS `animate-crease-fade` (~250ms, `forwards` fill — never `both`, which blanked delayed first paint) and `animate-crease-rise` (~280ms, **`backwards`** fill), disabled under `prefers-reduced-motion`. `crease-rise` must never use `forwards`/`both`: retaining its end `transform` makes the animated element the containing block for every `position: fixed` descendant, which un-anchors the revoke and delete-account confirm dialogs from the viewport. `backwards` still holds the from-state through a stagger's `animation-delay`, which is the only half that reveal needs. The sign-in ⇄ create-account switch is instant and client-side (mode-keyed crossfade, shallow `history.replaceState` URL sync).
 
 ### Loading
 Route-level waits render skeletons (`SkeletonBlock`: `cream-300` shimmer blocks mirroring the page anatomy — status band, panel, card grid), not a lone spinner. Spinners remain for in-flight actions (SubmitButton) only.
@@ -280,7 +282,7 @@ All shared primitives live in `components/ui.tsx`. Build with them first; extend
 Hand-rolled, no chart library. Tracks: `cream-300` (light) or `black/30` (dark), 3–6px tall, 4px radius. Fills and marks: gold. Line charts stroke `pitch-900` with gold dots. Labels: mono 10–10.5px. Empty states: a dashed `cream-500` box or a single `ink-600` sentence.
 
 ### Message Bubbles
-14px radius with a 4px tail corner: own = `rust-600`/`cream-200` right-aligned; other = `cream-100` with `cream-400` border. Receipts and time dividers in mono `sage-400`.
+14px radius with a 4px tail corner on a `cream-50` thread ground: own = `rust-600`/`cream-200` right-aligned; other = white with a `cream-400` border. The thread header and composer bar are white with `cream-400` hairlines; the shell wrapping both panes is `cream-200`, capped at 1280px with `sm:border-x` `cream-400`. Receipts and time dividers in mono `sage-400`; an empty thread renders the dashed `cream-500` empty box. The inbox list carries the page `h1` ("Inbox") on the index and demotes to `h2` when a thread is open, so the counterpart's name can be the `h1` on the single-pane mobile view.
 
 ## 6. Do's and Don'ts
 

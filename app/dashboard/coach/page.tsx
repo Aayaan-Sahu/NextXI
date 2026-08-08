@@ -108,7 +108,7 @@ export default async function CoachDashboardPage({
           />
         </StatusBand>
         <div className="grid gap-3">
-          <Kicker>Review queue</Kicker>
+          <Kicker as="h2">Review queue</Kicker>
           <p className="text-[14.5px] text-ink-600">
             New videos from players you are connected with. Open a video to mark it as
             reviewed.

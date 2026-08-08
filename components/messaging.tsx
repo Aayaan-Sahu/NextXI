@@ -143,7 +143,7 @@ export function MessageThread({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-cream-200 p-4 md:p-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-cream-50 p-4 md:p-6">
         {messages.length ? (
           messages.map((message, index) => {
             const previous = messages[index - 1];
@@ -171,7 +171,7 @@ export function MessageThread({
                     className={
                       message.fromMe
                         ? "inline-block rounded-[14px] rounded-br-[4px] bg-rust-600 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-cream-200"
-                        : "inline-block rounded-[14px] rounded-bl-[4px] border border-cream-400 bg-cream-100 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-ink-900"
+                        : "inline-block rounded-[14px] rounded-bl-[4px] border border-cream-400 bg-white px-3.5 py-2.5 text-left text-sm leading-[1.55] text-ink-900"
                     }
                     title={formatDivider(message.createdAt)}
                   >
@@ -187,9 +187,9 @@ export function MessageThread({
             );
           })
         ) : (
-          <p className="text-sm text-ink-600">
-            No messages yet. Say hello.
-          </p>
+          <div className="m-auto max-w-xs rounded-[10px] border border-dashed border-cream-500 bg-cream-100/60 px-5 py-8 text-center">
+            <p className="text-sm text-ink-600">No messages yet. Say hello.</p>
+          </div>
         )}
         <div ref={bottomRef} />
       </div>
@@ -202,11 +202,11 @@ export function MessageThread({
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-3 border-t border-cream-400 bg-cream-100 px-4 py-3 md:px-6 md:py-4"
+        className="flex items-center gap-3 border-t border-cream-400 bg-white px-4 py-3 md:px-6 md:py-4"
       >
         <input
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3.5 py-2.5 text-base text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none md:text-sm"
+          className="min-w-0 flex-1 rounded-md border border-cream-500 bg-cream-50 px-3.5 py-2.5 text-base text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none md:text-sm"
           maxLength={4000}
           name="body"
           onChange={(event) => setDraft(event.target.value)}
