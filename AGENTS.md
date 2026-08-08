@@ -42,6 +42,27 @@ Next.js 16 (App Router) · React 19 · Prisma 7 · Supabase · Tailwind v4 · Bu
 - Supabase owns the `auth` and `storage` schemas (external tables); app tables
   live in `public`. See `prisma/schema.prisma`.
 
+## DB changes & deploys — migrations are not optional
+
+- **Every `prisma/schema.prisma` edit ships as a committed migration.** Run
+  `bun run db:migrate` (creates the folder in `prisma/migrations/` and applies
+  it to the dev DB), then `bun run db:generate`, and commit the migration
+  folder **in the same commit as the code that needs it**. A schema edit
+  without a committed migration silently never reaches production — this
+  caused a prod outage (pages 500ing on missing columns).
+- **Merging to main is the deploy step.** The Vercel build runs
+  `prisma migrate deploy` before `next build` (the `vercel-build` script), so
+  pending migrations apply automatically on deploy. Nobody runs SQL by hand,
+  and local `bun run build` deliberately does not touch the DB.
+- **Never delete or rename an applied migration folder.** A migration the DB
+  records as applied but that is missing from the tree fails every
+  deploy/`migrate` command with P3015 (also happened once — restore the file
+  to recover, don't work around it).
+- The Prisma CLI reads `.env.local` via `prisma.config.ts` (Next.js loads it
+  natively), so `bunx prisma migrate status` / `db:migrate` work locally
+  without a separate `.env`. When in doubt, `bunx prisma migrate status`
+  before and after schema work.
+
 ## Auth & Supabase
 
 - Gate routes with `requireUser()` / `requireAdmin()` from `@/lib/auth`; resolve
