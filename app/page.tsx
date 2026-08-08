@@ -6,6 +6,7 @@ import { HeroScrubVideo } from "@/components/landing/hero-scrub-video";
 import { LandingFooter } from "@/components/landing/landing-footer";
 import { LandingNav } from "@/components/landing/landing-nav";
 import { MoreFeatures } from "@/components/landing/more-features";
+import { TheWall } from "@/components/landing/the-wall";
 import { TrustStrip } from "@/components/landing/trust-strip";
 import { type WaitlistState } from "@/components/landing/waitlist-form";
 import { getCurrentUser, getOnboardingStatus, isAdmin } from "@/lib/auth";
@@ -35,6 +36,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
       <BallHero />
       <HeroScrubVideo src="/hero-drive.mp4" poster="/hero-drive-poster.jpg" />
       <FeaturesSteps />
+      <TheWall />
       <MoreFeatures />
       <TrustStrip />
       <FinalCta waitlist={waitlist} />

@@ -4,8 +4,10 @@ import { motion } from "motion/react";
 import { Kicker } from "@/components/ui";
 
 // The end-to-end journey, in order: a session becomes a report, a report earns
-// a connection, a connection opens a conversation. Rendered as a sequence so
-// the "end-to-end" claim reads visually, not just as four loose cards.
+// a connection, a connection gets you found. Rendered as a sequence so the
+// "end-to-end" claim reads visually, not just as four loose cards. The journey
+// deliberately ends on getting found — scouting is the pitch, everything else
+// is the value-add layer.
 const STEPS = [
   {
     step: "01",
@@ -24,8 +26,8 @@ const STEPS = [
   },
   {
     step: "04",
-    title: "Messaging",
-    body: "Conversations and feedback between coaches and players leads to the development of the NextXI.",
+    title: "Get found",
+    body: "Coaches and scouts search the player pool, watch your footage, and read your numbers. Interest comes to you — trials, sessions, a place in a squad.",
   },
 ];
 

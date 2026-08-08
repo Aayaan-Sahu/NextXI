@@ -130,7 +130,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           <AnalysisHud progress={videoProgress} scrub={scrub} videoRef={videoRef} />
         </motion.div>
 
-        {/* "See your game like a scout does" — scrub-only overlay that rises as
+        {/* "AI-backed scouting for young cricketers" — scrub-only overlay that rises as
             the video scrubs, then clears as the split forms. Rendering it only in
             scrub avoids the SSR trap: useCanScrub's server snapshot is true, so a
             fallback visit would hydrate this overlay in the scrub state (opacity
@@ -142,7 +142,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
           >
             <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-7xl lg:text-8xl">
-              See your game like a scout does
+              AI-backed scouting for young cricketers
             </h2>
             <p className="mt-6 font-mono text-[14px] font-semibold tracking-[.14em] text-cream-100 uppercase sm:text-base">
               Footage · Aryaman Varma · Professional cricketer
@@ -185,7 +185,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         <div className="bg-pitch-950 px-6 py-16 sm:px-12">
           <div className="mx-auto mb-12 max-w-[460px] text-center">
             <h2 className="font-display text-4xl leading-[1.04] font-bold tracking-[.02em] text-cream-100 uppercase sm:text-5xl">
-              See your game like a scout does
+              AI-backed scouting for young cricketers
             </h2>
             <p className="mt-4 font-mono text-[13px] font-semibold tracking-[.14em] text-cream-100 uppercase">
               Footage · Aryaman Varma · Professional cricketer
