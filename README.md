@@ -119,13 +119,33 @@ one from each pair.
 | `NEXT_PUBLIC_SUPABASE_URL`                                     | ✅       | Supabase project URL                                                |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `..._ANON_KEY`        | ✅       | Public client key (browser + server auth)                           |
 | `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`            | ✅       | Server-only admin key (privileged storage/auth operations)          |
-| `NEXT_PUBLIC_SITE_URL`                                         | ➖       | Base URL used for auth redirect/confirmation links                  |
+| `NEXT_PUBLIC_SITE_URL`                                         | ⚠️       | Base URL baked into auth verification/reset emails. **Required in production** — without it the link base falls back to the request origin or `localhost:3000`, and external users get emails pointing at a host they can't reach |
 | `ADMIN_EMAILS`                                                 | ➖       | Comma-separated list of emails granted admin access                 |
 | `REPORTS_INGEST_SECRET`                                        | ➖       | Bearer token the AI pipeline uses to submit coaching reports        |
 | `TEAM_NOTIFY_WEBHOOK_URL`                                      | ➖       | Slack-compatible webhook pinged on signups and finished uploads     |
 
 > Never expose `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY` or
 > `REPORTS_INGEST_SECRET` to the browser — they are server-only.
+
+### Supabase auth URL configuration (required before real users sign up)
+
+The verification email's link is minted by **Supabase**, not this app, and
+Supabase silently replaces any redirect it doesn't recognize with the project's
+Site URL (default `http://localhost:3000`) — which reads as "page not found" on
+anyone else's machine even when signup works on a dev box. In the Supabase
+dashboard → **Authentication → URL Configuration**:
+
+1. Set **Site URL** to the production domain (e.g. `https://nextxi.app`).
+2. Add `https://<production-domain>/auth/confirm` (and any preview domains) to
+   **Redirect URLs**.
+3. Recommended: switch the *Confirm signup* email template to the stateless
+   token form so the link works from any device or browser — not just the one
+   that submitted the form:
+   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/onboarding`
+
+Then set `NEXT_PUBLIC_SITE_URL` to the same production domain in the deploy
+environment, and test the real email link from a device that isn't running the
+dev server.
 
 ## Scripts
 

@@ -70,10 +70,16 @@ function ageInYears(dob: string) {
   return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0);
 }
 
+// The base URL baked into verification/reset emails. NEXT_PUBLIC_SITE_URL wins
+// over the request Origin header: the header varies with how the app was
+// reached (LAN IP during mobile testing, preview deploys), and any origin
+// Supabase doesn't have allow-listed gets silently replaced with the project's
+// Site URL — which is how an external user ends up with a localhost link that
+// can never resolve on their machine.
 async function origin() {
   return (
-    (await headers()).get("origin") ??
     process.env.NEXT_PUBLIC_SITE_URL ??
+    (await headers()).get("origin") ??
     "http://localhost:3000"
   );
 }

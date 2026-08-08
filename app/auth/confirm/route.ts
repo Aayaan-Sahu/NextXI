@@ -30,8 +30,11 @@ export async function GET(request: NextRequest) {
     },
   });
 
+  // "signup" is what a customized Supabase confirm-signup template naturally
+  // sends; accept it alongside the types the default templates use so the
+  // dashboard template and this route can't drift apart.
   const result =
-    tokenHash && (type === "email" || type === "recovery")
+    tokenHash && (type === "email" || type === "signup" || type === "recovery")
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : code
         ? await supabase.auth.exchangeCodeForSession(code)
