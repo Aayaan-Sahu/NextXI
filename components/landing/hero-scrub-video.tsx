@@ -141,7 +141,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             style={{ opacity: headlineOpacity, y: headlineY }}
             className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
           >
-            <h2 className="max-w-5xl font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-7xl lg:text-8xl">
+            <h2 className="max-w-5xl font-display text-4xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-6xl lg:text-8xl">
               AI-backed scouting for young cricketers
             </h2>
             <p className="mt-6 font-mono text-[14px] font-semibold tracking-[.14em] text-cream-100 uppercase sm:text-base">

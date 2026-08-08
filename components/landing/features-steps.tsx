@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "motion/react";
 import { GuideButton } from "@/components/landing/guide-button";
 import { Kicker } from "@/components/ui";
 import {
@@ -38,29 +37,17 @@ export function FeaturesSteps() {
   return (
     <section className="bg-seam-stitch px-6 py-24 sm:px-12">
       <div className="mx-auto w-full max-w-[1000px]">
-        <motion.header
-          initial={{ opacity: 0, y: 32 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true, amount: 0.5 }}
-          transition={{ duration: 0.55 }}
-          className="mb-16 text-center"
-        >
+        <header className="mb-16 text-center">
           <Kicker tone="dark">How it works</Kicker>
           <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] text-cream-50 uppercase sm:text-5xl">
             From the nets to the scout&apos;s desk
           </h2>
-        </motion.header>
+        </header>
 
         {STEPS.map((step, i) => (
           <div key={step.kicker}>
             {i > 0 && <StepArrow flip={i % 2 === 0} />}
-            <motion.article
-              initial={{ opacity: 0, y: 48 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true, amount: 0.35 }}
-              transition={{ duration: 0.6 }}
-              className="grid items-center gap-8 md:grid-cols-2 md:gap-16"
-            >
+            <article className="grid items-center gap-8 md:grid-cols-2 md:gap-16">
               <div className={i % 2 === 1 ? "md:order-2" : ""}>{step.animation}</div>
               <div className={i % 2 === 1 ? "md:order-1 md:text-right" : ""}>
                 <Kicker tone="dark">{step.kicker}</Kicker>
@@ -72,7 +59,7 @@ export function FeaturesSteps() {
                 </p>
                 {step.guide && <GuideButton />}
               </div>
-            </motion.article>
+            </article>
           </div>
         ))}
       </div>
