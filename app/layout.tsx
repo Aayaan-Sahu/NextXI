@@ -21,11 +21,11 @@ const plexMono = IBM_Plex_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "NextXI — AI coaching for young cricketers",
+    default: "NextXI — AI-backed scouting for young cricketers",
     template: "%s · NextXI",
   },
   description:
-    "Film your bowling or batting on a phone and get back an AI coaching report on your technique.",
+    "Film your bowling or batting on a phone and build a profile scouts can check — measured technique and real footage, ready for the people who pick teams.",
   applicationName: "NextXI",
   openGraph: {
     siteName: "NextXI",

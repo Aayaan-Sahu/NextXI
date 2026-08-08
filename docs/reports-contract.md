@@ -288,12 +288,27 @@ benchmark" for most batting kinematics. The accessible literature reports pooled
 means across mixed international-to-club samples measured on lab motion-capture
 rigs, and for stride length it finds *no significant difference* between skilled
 and less-skilled batters (910 ± 30 mm vs 890 ± 320 mm, P = 0.65). So a reference
-is one of three kinds and must always say which:
+is one of four kinds and must always say which:
 
 - `"session"` — the player's own recent range. Always defensible. Prefer this.
 - `"published"` — a real published range. `label` **must** carry the population
-  ("14 male batters, club→international, ISBS 2020"), never the word "elite"
-  unless the source population genuinely was elite.
+  in plain language ("Published range · club to international batters") and
+  **must not** carry an academic citation — citations read as footnotes on a
+  consumer report, so the full citation travels in the optional, never-rendered
+  `source` field instead. Never the word "elite" in a `published` label unless
+  the source population genuinely was elite.
+- `"elite"` — a genuinely elite reference band, rendered as a gold target
+  (falling short is headroom, never a fault). An elite population is necessary
+  but not sufficient: the band must also survive every failure mode documented
+  in `BENCHMARKS.md` (binding here too) — the measurand must be the same
+  quantity the phone pipeline measures, the sample adequate (Mann 2013 is
+  elite-only but n=2 on a head-mounted eye tracker — not compliant), the effect
+  not a published null, and no invented youth scaling. In practice that means
+  the only expected producer is the NextXI professional reference set, once the
+  pipeline has run over rights-cleared pro footage (`MODEL-STATUS.md` Stage 2)
+  — same pipeline, same measurands, adequate n — labelled e.g. "NextXI pro
+  reference · n=N players". No current metric qualifies; the UI kind exists
+  (typed and styled) but must stay unused until one does.
 - `"none"` — no defensible comparison. Send the measurement without a band.
 
 ```jsonc
@@ -321,9 +336,12 @@ is one of three kinds and must always say which:
       "decimals": 2,
       "direction": "none",          // "higher" | "lower" | "inside" | "none"
       "reference": {
-        "kind": "session",          // "session" | "published" | "none"
+        "kind": "session",          // "session" | "published" | "elite" | "none"
         "label": "Your last 5 sessions",
-        "band": [0.94, 1.05]        // omitted when kind is "none"
+        "band": [0.94, 1.05],       // omitted when kind is "none"
+        "source": "…"               // optional, published/elite only: full academic
+                                    // citation. Provenance for devs; never rendered
+                                    // to players — the label carries the population
       },
       "note": "Varies by only ±4 cm across 12 balls — your most repeatable movement."
     }

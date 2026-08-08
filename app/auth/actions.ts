@@ -70,10 +70,27 @@ function ageInYears(dob: string) {
   return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0);
 }
 
+// The base URL baked into verification/reset emails.
+//
+// Production must use NEXT_PUBLIC_SITE_URL: the request Origin header varies
+// (LAN IP during mobile testing, odd hostnames) and any origin Supabase hasn't
+// allow-listed gets silently replaced with the project's Site URL — which is
+// how an external coach ended up with a localhost link that never resolves.
+//
+// Preview and local keep the request host (VERCEL_URL / Origin) so a signup
+// started on a preview deploy confirms on that same host — otherwise the
+// PKCE verifier cookie stays on the preview origin while the email points at
+// production, and exchangeCodeForSession fails. Prefer the token_hash confirm
+// template (see README) so email clients without the cookie still work.
 async function origin() {
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
+  if (process.env.VERCEL_ENV === "production" && siteUrl) return siteUrl;
+
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+
   return (
     (await headers()).get("origin") ??
-    process.env.NEXT_PUBLIC_SITE_URL ??
+    siteUrl ??
     "http://localhost:3000"
   );
 }

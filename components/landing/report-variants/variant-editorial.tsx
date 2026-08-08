@@ -11,7 +11,6 @@ import {
   SUBTITLE,
   SUMMARY,
   SUMMARY_SHORT,
-  WEAKEST,
   WEAKEST_SHORT,
 } from "./report-data";
 import { ReportTrailer } from "./report-shared";

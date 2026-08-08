@@ -58,9 +58,14 @@ export const METRICS: MeasuredMetric[] = [
     reference: {
       // 111.3 +/- 11.8 deg, rendered as mean +/- 1 SD. Pure pose angle — the
       // HUD over the hero video computes this live, no calibration needed.
+      // The label deliberately drops the academic citation — it read like a
+      // footnote on a consumer report — but keeps the population, so the range
+      // is still carried with what it is. The citation travels in `source`,
+      // which is never rendered to players.
       kind: "published",
-      label: "14 batters, club→international (ISBS 2020)",
+      label: "Published range · club to international batters",
       band: [100, 123],
+      source: "McErlain-Naylor et al., ISBS Proceedings 38(1):664-668, 2020, Table 1",
     },
     direction: "none",
     note: "Upper half of the published range — a high front elbow, which is what keeps the swing straight early on. It drops 6° across the last four balls.",
@@ -134,4 +139,4 @@ export const DRILL =
 export const COACH_NOTE =
   "Genuinely repeatable technique for the age group. Hold the front-elbow shape deeper into the session and the swing path stays straight all the way through.";
 export const DISCLOSURE =
-  "Bat tracked on 96% of frames · measurements, not scores — the front-elbow band is a published lab group (ISBS 2020); every other reference is the player's own range";
+  "Bat tracked on 96% of frames · measurements, not scores — the front-elbow band comes from a published lab study of club-to-international batters; every other reference is the player's own range";
