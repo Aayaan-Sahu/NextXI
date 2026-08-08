@@ -63,7 +63,7 @@ export const METRICS: MeasuredMetric[] = [
       // is still carried with what it is. The citation travels in `source`,
       // which is never rendered to players.
       kind: "published",
-      label: "Published range, club→international batters",
+      label: "Published range · club to international batters",
       band: [100, 123],
       source: "McErlain-Naylor et al., ISBS Proceedings 38(1):664-668, 2020, Table 1",
     },
@@ -139,4 +139,4 @@ export const DRILL =
 export const COACH_NOTE =
   "Genuinely repeatable technique for the age group. Hold the front-elbow shape deeper into the session and the swing path stays straight all the way through.";
 export const DISCLOSURE =
-  "Bat tracked on 96% of frames · measurements, not scores — the front-elbow band is a published lab study of club-to-international batters; every other reference is the player's own range";
+  "Bat tracked on 96% of frames · measurements, not scores — the front-elbow band comes from a published lab study of club-to-international batters; every other reference is the player's own range";

@@ -119,7 +119,7 @@ one from each pair.
 | `NEXT_PUBLIC_SUPABASE_URL`                                     | ✅       | Supabase project URL                                                |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `..._ANON_KEY`        | ✅       | Public client key (browser + server auth)                           |
 | `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`            | ✅       | Server-only admin key (privileged storage/auth operations)          |
-| `NEXT_PUBLIC_SITE_URL`                                         | ⚠️       | Base URL baked into auth verification/reset emails. **Required in production** — without it the link base falls back to the request origin or `localhost:3000`, and external users get emails pointing at a host they can't reach |
+| `NEXT_PUBLIC_SITE_URL`                                         | ⚠️       | Production canonical URL for auth emails. Required in production (`VERCEL_ENV=production`); previews use `VERCEL_URL` automatically so signup stays on the same host. Without a production value the link base can fall back to a host the recipient can't reach |
 | `ADMIN_EMAILS`                                                 | ➖       | Comma-separated list of emails granted admin access                 |
 | `REPORTS_INGEST_SECRET`                                        | ➖       | Bearer token the AI pipeline uses to submit coaching reports        |
 | `TEAM_NOTIFY_WEBHOOK_URL`                                      | ➖       | Slack-compatible webhook pinged on signups and finished uploads     |
@@ -143,9 +143,10 @@ dashboard → **Authentication → URL Configuration**:
    that submitted the form:
    `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/onboarding`
 
-Then set `NEXT_PUBLIC_SITE_URL` to the same production domain in the deploy
-environment, and test the real email link from a device that isn't running the
-dev server.
+Then set `NEXT_PUBLIC_SITE_URL` to the same production domain in the **Production**
+deploy environment (not Preview — previews mint links against `VERCEL_URL` so the
+confirm hop stays on the branch host), and test the real email link from a device
+that isn't running the dev server.
 
 ## Scripts
 

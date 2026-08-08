@@ -59,8 +59,9 @@ export function TheWall() {
             The wall
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed text-sage-400">
-            Every player who gets a trial, a coach, or a call-up through this
-            platform ends up here. It starts empty. It won&apos;t stay that way.
+            Players who get a trial, a coach, or a call-up through this platform
+            can land here — when they and their guardian want that story told. It
+            starts empty. It won&apos;t stay that way.
           </p>
         </motion.header>
 

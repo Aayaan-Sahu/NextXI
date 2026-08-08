@@ -25,7 +25,7 @@ export const metadata: Metadata = {
     template: "%s · NextXI",
   },
   description:
-    "Film your bowling or batting on a phone and build a profile scouts trust — measured technique and real footage, in front of the people who pick teams.",
+    "Film your bowling or batting on a phone and build a profile scouts can check — measured technique and real footage, ready for the people who pick teams.",
   applicationName: "NextXI",
   openGraph: {
     siteName: "NextXI",
