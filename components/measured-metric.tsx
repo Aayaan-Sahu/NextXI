@@ -20,6 +20,10 @@
  *   - `none`      no defensible comparison exists. We say so and show the
  *                 measurement alone rather than inventing a target.
  *
+ * `label` carries the population in plain language; the full academic citation
+ * travels in the optional `source` field, which is never rendered to players —
+ * provenance stays machine-traceable without reading as a footnote.
+ *
  * Used by the marketing report variants and by the real product report so the
  * two can never drift apart.
  */
@@ -34,9 +38,9 @@ export type MetricReference =
       toward. Only use where the source population genuinely was elite, and name
       that population in `label`. Sitting below an elite band is headroom, not a
       fault: it never renders in the error colour. */
-  | { kind: "elite"; label: string; band: [number, number] }
+  | { kind: "elite"; label: string; band: [number, number]; source?: string }
   | { kind: "session"; label: string; band: [number, number] }
-  | { kind: "published"; label: string; band: [number, number] }
+  | { kind: "published"; label: string; band: [number, number]; source?: string }
   | { kind: "none"; label: string };
 
 export type MeasuredMetric = {
