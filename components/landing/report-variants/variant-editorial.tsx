@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useTransform, type MotionValue } from "motion/react";
-import { MeasuredMetricRow } from "@/components/measured-metric";
+import { MeasuredMetricRow, ScaleLegend } from "@/components/measured-metric";
 import { Kicker } from "@/components/ui";
 import {
   CONSISTENCY,
@@ -121,8 +121,13 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
       </Reveal>
 
       <div className={compact ? "pt-2.5" : "pt-3.5"}>
-        <Reveal progress={progress} {...w(2)}>
+        <Reveal
+          progress={progress}
+          {...w(2)}
+          className="flex items-center justify-between gap-3"
+        >
           <Kicker>Measurements</Kicker>
+          <ScaleLegend tone="light" />
         </Reveal>
         <div className="mt-1">
           {metrics.map((metric, i) => (

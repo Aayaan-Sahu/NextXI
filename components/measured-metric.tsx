@@ -102,14 +102,16 @@ export function isOffReference(metric: MeasuredMetric): boolean {
 
 const fmt = (value: number, decimals: number) => value.toFixed(decimals);
 
-/** The reference band as a range with one unit: "0.94–1.05 m". */
+/** The reference band as a range with one unit: "0.94–1.05 m". The unit is
+    bound with a no-break space so it can never orphan onto its own line when
+    the reference row wraps in a narrow card. */
 export function bandLabel(metric: MeasuredMetric): string | null {
   const band = referenceBand(metric);
   if (!band) return null;
   const [low, high] = band;
   return low === high
-    ? `${fmt(low, metric.decimals)} ${metric.unit}`
-    : `${fmt(low, metric.decimals)}–${fmt(high, metric.decimals)} ${metric.unit}`;
+    ? `${fmt(low, metric.decimals)} ${metric.unit}`
+    : `${fmt(low, metric.decimals)}–${fmt(high, metric.decimals)} ${metric.unit}`;
 }
 
 /**
@@ -189,6 +191,35 @@ function Scale({
 }
 
 /**
+ * Key for the Scale visual, rendered beside a measurements section heading:
+ * the player's value is the gold diamond, the comparison range the tinted bar.
+ * Decorative like the Scale itself (every encoded number is also row text), so
+ * it hides from screen readers.
+ */
+export function ScaleLegend({ tone }: { tone: Tone }) {
+  const dark = tone === "dark";
+  return (
+    <span
+      aria-hidden
+      className={`inline-flex items-baseline gap-1.5 font-mono text-[10px] tracking-[.08em] ${
+        dark ? "text-sage-400" : "text-ink-600"
+      }`}
+    >
+      <span
+        className={`size-[7px] self-center rotate-45 ${dark ? "bg-gold-500" : "bg-gold-600"}`}
+      />
+      you
+      <span
+        className={`ml-1 h-[7px] w-4 self-center rounded-[1px] ${
+          dark ? "bg-vision-500/40" : "bg-vision-700/25"
+        }`}
+      />
+      range
+    </span>
+  );
+}
+
+/**
  * One metric row: name, measured value, what it's compared against, the scale,
  * and the read. `compact` tightens it for the pinned hero card, where the
  * report shares the viewport with the video.
@@ -245,8 +276,23 @@ export function MeasuredMetricRow({
             : dark ? "text-sage-400" : "text-ink-600"
         }`}
       >
+        {/* The kind renders as a bold prefix so labels never have to author it:
+            "Benchmark" is the word players, parents and coaches look for, and
+            it stays honest — the population still follows in the label. "Elite"
+            is reserved for a genuinely elite source (see MetricReference). */}
         {metric.reference.kind === "elite" && <span className="font-semibold">Elite · </span>}
-        {band ? `${metric.reference.label} · ${band}` : metric.reference.label}
+        {metric.reference.kind === "published" && (
+          <span className="font-semibold">Benchmark · </span>
+        )}
+        {/* The range never breaks internally — "100–123 °" wraps as one piece
+            instead of stranding the unit or half the range on its own line. */}
+        {band ? (
+          <>
+            {metric.reference.label} · <span className="whitespace-nowrap">{band}</span>
+          </>
+        ) : (
+          metric.reference.label
+        )}
       </div>
 
       {/* In the pinned hero the card shares the viewport with the video, so the

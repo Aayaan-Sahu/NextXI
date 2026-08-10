@@ -1,4 +1,4 @@
-import { MeasuredMetricRow } from "@/components/measured-metric";
+import { MeasuredMetricRow, ScaleLegend } from "@/components/measured-metric";
 import { Kicker } from "@/components/ui";
 import { CONSISTENCY, METRICS, SHOTS_ANALYSED, SUBTITLE, SUMMARY } from "./report-data";
 import { ReportTrailer } from "./report-shared";
@@ -29,8 +29,9 @@ export function VariantScoreboard() {
         {SUMMARY}
       </p>
 
-      <div className="pt-3">
+      <div className="flex items-center justify-between gap-3 pt-3">
         <Kicker tone="dark">Measurements</Kicker>
+        <ScaleLegend tone="dark" />
       </div>
       {METRICS.map((metric) => (
         <MeasuredMetricRow key={metric.name} metric={metric} tone="dark" />
