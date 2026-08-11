@@ -30,6 +30,12 @@ export function LandingFooter() {
         {/* The receipts row: safeguarding is the product's differentiator, so it leads. */}
         <div className="mt-8 flex items-center justify-between gap-4 border-t border-cream-200/10 pt-6 max-md:flex-col">
           <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold text-cream-200/60">
+            <Link href="/#how-it-works" className={`hover:text-gold-500 ${focusRing}`}>
+              How it works
+            </Link>
+            <Link href="/#sample-report" className={`hover:text-gold-500 ${focusRing}`}>
+              Sample report
+            </Link>
             <Link href="/safeguarding" className={`hover:text-gold-500 ${focusRing}`}>
               Safeguarding
             </Link>

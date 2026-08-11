@@ -35,7 +35,7 @@ const STEPS = [
 
 export function FeaturesSteps() {
   return (
-    <section className="bg-seam-stitch px-6 py-24 sm:px-12">
+    <section id="how-it-works" className="scroll-mt-24 bg-seam-stitch px-6 py-24 sm:px-12">
       <div className="mx-auto w-full max-w-[1000px]">
         <header className="mb-16 text-center">
           <Kicker tone="dark">How it works</Kicker>

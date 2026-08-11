@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import {
   motion,
@@ -28,6 +28,7 @@ export function BallHero() {
   const sectionRef = useRef<HTMLElement>(null);
   const reduced = useReducedMotion() ?? false;
   const scrub = useCanScrub();
+  const [canvasReady, setCanvasReady] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -67,15 +68,35 @@ export function BallHero() {
     if (!reduced) wipe.set(clamp01((progress - 0.86) / 0.12));
   });
 
+  // Defer the WebGL ball until the hero nears the viewport — saves ~1.9MB GLB
+  // parse and GPU init on cold loads where the user bounces before scrolling.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setCanvasReady(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "120px" },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     // No background on the tall section itself: at z-10 its lower 100vh
     // overlaps the video (which tucks under via -mt-[100vh]), so a solid bg
     // here would paint over the video during the hand-off — the black screen.
     // The pinned video's own sticky layer carries the dark ground instead.
-    <section ref={sectionRef} className="relative z-10 h-[250vh]">
+    <section ref={sectionRef} className="relative z-10 h-[250vh] max-md:h-[140vh]">
       <motion.div style={{ opacity: depart }} className="sticky top-0 h-dvh overflow-hidden bg-pitch-950">
         <div className="absolute inset-0">
-          <BallCanvas progress={scrollYProgress} reduced={reduced} />
+          {canvasReady ? (
+            <BallCanvas progress={scrollYProgress} reduced={reduced} />
+          ) : null}
         </div>
 
         {/* The big wordmark opens the frame and disappears as you scroll; the

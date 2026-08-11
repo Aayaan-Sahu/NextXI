@@ -55,8 +55,6 @@ function CricketBall({ progress, reduced }: BallProps) {
   );
 }
 
-useGLTF.preload(BALL_MODEL);
-
 export default function BallCanvas(props: BallProps) {
   return (
     <Canvas

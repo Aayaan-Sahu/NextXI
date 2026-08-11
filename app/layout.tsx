@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Public_Sans, Saira_Condensed } from "next/font/google";
+import { getSiteUrl } from "@/lib/site-url";
 import "./globals.css";
 
 const publicSans = Public_Sans({
@@ -20,6 +21,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getSiteUrl()),
   title: {
     default: "NextXI — AI-backed scouting for young cricketers",
     template: "%s · NextXI",
@@ -30,6 +32,16 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: "NextXI",
     type: "website",
+    locale: "en_GB",
+    title: "NextXI — AI-backed scouting for young cricketers",
+    description:
+      "Film your bowling or batting on a phone and build a profile scouts can check — measured technique and real footage, ready for the people who pick teams.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "NextXI — AI-backed scouting for young cricketers",
+    description:
+      "Film your bowling or batting on a phone and build a profile scouts can check — measured technique and real footage, ready for the people who pick teams.",
   },
 };
 

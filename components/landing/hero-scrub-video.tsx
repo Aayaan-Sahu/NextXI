@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -30,6 +30,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrub = useCanScrub();
+  const [videoReady, setVideoReady] = useState(false);
 
   const { scrollYProgress } = useScroll({
     target: sectionRef,
@@ -51,6 +52,30 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
       video.currentTime = time;
     }
   });
+
+  // Hold the 3.1MB hero clip until the section is near the viewport.
+  useEffect(() => {
+    const section = sectionRef.current;
+    if (!section) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVideoReady(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "240px" },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!videoReady) return;
+    const video = videoRef.current;
+    if (!video || scrub) return;
+    void video.play().catch(() => undefined);
+  }, [videoReady, scrub]);
 
   // Hand-off from the ball section's red wipe: the frame starts inside the
   // same leather-red vignette and the batter emerges over the first few percent.
@@ -86,8 +111,9 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
     // In scrub mode the section tucks under the ball opener's final viewport
     // (-mt-[100vh], lower z): its pin starts the instant the ball unpins.
     <section
+      id="sample-report"
       ref={sectionRef}
-      className={scrub ? "relative z-0 -mt-[100vh] h-[600vh]" : "relative"}
+      className={`scroll-mt-24 ${scrub ? "relative z-0 -mt-[100vh] h-[600vh]" : "relative"}`}
     >
       <div
         className={`flex flex-col justify-center overflow-hidden bg-pitch-950 ${
@@ -118,12 +144,12 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           <video
             key={scrub ? "scrub" : "loop"}
             ref={videoRef}
-            src={src}
+            src={videoReady ? src : undefined}
             poster={poster}
-            preload="auto"
+            preload={videoReady ? "auto" : "none"}
             muted
             playsInline
-            autoPlay={!scrub}
+            autoPlay={!scrub && videoReady}
             loop={!scrub}
             className="h-full w-full object-contain"
           />
