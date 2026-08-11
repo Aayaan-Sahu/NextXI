@@ -11,24 +11,35 @@
  * literature reports pooled means over mixed international-to-club samples,
  * measured on lab motion-capture rigs, and for stride length it explicitly
  * finds no difference between skilled and less-skilled batters. So a reference
- * is one of three things, and it always says which:
+ * is one of four things, and it always says which:
  *
  *   - `session`   the player's own recent range. Always available, always
  *                 defensible, and the most actionable comparison for a junior.
+ *                 UI prefix: "Your range ·".
  *   - `published` a real published range, carried with its population so
  *                 nobody reads a provincial group mean as "elite".
+ *                 UI prefix: "Benchmark ·".
+ *   - `elite`     a genuinely elite target (gold). Unused until NextXI's own
+ *                 pro reference set exists. UI prefix: "Elite ·".
  *   - `none`      no defensible comparison exists. We say so and show the
  *                 measurement alone rather than inventing a target.
  *
- * `label` carries the population in plain language; the full academic citation
- * travels in the optional `source` field, which is never rendered to players —
- * provenance stays machine-traceable without reading as a footnote.
+ * `label` carries the population / window in plain language; the full academic
+ * citation travels in the optional `source` field, which is never rendered to
+ * players — provenance stays machine-traceable without reading as a footnote.
  *
  * Used by the marketing report variants and by the real product report so the
  * two can never drift apart.
  */
 
+import { Kicker } from "@/components/ui";
+
 export type Tone = "light" | "dark";
+
+/** One-line explainer under the Measurements heading — stops readers hunting
+    for an elite band on every row. */
+export const MEASUREMENTS_EXPLAINER =
+  "Compared to your recent sessions, unless labelled Benchmark.";
 
 /** Which way is better. `none` means the metric is descriptive, not scored. */
 export type Direction = "higher" | "lower" | "inside" | "none";
@@ -148,19 +159,37 @@ function Scale({
 
   const dark = tone === "dark";
   const off = isOffReference(metric);
-  const elite = metric.reference.kind === "elite";
+  const kind = metric.reference.kind;
   const scale = scaleFor(metric, band);
   const bandLeft = position(band[0], scale);
   const bandWidth = position(band[1], scale) - bandLeft;
   const marker = position(metric.value, scale);
-  // Gold is the brand's achievement colour, mint is the machine's measurement
-  // colour. An elite target reads as something to reach, so it takes gold.
-  const bandFill = elite
-    ? dark ? "bg-gold-500/25" : "bg-gold-500/25"
-    : dark ? "bg-vision-500/25" : "bg-vision-700/15";
-  const bandEdge = elite
-    ? dark ? "bg-gold-500/80" : "bg-gold-600/70"
-    : dark ? "bg-vision-500/70" : "bg-vision-700/50";
+  // Visual kind split so the three comparisons never look identical:
+  //   elite     → gold (achievement target)
+  //   published → ink/cream (external literature band — a benchmark, not "you")
+  //   session   → mint/vision (machine measurement of your own history)
+  const bandFill =
+    kind === "elite"
+      ? "bg-gold-500/25"
+      : kind === "published"
+        ? dark
+          ? "bg-cream-200/20"
+          : "bg-ink-900/10"
+        : dark
+          ? "bg-vision-500/25"
+          : "bg-vision-700/15";
+  const bandEdge =
+    kind === "elite"
+      ? dark
+        ? "bg-gold-500/80"
+        : "bg-gold-600/70"
+      : kind === "published"
+        ? dark
+          ? "bg-cream-200/70"
+          : "bg-ink-900/45"
+        : dark
+          ? "bg-vision-500/70"
+          : "bg-vision-700/50";
 
   return (
     <div className={`relative ${compact ? "mt-1.5 h-2.5" : "mt-2.5 h-3"}`} aria-hidden>
@@ -196,12 +225,18 @@ function Scale({
  * Decorative like the Scale itself (every encoded number is also row text), so
  * it hides from screen readers.
  */
-export function ScaleLegend({ tone }: { tone: Tone }) {
+export function ScaleLegend({
+  tone,
+  compact = false,
+}: {
+  tone: Tone;
+  compact?: boolean;
+}) {
   const dark = tone === "dark";
   return (
     <span
       aria-hidden
-      className={`inline-flex items-baseline gap-1.5 font-mono text-[10px] tracking-[.08em] ${
+      className={`inline-flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5 font-mono text-[10px] tracking-[.08em] ${
         dark ? "text-sage-400" : "text-ink-600"
       }`}
     >
@@ -214,8 +249,51 @@ export function ScaleLegend({ tone }: { tone: Tone }) {
           dark ? "bg-vision-500/40" : "bg-vision-700/25"
         }`}
       />
-      range
+      {compact ? "range" : "your range"}
+      {!compact && (
+        <>
+          <span
+            className={`ml-1 h-[7px] w-4 self-center rounded-[1px] ${
+              dark ? "bg-cream-200/35" : "bg-ink-900/20"
+            }`}
+          />
+          benchmark
+        </>
+      )}
     </span>
+  );
+}
+
+/**
+ * Measurements section chrome shared by marketing variants and the product
+ * report: kicker + scale legend, plus the explainer that answers "where is the
+ * elite benchmark?" without inventing one. `compact` drops the explainer so the
+ * pinned hero card stays inside a short viewport.
+ */
+export function MeasurementsIntro({
+  tone,
+  compact = false,
+}: {
+  tone: Tone;
+  compact?: boolean;
+}) {
+  const dark = tone === "dark";
+  return (
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <Kicker tone={tone}>Measurements</Kicker>
+        <ScaleLegend tone={tone} compact={compact} />
+      </div>
+      {!compact && (
+        <p
+          className={`mt-1.5 font-mono text-[10.5px] leading-snug tracking-[.04em] ${
+            dark ? "text-sage-400" : "text-ink-600"
+          }`}
+        >
+          {MEASUREMENTS_EXPLAINER}
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -272,17 +350,23 @@ export function MeasuredMetricRow({
           compact ? "mt-0.5 text-[10px]" : "mt-1 text-[10.5px]"
         } ${
           metric.reference.kind === "elite"
-            ? dark ? "text-gold-500" : "text-gold-600"
-            : dark ? "text-sage-400" : "text-ink-600"
+            ? dark
+              ? "text-gold-500"
+              : "text-gold-600"
+            : dark
+              ? "text-sage-400"
+              : "text-ink-600"
         }`}
       >
-        {/* The kind renders as a bold prefix so labels never have to author it:
-            "Benchmark" is the word players, parents and coaches look for, and
-            it stays honest — the population still follows in the label. "Elite"
-            is reserved for a genuinely elite source (see MetricReference). */}
+        {/* Kind renders as a bold prefix so labels never author it:
+            Your range / Benchmark / Elite stay parallel and scannable.
+            Elite is reserved for a genuinely elite source (see MetricReference). */}
         {metric.reference.kind === "elite" && <span className="font-semibold">Elite · </span>}
         {metric.reference.kind === "published" && (
           <span className="font-semibold">Benchmark · </span>
+        )}
+        {metric.reference.kind === "session" && (
+          <span className="font-semibold">Your range · </span>
         )}
         {/* The range never breaks internally — "100–123 °" wraps as one piece
             instead of stranding the unit or half the range on its own line. */}
