@@ -10,6 +10,24 @@ A cricket talent platform: players upload technique videos for AI coaching
 reports, track stats/goals, and connect with coaches and guardians.
 Next.js 16 (App Router) · React 19 · Prisma 7 · Supabase · Tailwind v4 · Bun.
 
+**Author / committer (mandatory):** Mukilan Rajasekar \<mukilan.rajasekar@gmail.com\>.
+
+Every agent commit — Cloud, background, local — must use that identity for **both**
+author and committer. Never `Cursor Agent` / `cursoragent@cursor.com`. Never
+`Co-authored-by:` or `Made-with: Cursor` trailers.
+
+Enforcement (do not weaken):
+
+1. Run `./scripts/agent-git-identity.sh` before the first commit in a session
+   (`.cursor/environment.json` install and `.cursor/hooks.json` also run it).
+2. That script sets `user.name` / `user.email` and replaces Cursor's
+   `commit-msg.cursor.co-author` injector with a no-op.
+3. If a commit still lands wrong, rewrite it (`git commit --amend` /
+   `filter-branch` with `core.hooksPath=/dev/null`) before pushing.
+
+Cursor has no product toggle for Cloud Agent authorship; this repo policy is
+the permanent override.
+
 ## Commands (use Bun, never npm)
 
 - `bun dev` — start the dev server
