@@ -7,22 +7,25 @@ import { Kicker } from "@/components/ui";
  * made. Styled as the design system's dark honours board (scanline scoreboard
  * panels, gold for achievement).
  *
- * ENTRIES is deliberately empty at launch and the section says so: the wall's
- * credibility rests on nothing here ever being invented. Every story added must
- * be a real player, shared with their guardian's permission, first name and
- * initial only. Add entries to ENTRIES as they are confirmed — the placeholder
- * slots give way on their own.
+ * ENTRIES holds only confirmed stories: the wall's credibility rests on nothing
+ * here ever being invented. Every story added must be a real player, shared
+ * with their guardian's permission, first name and initial only — and states
+ * only what is actually known (detail line omitted until confirmed). Append
+ * entries as they are confirmed — the placeholder slots give way on their own.
  */
 type WallEntry = {
   /** First name and initial only, e.g. "S. Patel". */
   name: string;
-  /** Discipline · age group · club, e.g. "Leg spin · U15 · Wandsworth CC". */
-  detail: string;
+  /** Discipline · age group · club, e.g. "Leg spin · U15 · Wandsworth CC".
+      Omitted until confirmed — an entry only ever states what we know. */
+  detail?: string;
   /** What actually happened, e.g. "Invited to a county trial". */
   outcome: string;
 };
 
-const ENTRIES: WallEntry[] = [];
+const ENTRIES: WallEntry[] = [
+  { name: "Peter N.", outcome: "Scouted by Mubasher H." },
+];
 
 // Placeholders are sliced away as real entries land, so every line must read
 // correctly at ANY entry count and carry no calendar claim that can silently
@@ -44,8 +47,8 @@ export function TheWall() {
           </h2>
           <p className="mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed text-sage-400">
             Players who get a trial, a coach, or a call-up through this platform
-            can land here — when they and their guardian want that story told. It
-            starts empty. It won&apos;t stay that way.
+            can land here — when they and their guardian want that story told.
+            Every story is real. There&apos;s room for yours.
           </p>
         </header>
 
@@ -69,9 +72,11 @@ export function TheWall() {
                 <h3 className="mt-2 font-display text-xl leading-tight font-semibold text-cream-200 uppercase">
                   {entry.name}
                 </h3>
-                <p className="mt-1 font-mono text-[11px] tracking-[.08em] text-sage-400">
-                  {entry.detail}
-                </p>
+                {entry.detail && (
+                  <p className="mt-1 font-mono text-[11px] tracking-[.08em] text-sage-400">
+                    {entry.detail}
+                  </p>
+                )}
                 <p className="mt-3 text-sm leading-relaxed text-cream-200/85">
                   {entry.outcome}
                 </p>

@@ -291,12 +291,14 @@ and less-skilled batters (910 ± 30 mm vs 890 ± 320 mm, P = 0.65). So a referen
 is one of four kinds and must always say which:
 
 - `"session"` — the player's own recent range. Always defensible. Prefer this.
-- `"published"` — a real published range. `label` **must** carry the population
-  in plain language ("Published range · club to international batters") and
-  **must not** carry an academic citation — citations read as footnotes on a
-  consumer report, so the full citation travels in the optional, never-rendered
-  `source` field instead. Never the word "elite" in a `published` label unless
-  the source population genuinely was elite.
+- `"published"` — a real published range. The UI renders it with a bold
+  `Benchmark · ` prefix (parallel to elite's `Elite · `), so `label` carries
+  only the population, in plain language ("Club-to-international batters") —
+  don't author the word "benchmark" into it. `label` **must not** carry an
+  academic citation — citations read as footnotes on a consumer report, so the
+  full citation travels in the optional, never-rendered `source` field instead.
+  Never the word "elite" in a `published` label unless the source population
+  genuinely was elite.
 - `"elite"` — a genuinely elite reference band, rendered as a gold target
   (falling short is headroom, never a fault). An elite population is necessary
   but not sufficient: the band must also survive every failure mode documented
