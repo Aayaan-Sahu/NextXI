@@ -275,7 +275,12 @@ Like the cm fields, they are present only when `calibration` is present.
 panel but have **no producer** — the pipeline measures neither run-up nor
 follow-through yet, so those rows simply stay empty.
 
-## Measurements — PROPOSED schema_version 3
+## Measurements — schema_version 3
+
+> **UI implemented.** `ReportPanel` prefers a `measurements` array and renders
+> it through the shared `MeasuredMetricRow` (same component as the landing
+> demo). The worker producer that emits this array is still landing — until it
+> does, live reports keep using the v2 batting/bowling shapes below.
 
 v3 exists because a 0-100 score is not actionable. "Stride 82/100" does not tell
 a player whether the stride was too short or too long; "Stride 1.02 m, your usual
@@ -291,14 +296,16 @@ and less-skilled batters (910 ± 30 mm vs 890 ± 320 mm, P = 0.65). So a referen
 is one of four kinds and must always say which:
 
 - `"session"` — the player's own recent range. Always defensible. Prefer this.
+  The UI renders it with a bold `Your range · ` prefix, so `label` carries only
+  the window ("Last 5 sessions") — don't author "your range" into it.
 - `"published"` — a real published range. The UI renders it with a bold
-  `Benchmark · ` prefix (parallel to elite's `Elite · `), so `label` carries
-  only the population, in plain language ("Club-to-international batters") —
-  don't author the word "benchmark" into it. `label` **must not** carry an
-  academic citation — citations read as footnotes on a consumer report, so the
-  full citation travels in the optional, never-rendered `source` field instead.
-  Never the word "elite" in a `published` label unless the source population
-  genuinely was elite.
+  `Benchmark · ` prefix (parallel to session's `Your range · ` and elite's
+  `Elite · `), so `label` carries only the population, in plain language
+  ("Club-to-international batters") — don't author the word "benchmark" into
+  it. `label` **must not** carry an academic citation — citations read as
+  footnotes on a consumer report, so the full citation travels in the optional,
+  never-rendered `source` field instead. Never the word "elite" in a
+  `published` label unless the source population genuinely was elite.
 - `"elite"` — a genuinely elite reference band, rendered as a gold target
   (falling short is headroom, never a fault). An elite population is necessary
   but not sufficient: the band must also survive every failure mode documented
@@ -339,7 +346,7 @@ is one of four kinds and must always say which:
       "direction": "none",          // "higher" | "lower" | "inside" | "none"
       "reference": {
         "kind": "session",          // "session" | "published" | "elite" | "none"
-        "label": "Your last 5 sessions",
+        "label": "Last 5 sessions",
         "band": [0.94, 1.05],       // omitted when kind is "none"
         "source": "…"               // optional, published/elite only: full academic
                                     // citation. Provenance for devs; never rendered

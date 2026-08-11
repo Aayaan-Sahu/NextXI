@@ -5,6 +5,11 @@ import {
   parseBattingReport,
 } from "@/components/batting-report";
 import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
+import {
+  MeasuredReport,
+  measuredConsistency,
+  parseMeasuredReport,
+} from "@/components/measured-report";
 import { ReportAutoRefresh } from "@/components/report-auto-refresh";
 import { Kicker } from "@/components/ui";
 import { isFinalReportFailure } from "@/lib/report-errors";
@@ -296,15 +301,21 @@ export function ReportPanel({
   const dark = tone === "dark";
   const ready = report?.status === ReportStatus.READY;
   const payload = ready && isRecord(report.payload) ? report.payload : null;
-  // Each analyser emits its own shape; anything unrecognised uses the legacy render.
-  const batting = payload ? parseBattingReport(payload) : null;
-  const bowling = !batting && payload ? parseBowlingReport(payload) : null;
-  // Bowling is a single delivery, so it has no headline figure. Batting shows
-  // repeatability across its shots; legacy payloads keep whatever 0-100 score
-  // the pipeline sent, since we cannot recover a measurement from one.
-  const consistency = batting ? battingConsistency(batting) : null;
+  // Prefer v3 measurements (same rows as the landing demo), then batting /
+  // bowling shapes, then legacy 0-100 scores — see reports-contract.md.
+  const measured = payload ? parseMeasuredReport(payload) : null;
+  const batting = !measured && payload ? parseBattingReport(payload) : null;
+  const bowling = !measured && !batting && payload ? parseBowlingReport(payload) : null;
+  // Bowling is a single delivery, so it has no headline figure. Measured and
+  // batting show repeatability; legacy payloads keep whatever 0-100 score the
+  // pipeline sent, since we cannot recover a measurement from one.
+  const consistency = measured
+    ? measuredConsistency(measured)
+    : batting
+      ? battingConsistency(batting)
+      : null;
   const legacyScore =
-    !batting && !bowling && payload ? readOverallScore(payload) : null;
+    !measured && !batting && !bowling && payload ? readOverallScore(payload) : null;
 
   return (
     <section
@@ -390,7 +401,9 @@ export function ReportPanel({
 
       {ready &&
         report &&
-        (batting ? (
+        (measured ? (
+          <MeasuredReport parsed={measured} report={report} tone={tone} />
+        ) : batting ? (
           <BattingReport parsed={batting} report={report} tone={tone} />
         ) : bowling ? (
           <BowlingReport parsed={bowling} report={report} tone={tone} />

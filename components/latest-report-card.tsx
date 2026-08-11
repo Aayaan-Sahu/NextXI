@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { battingConsistency, parseBattingReport } from "@/components/batting-report";
 import { parseBowlingReport } from "@/components/bowling-report";
+import { measuredCardStats, parseMeasuredReport } from "@/components/measured-report";
 import { isRecord, readFeedback, readOverallScore } from "@/components/report-panel";
 import { Kicker } from "@/components/ui";
 
@@ -22,10 +23,14 @@ function firstSentence(prose: string) {
 
 /**
  * Derives the card copy from whatever the payload actually measured — the
- * shape detection and no-invented-numbers rules mirror ReportPanel: batting
- * first, then bowling, then v1 legacy, then a bare "Report ready".
+ * shape detection and no-invented-numbers rules mirror ReportPanel: v3
+ * measurements first, then batting, bowling, v1 legacy, then a bare
+ * "Report ready".
  */
 function deriveCard(payload: unknown): CardData {
+  const measured = parseMeasuredReport(payload);
+  if (measured) return measuredCardStats(measured);
+
   const batting = parseBattingReport(payload);
   if (batting) {
     if (batting.shots.length === 0) {
@@ -48,13 +53,13 @@ function deriveCard(payload: unknown): CardData {
   if (bowling) {
     // Mirror BowlingReport's hasContent check: a delivery with nothing
     // measured must not be headlined as analysed.
-    const measured =
+    const measuredDelivery =
       bowling.brace.label !== null ||
       bowling.brace.landingAngle !== null ||
       bowling.brace.releaseAngle !== null ||
       bowling.stats.length > 0 ||
       bowling.events.length > 0;
-    if (!measured) {
+    if (!measuredDelivery) {
       return { headline: "Analysis ran — couldn't measure this delivery clearly.", stats: [] };
     }
     return {
