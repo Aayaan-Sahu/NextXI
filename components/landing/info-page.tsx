@@ -4,9 +4,9 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { Kicker, Wordmark } from "@/components/ui";
 
 /**
- * Quiet reading shell for the pre-launch info pages (privacy, terms,
- * safeguarding, contact): the landing nav's rust bar without the waitlist
- * CTA, a narrow measure on the cream page ground, and the shared footer.
+ * Quiet reading shell for the info pages (privacy, terms, safeguarding,
+ * contact): the landing nav's rust bar, a narrow measure on the cream page
+ * ground, and the shared footer.
  */
 export function InfoPage({
   title,

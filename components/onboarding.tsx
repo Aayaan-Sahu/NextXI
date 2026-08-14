@@ -1,6 +1,12 @@
+"use client";
+
+import { useActionState, useState } from "react";
 import Link from "next/link";
 import { SubmitButton } from "@/components/submit-button";
-import { completeOnboarding, signOut } from "@/app/auth/actions";
+import { completeOnboarding, signOut, type OnboardingState } from "@/app/auth/actions";
+import { AuthStepper } from "@/components/auth-stepper";
+import { PhysicalFields } from "@/components/physical-fields";
+import { UsernameHandleField } from "@/components/username-field";
 import {
   CheckboxChip,
   Field,
@@ -10,7 +16,6 @@ import {
   Notice,
   TextArea,
   TextInput,
-  TextLink,
   Wordmark,
 } from "@/components/ui";
 import { CountrySelect } from "@/components/country-select";
@@ -18,10 +23,48 @@ import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
 export type OnboardingRole = "player" | "coach" | "guardian";
 
+const emptyOnboarding: OnboardingState = {};
+
+function dobBounds() {
+  const now = new Date();
+  const utc = (yearsAgo: number) => {
+    const date = new Date(
+      Date.UTC(now.getUTCFullYear() - yearsAgo, now.getUTCMonth(), now.getUTCDate()),
+    );
+    return date.toISOString().slice(0, 10);
+  };
+
+  return { max: utc(8), min: utc(100) };
+}
+
+const COPY: Record<
+  OnboardingRole,
+  { description: string; kicker: string; submit: string; title: string }
+> = {
+  player: {
+    description: "A few details for your player card. You can change these later.",
+    kicker: "PLAYER",
+    submit: "Create player profile",
+    title: "You're in",
+  },
+  coach: {
+    description: "Tell us who you are so we can review your coach account.",
+    kicker: "COACH",
+    submit: "Create coach profile",
+    title: "Set up your coach profile",
+  },
+  guardian: {
+    description: "Use the code on your child's dashboard to link their account.",
+    kicker: "GUARDIAN",
+    submit: "Link child's account",
+    title: "Link your child’s account",
+  },
+};
+
 export function OnboardingPanel({
   email,
   error,
-  role,
+  role = "player",
 }: {
   email?: string;
   error?: string;
@@ -32,10 +75,10 @@ export function OnboardingPanel({
       <div className="absolute top-8 left-6 sm:left-12">
         <Wordmark tone="light" />
       </div>
-      <div className="flex w-full flex-1 flex-col items-center justify-center">
-        {role ? <RoleForm error={error} role={role} /> : <RoleChoice error={error} />}
+      <div className="flex w-full flex-1 flex-col items-center justify-center py-8">
+        <RoleForm error={error} key={role} role={role} />
       </div>
-      <div className="mt-10 text-center text-[12.5px] text-ink-600">
+      <div className="mt-4 text-center text-[12.5px] text-ink-600">
         Signed in as {email} ·{" "}
         <form action={signOut} className="inline">
           <button
@@ -50,152 +93,97 @@ export function OnboardingPanel({
   );
 }
 
-function RoleChoice({ error }: { error?: string }) {
-  return (
-    <>
-      <h1 className="text-center font-display text-[34px] leading-tight font-bold tracking-[.02em] uppercase">
-        How will you use NextXI?
-      </h1>
-      <p className="mt-2.5 text-center text-[15px] text-ink-600">
-        Choose a role to finish setting up your account.
-      </p>
-      <nav aria-label="Choose your role" className="mt-10 flex flex-wrap justify-center gap-5">
-        <RoleOption
-          description="Build your profile and share videos of your game with coaches."
-          href="/onboarding?role=player"
-          kicker="Player"
-          title="I'm a player"
-        />
-        <RoleOption
-          description="Discover players and review their videos."
-          href="/onboarding?role=coach"
-          kicker="Coach"
-          title="I'm a coach"
-          tone="dark"
-        />
-        <RoleOption
-          description="Approve and follow your child's player account."
-          href="/onboarding?role=guardian"
-          kicker="Guardian"
-          title="I'm a parent / guardian"
-        />
-      </nav>
-      <Notice tone="error">{error}</Notice>
-    </>
-  );
-}
-
-function RoleOption({
-  description,
-  href,
-  kicker,
-  title,
-  tone = "light",
-}: {
-  description: string;
-  href: string;
-  kicker: string;
-  title: string;
-  tone?: "light" | "dark";
-}) {
-  const dark = tone === "dark";
-
-  return (
-    <Link
-      className={`w-[280px] rounded-xl p-7 no-underline ${
-        dark
-          ? "bg-pitch-900 text-cream-200 hover:bg-pitch-800"
-          : "border border-cream-400 bg-white hover:border-cream-500"
-      }`}
-      href={href}
-    >
-      <Kicker tone={dark ? "dark" : "light"}>{kicker}</Kicker>
-      <span className="mt-3 block font-display text-[22px] leading-tight font-semibold uppercase">
-        {title}
-      </span>
-      <span
-        className={`mt-2.5 block text-[13.5px] leading-relaxed ${
-          dark ? "text-sage-400" : "text-ink-600"
-        }`}
-      >
-        {description}
-      </span>
-    </Link>
-  );
-}
-
 function RoleForm({ error, role }: { error?: string; role: OnboardingRole }) {
+  const [state, action] = useActionState(completeOnboarding, emptyOnboarding);
+  const [name, setName] = useState("");
+  const copy = COPY[role];
+  const dob = dobBounds();
+
   return (
-    <>
-      <section className="w-full max-w-[560px] rounded-xl border border-cream-400 bg-white p-9">
-        <h1 className="font-display text-[26px] leading-tight font-bold uppercase">
-          Set up your {role} profile
-        </h1>
-        <p className="mt-2 text-sm text-ink-600">
-          Tell us a bit about yourself to finish setting up.
-        </p>
-        <Form action={completeOnboarding} className="mt-6">
-          <input name="role" type="hidden" value={role} />
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field>
-              Name
-              <TextInput name="name" required type="text" />
-            </Field>
-            <Field>
-              Username
-              <TextInput
-                name="username"
-                pattern="[A-Za-z0-9_]{3,30}"
-                required
-                title="Use 3-30 letters, numbers, or underscores."
-                type="text"
-              />
-            </Field>
-            {role === "player" && <PlayerGridFields />}
-          </div>
-          {role === "player" ? (
-            <>
-              <CountryField />
-              <RolesField />
-            </>
-          ) : role === "coach" ? (
-            <CoachFields />
-          ) : (
-            <GuardianFields />
-          )}
-          <SubmitButton>Create {role} profile</SubmitButton>
-        </Form>
-        <Notice tone="error">{error}</Notice>
-      </section>
-      <p className="mt-4 text-center text-[13px]">
-        <TextLink href="/onboarding">&larr; Choose a different role</TextLink>
-      </p>
-    </>
+    <section className="w-full max-w-[560px] rounded-xl border border-cream-400 bg-white p-9">
+      <AuthStepper current="profile" />
+      <Kicker>{copy.kicker}</Kicker>
+      <h1 className="mt-2.5 font-display text-[26px] leading-tight font-bold uppercase">
+        {copy.title}
+      </h1>
+      <p className="mt-2 text-sm text-ink-600">{copy.description}</p>
+      <Form action={action} className="mt-6">
+        <input name="role" type="hidden" value={role} />
+        <Field>
+          Name
+          <TextInput
+            autoComplete="name"
+            name="name"
+            onChange={(event) => setName(event.target.value)}
+            required
+            type="text"
+            value={name}
+          />
+        </Field>
+        <UsernameHandleField nameValue={name} />
+        {role === "player" && (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field>
+                Date of birth
+                <TextInput max={dob.max} min={dob.min} name="dateOfBirth" required type="date" />
+              </Field>
+              <Field>
+                Club
+                <TextInput name="club" required type="text" />
+              </Field>
+            </div>
+            <PhysicalFields />
+            <CountryField />
+            <RolesField />
+          </>
+        )}
+        {role === "coach" && <CoachFields />}
+        {role === "guardian" && <GuardianFields />}
+        <SubmitButton>{copy.submit}</SubmitButton>
+      </Form>
+      <Notice tone="error">{state.error ?? error}</Notice>
+      <RoleSwitchLinks role={role} />
+    </section>
   );
 }
 
-function PlayerGridFields() {
+function RoleSwitchLinks({ role }: { role: OnboardingRole }) {
+  const linkClass =
+    "font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline";
+
+  if (role === "player") {
+    return (
+      <p className="mt-6 text-[13px] leading-relaxed text-ink-600">
+        Signing up as a coach?{" "}
+        <Link className={linkClass} href="/onboarding?role=coach">
+          Set up a coach profile
+        </Link>
+        <br />
+        Parent or guardian?{" "}
+        <Link className={linkClass} href="/onboarding?role=guardian">
+          Link a child&apos;s account
+        </Link>
+      </p>
+    );
+  }
+
   return (
-    <>
-      <Field>
-        Date of birth
-        <TextInput name="dateOfBirth" required type="date" />
-      </Field>
-      <Field>
-        Club
-        <TextInput name="club" required type="text" />
-      </Field>
-      <div className="grid grid-cols-2 gap-3">
-        <Field>
-          Height (cm)
-          <TextInput max={300} min={1} name="heightCm" required type="number" />
-        </Field>
-        <Field>
-          Weight (kg)
-          <TextInput max={500} min={1} name="weightKg" placeholder="Optional" type="number" />
-        </Field>
-      </div>
-    </>
+    <p className="mt-6 text-[13px] leading-relaxed text-ink-600">
+      <Link className={linkClass} href="/onboarding">
+        I&apos;m a player
+      </Link>
+      {" · "}
+      {role === "coach" ? (
+        <Link className={linkClass} href="/onboarding?role=guardian">
+          I&apos;m a parent or guardian
+        </Link>
+      ) : (
+        <Link className={linkClass} href="/onboarding?role=coach">
+          I&apos;m a coach
+        </Link>
+      )}
+    </p>
   );
 }
 

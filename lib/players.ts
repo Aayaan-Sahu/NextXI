@@ -40,9 +40,17 @@ export const COUNTRY_OPTIONS: { label: string; flag: string }[] = [
   { label: "South Africa", flag: "🇿🇦" },
   { label: "Sri Lanka", flag: "🇱🇰" },
   { label: "Bangladesh", flag: "🇧🇩" },
+  { label: "West Indies", flag: "🏏" },
   { label: "Afghanistan", flag: "🇦🇫" },
   { label: "Ireland", flag: "🇮🇪" },
+  { label: "Zimbabwe", flag: "🇿🇼" },
+  { label: "Scotland", flag: "🏴󠁧󠁢󠁳󠁣󠁴󠁿" },
+  { label: "Netherlands", flag: "🇳🇱" },
+  { label: "United Arab Emirates", flag: "🇦🇪" },
   { label: "United States", flag: "🇺🇸" },
+  { label: "Canada", flag: "🇨🇦" },
+  { label: "Namibia", flag: "🇳🇦" },
+  { label: "Nepal", flag: "🇳🇵" },
 ];
 
 const COUNTRY_VALUES = new Set<string>(COUNTRY_OPTIONS.map((c) => c.label));

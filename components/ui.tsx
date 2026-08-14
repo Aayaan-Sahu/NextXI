@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { signOut } from "@/app/auth/actions";
 import { AuthMount } from "@/components/auth-mount";
+import { AuthStepper, type AuthStep } from "@/components/auth-stepper";
 
 type Children = {
   children: ReactNode;
@@ -106,16 +107,19 @@ export function AuthCard({
   description,
   footer,
   kicker = "ACCOUNT",
+  step,
   title,
 }: Children & {
   description?: string;
   footer?: ReactNode;
   kicker?: string;
+  step?: AuthStep;
   title: string;
 }) {
   return (
     <section className="relative w-full overflow-hidden rounded-xl bg-white text-ink-900 shadow-2xl shadow-black/45 md:rounded-[10px] md:border md:border-cream-400 md:shadow-none">
       <div className="p-9">
+        {step && <AuthStepper current={step} />}
         <Kicker>{kicker}</Kicker>
         <h1 className="mt-2.5 font-display text-[26px] leading-tight font-bold uppercase">
           {title}

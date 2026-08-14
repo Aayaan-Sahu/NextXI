@@ -20,6 +20,7 @@ const plexMono = IBM_Plex_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://www.nextxi.pro"),
   title: {
     default: "NextXI — AI-backed scouting for young cricketers",
     template: "%s · NextXI",

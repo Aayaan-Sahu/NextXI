@@ -1,7 +1,7 @@
 "use server";
 
-import { headers } from "next/headers";
 import { redirect } from "next/navigation";
+import { revalidatePath } from "next/cache";
 import { PlayerStatus, Visibility } from "@/app/generated/prisma/enums";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
@@ -10,18 +10,20 @@ import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code
 import { notifyTeam } from "@/lib/notify";
 import { isCountry, parsePlayerRoles } from "@/lib/players";
 import { POLICY_VERSION } from "@/lib/policy";
+import { authEmailOrigin } from "@/lib/site-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
-
-const usernamePattern = /^[a-z0-9_]{3,30}$/;
+import { USERNAME_PATTERN } from "@/lib/usernames";
 
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
 }
 
-function authError(mode: "sign-in" | "sign-up", message: string): never {
-  redirect(`/auth?mode=${mode}&error=${encodeURIComponent(message)}`);
-}
+export type AuthFormState = { error?: string };
+
+export type CheckEmailState = { error?: string; message?: string };
+
+export type OnboardingState = { error?: string };
 
 function signupMessage(error: { code?: string; message: string }) {
   return error.code === "user_already_exists" ||
@@ -46,15 +48,16 @@ function optionalInt(formData: FormData, name: string, min: number, max: number)
   if (!raw) return null;
 
   const value = Number(raw);
-  if (!Number.isInteger(value) || value < min || value > max) return INVALID_NUMBER;
+  if (!Number.isFinite(value)) return INVALID_NUMBER;
 
-  return value;
+  const rounded = Math.round(value);
+  if (rounded < min || rounded > max) return INVALID_NUMBER;
+
+  return rounded;
 }
 
-function onboardingError(role: string, message: string): never {
-  const roleQuery =
-    role === "player" || role === "coach" || role === "guardian" ? `role=${role}&` : "";
-  redirect(`/onboarding?${roleQuery}error=${encodeURIComponent(message)}`);
+function onboardingError(message: string): OnboardingState {
+  return { error: message };
 }
 
 function isUniqueError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
@@ -70,77 +73,64 @@ function ageInYears(dob: string) {
   return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0);
 }
 
-// The base URL baked into verification/reset emails.
-//
-// Production must use NEXT_PUBLIC_SITE_URL: the request Origin header varies
-// (LAN IP during mobile testing, odd hostnames) and any origin Supabase hasn't
-// allow-listed gets silently replaced with the project's Site URL — which is
-// how an external coach ended up with a localhost link that never resolves.
-//
-// Preview and local keep the request host (VERCEL_URL / Origin) so a signup
-// started on a preview deploy confirms on that same host — otherwise the
-// PKCE verifier cookie stays on the preview origin while the email points at
-// production, and exchangeCodeForSession fails. Prefer the token_hash confirm
-// template (see README) so email clients without the cookie still work.
-async function origin() {
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "");
-  if (process.env.VERCEL_ENV === "production" && siteUrl) return siteUrl;
-
-  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
-
-  return (
-    (await headers()).get("origin") ??
-    siteUrl ??
-    "http://localhost:3000"
-  );
-}
-
 async function afterSignIn(userId: string): Promise<never> {
   const status = await getOnboardingStatus(userId);
   redirect(status.role ? "/dashboard" : "/onboarding");
 }
 
-export async function signUp(formData: FormData) {
-  const email = text(formData, "email").toLowerCase();
-  const password = text(formData, "password");
-
-  if (!email || password.length < 6) {
-    authError("sign-up", "Enter an email and a password with at least 6 characters.");
+function signInMessage(error: { code?: string; message: string }) {
+  if (error.code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
+    return "Confirm your email first — enter the code from the NextXI email, or tap the confirm link.";
   }
+  return error.message;
+}
 
-  if (!formData.get("consent")) {
-    authError("sign-up", "Agree to the Terms of Use and Privacy Policy to create an account.");
+export async function requestEmailCode(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const email = text(formData, "email").toLowerCase();
+  const intent = text(formData, "intent") === "sign-up" ? "sign-up" : "sign-in";
+
+  if (!email) return { error: "Enter your email address." };
+
+  if (intent === "sign-up" && !formData.get("consent")) {
+    return { error: "Agree to the Terms of Use and Privacy Policy to create an account." };
   }
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.signUp({
+  const origin = await authEmailOrigin();
+  const { error } = await supabase.auth.signInWithOtp({
     email,
-    password,
     options: {
-      emailRedirectTo: `${await origin()}/auth/confirm?next=/onboarding`,
+      emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
+      shouldCreateUser: intent === "sign-up",
     },
   });
 
-  if (error) authError("sign-up", signupMessage(error));
+  if (error) return { error: signupMessage(error) };
 
   redirect(`/auth/check-email?email=${encodeURIComponent(email)}`);
 }
 
-export async function signIn(formData: FormData) {
+export async function signIn(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
   const email = text(formData, "email").toLowerCase();
   const password = text(formData, "password");
 
-  if (!email || !password) authError("sign-in", "Enter your email and password.");
+  if (!email || !password) return { error: "Enter your email and password." };
 
   const supabase = await createSupabaseServerClient();
   const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
-  if (error) authError("sign-in", error.message);
-  if (!data.user) authError("sign-in", "Sign in failed.");
+  if (error) return { error: signInMessage(error) };
+  if (!data.user) return { error: "Sign in failed." };
 
   if (isAdmin(data.user)) redirect("/dashboard/admin");
 
-  await afterSignIn(data.user.id);
+  return afterSignIn(data.user.id);
 }
 
 export async function signOut() {
@@ -149,27 +139,80 @@ export async function signOut() {
   redirect("/");
 }
 
-export async function resendVerification(formData: FormData) {
+export async function verifySignupOtp(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
   const email = text(formData, "email").toLowerCase();
+  const token = text(formData, "token").replace(/\s/g, "");
 
-  if (!email) {
-    redirect("/auth/check-email?error=Enter%20the%20email%20address%20you%20used.");
-  }
+  if (!email) return { error: "Enter the email address you used." };
+  if (token.length < 6) return { error: "Enter the 6-digit code from the email." };
 
   const supabase = await createSupabaseServerClient();
-  const { error } = await supabase.auth.resend({
+  let result = await supabase.auth.verifyOtp({
     email,
-    type: "signup",
+    token,
+    type: "email",
+  });
+  if (result.error) {
+    result = await supabase.auth.verifyOtp({ email, token, type: "signup" });
+  }
+  if (result.error) {
+    result = await supabase.auth.verifyOtp({ email, token, type: "magiclink" });
+  }
+
+  if (result.error) return { error: result.error.message };
+
+  const user = result.data.user;
+  if (user && isAdmin(user)) redirect("/dashboard/admin");
+  if (user) return afterSignIn(user.id);
+
+  redirect("/onboarding");
+}
+
+export async function resendVerification(
+  _prev: CheckEmailState,
+  formData: FormData,
+): Promise<CheckEmailState> {
+  const email = text(formData, "email").toLowerCase();
+
+  if (!email) return { error: "Enter the email address you used." };
+
+  const supabase = await createSupabaseServerClient();
+  const origin = await authEmailOrigin();
+  const otp = await supabase.auth.signInWithOtp({
+    email,
     options: {
-      emailRedirectTo: `${await origin()}/auth/confirm?next=/onboarding`,
+      emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
+      shouldCreateUser: false,
     },
   });
 
-  const query = error
-    ? `error=${encodeURIComponent(error.message)}`
-    : `email=${encodeURIComponent(email)}&message=Verification%20email%20sent.`;
+  if (otp.error) {
+    const signup = await supabase.auth.resend({
+      email,
+      type: "signup",
+      options: {
+        emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
+      },
+    });
+    if (signup.error) return { error: signup.error.message };
+  }
 
-  redirect(`/auth/check-email?${query}`);
+  return { message: "Code sent. Check your inbox." };
+}
+
+export async function checkUsername(username: string) {
+  const normalized = username.trim().toLowerCase();
+  if (!USERNAME_PATTERN.test(normalized)) return "invalid" as const;
+
+  const existing = await prisma.profile.findUnique({
+    where: { username: normalized },
+    select: { id: true },
+  });
+
+  return existing ? ("taken" as const) : ("free" as const);
 }
 
 export async function requestPasswordReset(formData: FormData) {
@@ -179,7 +222,7 @@ export async function requestPasswordReset(formData: FormData) {
 
   const supabase = await createSupabaseServerClient();
   const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${await origin()}/auth/confirm?type=recovery&next=/auth/reset-password`,
+    redirectTo: `${await authEmailOrigin()}/auth/confirm?type=recovery&next=/auth/reset-password`,
   });
 
   if (error) resetError(error.message);
@@ -200,7 +243,27 @@ export async function updatePassword(formData: FormData) {
   redirect("/dashboard");
 }
 
-export async function completeOnboarding(formData: FormData) {
+export async function setAccountPassword(
+  _prev: AuthFormState,
+  formData: FormData,
+): Promise<AuthFormState> {
+  const password = text(formData, "password");
+
+  if (password.length < 6) return { error: "Use at least 6 characters." };
+
+  const supabase = await createSupabaseServerClient();
+  const { error } = await supabase.auth.updateUser({ password });
+
+  if (error) return { error: error.message };
+
+  revalidatePath("/dashboard/profile");
+  redirect(`/dashboard/profile?message=${encodeURIComponent("Password saved.")}`);
+}
+
+export async function completeOnboarding(
+  _prev: OnboardingState,
+  formData: FormData,
+): Promise<OnboardingState> {
   const user = await requireUser();
   const existing = await getOnboardingStatus(user.id);
 
@@ -209,8 +272,8 @@ export async function completeOnboarding(formData: FormData) {
   const role = text(formData, "role");
   const username = normalizeUsername(formData);
 
-  if (!usernamePattern.test(username)) {
-    onboardingError(role, "Use 3-30 letters, numbers, or underscores for username.");
+  if (!USERNAME_PATTERN.test(username)) {
+    return onboardingError("Use 3-30 letters, numbers, or underscores for username.");
   }
 
   if (role === "player") {
@@ -224,27 +287,26 @@ export async function completeOnboarding(formData: FormData) {
     const weightKg = optionalInt(formData, "weightKg", 1, 500);
 
     if (!name || !club || Number.isNaN(parsedDate.getTime())) {
-      onboardingError(role, "Complete all player fields.");
+      return onboardingError("Complete all player fields.");
     }
 
     // Sanity floor: a date of birth outside 8-100 years is a typo, not a player.
     const age = ageInYears(dateOfBirth);
     if (age < 8 || age > 100) {
-      onboardingError(
-        role,
+      return onboardingError(
         "Check the date of birth — players must be between 8 and 100 years old.",
       );
     }
 
     if (!isCountry(country)) {
-      onboardingError(role, "Select a valid country.");
+      return onboardingError("Select a valid country.");
     }
 
     if (heightCm === null || heightCm === INVALID_NUMBER) {
-      onboardingError(role, "Enter a valid height.");
+      return onboardingError("Enter a valid height in centimetres, for example 175.");
     }
     if (weightKg === INVALID_NUMBER) {
-      onboardingError(role, "Enter a valid weight, or leave it blank.");
+      return onboardingError("Enter a valid weight, or leave it blank.");
     }
 
     const minor = age < 18;
@@ -283,9 +345,8 @@ export async function completeOnboarding(formData: FormData) {
         : "Username is taken.";
     }
 
-    if (failure) onboardingError(role, failure);
+    if (failure) return onboardingError(failure);
 
-    // Non-fatal by design: notifyTeam swallows its own errors.
     await notifyTeam(`New player onboarded: ${name} (@${username})`);
 
     redirect("/dashboard");
@@ -298,7 +359,7 @@ export async function completeOnboarding(formData: FormData) {
       .map((item) => item.trim())
       .filter(Boolean);
 
-    if (!name) onboardingError(role, "Enter your name.");
+    if (!name) return onboardingError("Enter your name.");
 
     let usernameTaken = false;
 
@@ -325,7 +386,7 @@ export async function completeOnboarding(formData: FormData) {
       usernameTaken = true;
     }
 
-    if (usernameTaken) onboardingError(role, "Username is taken.");
+    if (usernameTaken) return onboardingError("Username is taken.");
 
     await notifyTeam(
       `New coach signed up: ${name} (@${username}) — awaiting approval at /dashboard/admin`,
@@ -338,11 +399,10 @@ export async function completeOnboarding(formData: FormData) {
     const name = text(formData, "name");
     const code = normalizeGuardianCode(text(formData, "childCode"));
 
-    if (!name) onboardingError(role, "Enter your name.");
-    if (!code) onboardingError(role, "Enter the code shown on your child's dashboard.");
+    if (!name) return onboardingError("Enter your name.");
+    if (!code) return onboardingError("Enter the code shown on your child's dashboard.");
     if (!formData.get("guardianConsent")) {
-      onboardingError(
-        role,
+      return onboardingError(
         "Confirm you are this player's parent or legal guardian and consent to their use of NextXI.",
       );
     }
@@ -353,7 +413,7 @@ export async function completeOnboarding(formData: FormData) {
     });
 
     if (!pendingChild) {
-      onboardingError(role, "That code doesn't match a pending player account.");
+      return onboardingError("That code doesn't match a pending player account.");
     }
 
     const codeClaimed = "guardian-code-claimed";
@@ -389,12 +449,12 @@ export async function completeOnboarding(formData: FormData) {
       }
     }
 
-    if (failure) onboardingError(role, failure);
+    if (failure) return onboardingError(failure);
 
     await notifyTeam(`New guardian onboarded: ${name} (@${username})`);
 
     redirect("/dashboard");
   }
 
-  onboardingError(role, "Choose player, coach, or guardian.");
+  return onboardingError("Choose player, coach, or guardian.");
 }

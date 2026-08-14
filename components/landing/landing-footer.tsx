@@ -19,8 +19,8 @@ export function LandingFooter() {
             <Link href="/auth" className={`hover:text-gold-500 ${focusRing}`}>
               Sign in
             </Link>
-            <Link href="/#waitlist" className={`hover:text-gold-500 ${focusRing}`}>
-              Join the waitlist
+            <Link href="/auth?mode=sign-up" className={`hover:text-gold-500 ${focusRing}`}>
+              Create account
             </Link>
             <span className="font-mono text-[11px] font-normal text-cream-200/40">
               © 2026 NextXI

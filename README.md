@@ -119,7 +119,7 @@ one from each pair.
 | `NEXT_PUBLIC_SUPABASE_URL`                                     | ✅       | Supabase project URL                                                |
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `..._ANON_KEY`        | ✅       | Public client key (browser + server auth)                           |
 | `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`            | ✅       | Server-only admin key (privileged storage/auth operations)          |
-| `NEXT_PUBLIC_SITE_URL`                                         | ⚠️       | Production canonical URL for auth emails. Required in production (`VERCEL_ENV=production`); previews use `VERCEL_URL` automatically so signup stays on the same host. Without a production value the link base can fall back to a host the recipient can't reach |
+| `NEXT_PUBLIC_SITE_URL`                                         | ⚠️       | Production canonical URL for auth emails. Production always falls back to `https://www.nextxi.pro` if this is missing or still a `*.vercel.app` host. Previews use `VERCEL_URL` so signup stays on the same host. |
 | `ADMIN_EMAILS`                                                 | ➖       | Comma-separated list of emails granted admin access                 |
 | `REPORTS_INGEST_SECRET`                                        | ➖       | Bearer token the AI pipeline uses to submit coaching reports        |
 | `TEAM_NOTIFY_WEBHOOK_URL`                                      | ➖       | Slack-compatible webhook pinged on signups and finished uploads     |
@@ -131,22 +131,36 @@ one from each pair.
 
 The verification email's link is minted by **Supabase**, not this app, and
 Supabase silently replaces any redirect it doesn't recognize with the project's
-Site URL (default `http://localhost:3000`) — which reads as "page not found" on
-anyone else's machine even when signup works on a dev box. In the Supabase
-dashboard → **Authentication → URL Configuration**:
+Site URL. That Site URL was left on the old Vercel alias
+(`https://cricket-platform-nine.vercel.app`), so confirmation emails pointed
+away from `https://www.nextxi.pro` and the session cookie never landed on the
+canonical host.
 
-1. Set **Site URL** to the production domain (e.g. `https://nextxi.app`).
-2. Add `https://<production-domain>/auth/confirm` (and any preview domains) to
-   **Redirect URLs**.
-3. Recommended: switch the *Confirm signup* email template to the stateless
-   token form so the link works from any device or browser — not just the one
-   that submitted the form:
-   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/onboarding`
+In the Supabase dashboard → **Authentication → URL Configuration**:
 
-Then set `NEXT_PUBLIC_SITE_URL` to the same production domain in the **Production**
-deploy environment (not Preview — previews mint links against `VERCEL_URL` so the
-confirm hop stays on the branch host), and test the real email link from a device
-that isn't running the dev server.
+1. Set **Site URL** to `https://www.nextxi.pro` (www, not the apex — `nextxi.pro` 308s to www).
+2. Set **Redirect URLs** to:
+   - `https://www.nextxi.pro/**`
+   - `https://nextxi.pro/**`
+   - `https://cricket-platform-*.vercel.app/**` (preview deploys)
+   - `http://localhost:3000/**`
+3. Paste `supabase/templates/confirmation.html` into **Confirm signup** (subject:
+   `Confirm your NextXI account`), `supabase/templates/magic-link.html` into
+   **Magic Link** (subject: `Your NextXI sign-in code`), and
+   `supabase/templates/recovery.html` into **Reset password** (subject:
+   `Reset your NextXI password`). Those templates include a 6-digit
+   `{{ .Token }}` for the in-app code field plus a `token_hash` link that works
+   from any device. Confirm-signup uses `type=signup`; magic-link uses
+   `type=magiclink`. If the dashboard rejects the paste (`Email template
+   modification is not available for free tier projects using the default email
+   provider`), add custom SMTP (Resend, etc.) or upgrade the project — then paste
+   again. The in-app code field only works once `{{ .Token }}` is in the
+   template; the confirm link still works either way after Site URL is set.
+
+Then set `NEXT_PUBLIC_SITE_URL=https://www.nextxi.pro` in the **Production**
+Vercel environment (not Preview). The app also refuses to mint `*.vercel.app`
+links when `VERCEL_ENV=production`, and `/auth/confirm` 308s any production
+alias onto `www.nextxi.pro` so older emails still confirm on the right host.
 
 ## Scripts
 
