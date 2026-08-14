@@ -76,7 +76,10 @@ export function AuthShell({
   brandLine?: string;
 }) {
   return (
-    <main className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-2 md:bg-transparent">
+    <main
+      className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-2 md:bg-transparent"
+      id="main-content"
+    >
       <aside className="relative flex shrink-0 flex-col overflow-hidden bg-seam-stitch px-6 py-8 sm:px-10 md:min-h-dvh md:px-12 md:py-14">
         <div className="md:hidden">
           <Wordmark size="lg" tone="dark" />
@@ -168,7 +171,11 @@ export function Notice({
 }
 
 export function PageShell({ children }: Children) {
-  return <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12">{children}</main>;
+  return (
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12" id="main-content">
+      {children}
+    </main>
+  );
 }
 
 /** Soft cream tonal band behind StatusBoard / GatePanel on role homes. */

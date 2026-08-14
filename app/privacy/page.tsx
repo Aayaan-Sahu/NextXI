@@ -39,8 +39,9 @@ export default function PrivacyPage() {
         <p>Only what the platform needs to work:</p>
         <ul className="list-disc space-y-1.5 pl-5">
           <li>
-            <strong>Account</strong> — your email address, a username, and a password (held by
-            our sign-in provider; we never see it).
+            <strong>Account</strong> — your email address, a username, and a
+            sign-in code (or a password if you set one later). The sign-in
+            provider holds the password; we never see it.
           </li>
           <li>
             <strong>Profile</strong> — name, date of birth, club, country, height, optional

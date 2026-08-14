@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReportStatus } from "@/app/generated/prisma/enums";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { EmptyState } from "@/components/ui";
 import { formatVideoSize } from "@/lib/videos";
 
@@ -40,29 +41,14 @@ function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
-function TrashIcon() {
-  return (
-    <svg
-      aria-hidden
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      viewBox="0 0 24 24"
-    >
-      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m5 5v6m4-6v6" />
-    </svg>
-  );
-}
-
 export function VideoGrid({
   videos,
   linkBase = "/dashboard/player/videos",
   emptyMessage = "No videos yet. Upload your first clip in Footage above.",
   emptyMedia = false,
   deleteAction,
+  deleteConfirmDescription = "This clip and its coaching report are removed for good.",
+  deleteConfirmTitle = "Delete this video?",
   deleteLabel = "Delete",
   stagger = true,
 }: {
@@ -73,6 +59,8 @@ export function VideoGrid({
   emptyMedia?: boolean;
   /** When provided, each card gets a trash button that submits the video id. */
   deleteAction?: (formData: FormData) => Promise<void>;
+  deleteConfirmDescription?: string;
+  deleteConfirmTitle?: string;
   /** Accessible verb for the action button, e.g. "Remove from session". */
   deleteLabel?: string;
   /** Off when a reveal wrapper already animates the section, to avoid doubling. */
@@ -141,16 +129,16 @@ export function VideoGrid({
             </div>
           </Link>
           {deleteAction && (
-            <form action={deleteAction} className="absolute right-2.5 bottom-2.5">
-              <input name="id" type="hidden" value={video.id} />
-              <button
-                aria-label={`${deleteLabel} ${video.originalFilename}`}
-                className="grid size-8 cursor-pointer place-items-center rounded-md border border-cream-400 bg-white text-ink-600 hover:border-rust-600 hover:text-rust-700"
-                type="submit"
-              >
-                <TrashIcon />
-              </button>
-            </form>
+            <div className="absolute right-2.5 bottom-2.5">
+              <ConfirmDeleteButton
+                action={deleteAction}
+                description={deleteConfirmDescription}
+                id={video.id}
+                label={deleteLabel}
+                name={video.originalFilename}
+                title={deleteConfirmTitle}
+              />
+            </div>
           )}
         </li>
       ))}

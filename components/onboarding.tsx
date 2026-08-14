@@ -71,7 +71,10 @@ export function OnboardingPanel({
   role?: OnboardingRole;
 }) {
   return (
-    <main className="relative flex min-h-dvh flex-col items-center bg-cream-200 px-6 pt-24 pb-8 text-ink-900">
+    <main
+      className="relative flex min-h-dvh flex-col items-center bg-cream-200 px-6 pt-24 pb-8 text-ink-900"
+      id="main-content"
+    >
       <div className="absolute top-8 left-6 sm:left-12">
         <Wordmark tone="light" />
       </div>

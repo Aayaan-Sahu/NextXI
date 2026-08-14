@@ -162,6 +162,9 @@ Vercel environment (not Preview). The app also refuses to mint `*.vercel.app`
 links when `VERCEL_ENV=production`, and `/auth/confirm` 308s any production
 alias onto `www.nextxi.pro` so older emails still confirm on the right host.
 
+The remaining dashboard work (SMTP, mailbox, Vercel env, GitHub homepage) is
+the step-by-step brief in `docs/aayaan-ops-handoff.md`.
+
 ## Scripts
 
 | Command               | Description                                            |

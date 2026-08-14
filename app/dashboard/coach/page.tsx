@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { CoachPlayers } from "@/components/coach-players";
-import { GatePanel, Kicker, PageShell, StatusBand, StatusBoard } from "@/components/ui";
+import { GatePanel, Kicker, PageShell, StatusBand, StatusBoard, TextLink } from "@/components/ui";
 import { VideoFilterBar } from "@/components/video-filter-bar";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -31,13 +31,19 @@ export default async function CoachDashboardPage({
             description={
               <p>
                 {rejected
-                  ? "Your coach account was not approved. If you believe this is a mistake, please contact support."
+                  ? "Your coach account was not approved. If you believe this is a mistake, email us from the contact page and we will look again."
                   : "Thanks for signing up. To keep the platform safe for young athletes, an administrator reviews every coach before activation. You'll gain full access once you're approved."}
               </p>
             }
             kicker={rejected ? "NOT APPROVED" : "UNDER REVIEW"}
             title={`Welcome ${profile.coach.name}`}
-          />
+          >
+            {rejected ? (
+              <p className="mt-4">
+                <TextLink href="/contact">Email NextXI</TextLink>
+              </p>
+            ) : null}
+          </GatePanel>
         </StatusBand>
       </PageShell>
     );

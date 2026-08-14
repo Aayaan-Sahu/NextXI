@@ -26,6 +26,7 @@ import {
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
+import { GuardianHandoff } from "@/components/guardian-handoff";
 import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
@@ -85,15 +86,25 @@ export default async function PlayerDashboardPage() {
             code={formatGuardianCode(profile.player.guardianCode ?? "")}
             description={
               <p>
-                Because you&apos;re under 18, a parent or guardian needs to approve
-                your account before you can use the platform. Ask them to sign up,
-                choose &ldquo;I&apos;m a parent / guardian&rdquo;, and enter this
-                code.
+                Because you&apos;re under 18, a parent or guardian needs to
+                approve your account before you can use the platform. Ask them
+                to create an account, then open{" "}
+                <span className="font-semibold text-ink-900">
+                  Parent or guardian? Link a child&apos;s account
+                </span>{" "}
+                on the profile screen and enter this code.
               </p>
             }
             kicker="AWAITING GUARDIAN"
             title={`Welcome ${profile.player.name}`}
-          />
+          >
+            {profile.player.guardianCode ? (
+              <GuardianHandoff
+                code={formatGuardianCode(profile.player.guardianCode)}
+                playerName={profile.player.name}
+              />
+            ) : null}
+          </GatePanel>
         </StatusBand>
       </PageShell>
     );

@@ -120,22 +120,56 @@ export async function sendConnectionRequest(formData: FormData) {
   const user = await requireUser();
   requireActiveAccount(await accountStatusFor(user.id));
 
-  const username = text(formData, "username").toLowerCase();
+  const raw = text(formData, "query") || text(formData, "username");
+  const query = raw.replace(/^@/, "");
 
-  if (!usernamePattern.test(username)) {
-    done("connectionError", "Enter a valid username.");
+  if (!query) done("connectionError", "Enter a name or username.");
+
+  if (usernamePattern.test(query.toLowerCase())) {
+    const byUsername = await prisma.profile.findUnique({
+      where: { username: query.toLowerCase() },
+      select: { id: true },
+    });
+    if (byUsername && byUsername.id !== user.id) {
+      finishConnectionRequest(await requestConnection(user.id, byUsername.id));
+    }
   }
 
-  const target = await prisma.profile.findUnique({
-    where: { username },
-    select: { id: true },
-  });
+  const [players, coaches] = await Promise.all([
+    prisma.player.findMany({
+      where: { name: { equals: query, mode: "insensitive" } },
+      select: { id: true, name: true },
+    }),
+    prisma.coach.findMany({
+      where: { name: { equals: query, mode: "insensitive" } },
+      select: { id: true, name: true },
+    }),
+  ]);
 
-  if (!target || target.id === user.id) {
-    done("connectionError", "No user found for that username.");
+  const matches = [...players, ...coaches].filter((person) => person.id !== user.id);
+
+  if (matches.length === 1) {
+    finishConnectionRequest(await requestConnection(user.id, matches[0].id));
   }
 
-  finishConnectionRequest(await requestConnection(user.id, target.id));
+  if (matches.length > 1) {
+    const profiles = await prisma.profile.findMany({
+      where: { id: { in: matches.map((person) => person.id) } },
+      select: { username: true },
+    });
+    const handles = profiles
+      .map((profile) => (profile.username ? `@${profile.username}` : null))
+      .filter(Boolean)
+      .join(", ");
+    done(
+      "connectionError",
+      handles
+        ? `Several people match that name. Use one of: ${handles}.`
+        : "Several people match that name. Ask for their @username.",
+    );
+  }
+
+  done("connectionError", "No user found for that name or username.");
 }
 
 /** Connect action for the coach directory — same core as `sendConnectionRequest`. */

@@ -32,8 +32,11 @@ export function InfoPage({
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-6 py-14 sm:px-12 sm:py-16">
-        <Kicker>Pre-launch</Kicker>
+      <main
+        className="mx-auto w-full max-w-[720px] flex-1 px-6 py-14 sm:px-12 sm:py-16"
+        id="main-content"
+      >
+        <Kicker>NextXI</Kicker>
         <h1 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase">
           {title}
         </h1>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { InfoPage, InfoSection } from "@/components/landing/info-page";
+import { CONTACT_EMAIL, safeguardingMailto } from "@/lib/contact";
 
 export const metadata: Metadata = {
   title: "Safeguarding",
@@ -12,7 +13,7 @@ export default function SafeguardingPage() {
   return (
     <InfoPage
       title="Safeguarding"
-      intro="NextXI exists for young players, which means safety is not a feature we bolt on — it is the shape of the platform. This page states plainly how it works. The full safeguarding policy will be published before the platform opens."
+      intro="NextXI exists for young players, which means safety is not a feature we bolt on — it is the shape of the platform. This page states plainly how it works."
     >
       <InfoSection title="Guardians see everything">
         <p>
@@ -43,8 +44,19 @@ export default function SafeguardingPage() {
       </InfoSection>
       <InfoSection title="Raising a concern">
         <p>
-          If you ever have a safeguarding concern about anything on NextXI, contact us and it goes
-          to the top of the pile. See the <Link className="font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline" href="/contact">contact page</Link> for how to reach us.
+          If you ever have a safeguarding concern about anything on NextXI, email{" "}
+          <a
+            className="font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
+            href={safeguardingMailto()}
+          >
+            {CONTACT_EMAIL}
+          </a>{" "}
+          with &ldquo;safeguarding&rdquo; in the subject — it goes to the top of
+          the pile. The{" "}
+          <Link className="font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline" href="/contact">
+            contact page
+          </Link>{" "}
+          has the same address.
         </p>
       </InfoSection>
     </InfoPage>

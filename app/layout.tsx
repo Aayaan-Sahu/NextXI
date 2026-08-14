@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { IBM_Plex_Mono, Public_Sans, Saira_Condensed } from "next/font/google";
+import { SkipLink } from "@/components/skip-link";
 import "./globals.css";
 
 const publicSans = Public_Sans({
@@ -31,6 +32,10 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: "NextXI",
     type: "website",
+    locale: "en_GB",
+  },
+  twitter: {
+    card: "summary_large_image",
   },
 };
 
@@ -49,6 +54,7 @@ export default function RootLayout({
       className={`h-full antialiased ${publicSans.variable} ${sairaCondensed.variable} ${plexMono.variable}`}
     >
       <body className="flex min-h-dvh flex-col bg-cream-200 font-sans text-ink-900">
+        <SkipLink />
         {children}
       </body>
     </html>

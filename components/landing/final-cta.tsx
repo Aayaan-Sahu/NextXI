@@ -10,7 +10,8 @@ export function FinalCta({ waitlist }: { waitlist?: WaitlistState }) {
           Ready to get seen.
         </h2>
         <p className="mt-4 max-w-[42ch] text-[15px] leading-relaxed text-cream-200/80">
-          Create a player, coach, or guardian account. It takes a couple of minutes.
+          Create a player account. A couple of minutes, then you&apos;re on the card.
+          Coaches and parents join from there.
         </p>
         <Link
           className="mt-8 rounded-md bg-cream-50 px-5 py-3 text-sm font-bold text-rust-700 no-underline hover:bg-cream-100"
@@ -20,7 +21,8 @@ export function FinalCta({ waitlist }: { waitlist?: WaitlistState }) {
         </Link>
         <div className="mt-10 w-full scroll-mt-24" id="waitlist">
           <p className="mb-3 text-[13px] text-sage-400">
-            Not ready yet? Leave your email and we&apos;ll ping you.
+            Not ready for an account yet? Leave your email and we&apos;ll write when
+            there&apos;s news.
           </p>
           <WaitlistForm align="center" waitlist={waitlist} />
         </div>
