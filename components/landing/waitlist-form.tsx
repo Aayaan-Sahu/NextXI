@@ -32,7 +32,7 @@ export function WaitlistForm({
         role="status"
       >
         <span className="font-bold text-gold-500">You&apos;re on the list.</span>{" "}
-        We&apos;ll email you when the nets open.
+        We&apos;ll email when there&apos;s news — no spam.
       </div>
     );
   }
@@ -70,7 +70,7 @@ export function WaitlistForm({
             That email doesn&apos;t look right. Try again?
           </span>
         ) : (
-          "Early access opens soon. We'll send one email when it does."
+          "We'll send one email. No spam."
         )}
       </p>
     </div>

@@ -9,6 +9,7 @@ import {
 } from "@/app/generated/prisma/enums";
 import { AvatarField } from "@/components/avatar-upload";
 import { CountrySelect } from "@/components/country-select";
+import { PhysicalFields } from "@/components/physical-fields";
 import {
   CheckboxChip,
   Field,
@@ -154,28 +155,9 @@ export function EditPlayerProfilePanel({
             Country
             <CountrySelect defaultValue={player.country} name="country" />
           </FieldGroup>
-          <Field>
-            Height (cm)
-            <TextInput
-              defaultValue={player.heightCm}
-              max={300}
-              min={1}
-              name="heightCm"
-              required
-              type="number"
-            />
-          </Field>
-          <Field>
-            Weight (kg)
-            <TextInput
-              defaultValue={player.weightKg ?? ""}
-              max={500}
-              min={1}
-              name="weightKg"
-              placeholder="Optional"
-              type="number"
-            />
-          </Field>
+        </div>
+        <PhysicalFields defaultHeight={player.heightCm} defaultWeight={player.weightKg} />
+        <div className="grid gap-4 sm:grid-cols-2">
           <HandednessSelect
             defaultValue={player.battingHandedness}
             label="Batting handedness"

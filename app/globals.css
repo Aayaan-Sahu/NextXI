@@ -112,3 +112,32 @@
     animation: none;
   }
 }
+
+/* Number spinners on mobile make it too easy to land on the max (300cm). */
+input[type="number"] {
+  appearance: textfield;
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  appearance: none;
+}
+
+.skip-to-content {
+  position: absolute;
+  left: 1rem;
+  z-index: 100;
+  transform: translateY(-150%);
+  border-radius: 0.375rem;
+  background: var(--color-gold-500);
+  padding: 0.65rem 1rem;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-pitch-900);
+}
+
+.skip-to-content:focus {
+  transform: translateY(0.75rem);
+  outline: 2px solid var(--color-gold-500);
+  outline-offset: 2px;
+}

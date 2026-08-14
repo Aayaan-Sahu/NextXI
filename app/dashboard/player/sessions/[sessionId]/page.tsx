@@ -84,6 +84,8 @@ export default async function PlayerSessionPage({
           <SessionVideoPicker sessionId={session.id} videos={assignable} />
           <VideoGrid
             deleteAction={removeVideoFromSession}
+            deleteConfirmDescription="Removes it from this session. The clip stays in your library."
+            deleteConfirmTitle="Remove from this session?"
             deleteLabel="Remove from session"
             emptyMessage="No videos in this session yet. Upload one above or add an existing video."
             videos={session.videos}

@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+  <body style="margin:0;padding:0;background:#171310;">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#171310;padding:32px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;background:#211c17;border-radius:12px;padding:40px 36px;">
+            <tr>
+              <td style="font-family:Arial,Helvetica,sans-serif;font-size:12px;letter-spacing:0.2em;color:#f0c8a0;text-transform:uppercase;">
+                NextXI
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:16px;font-family:Arial,Helvetica,sans-serif;font-size:28px;line-height:1.15;color:#fdfbf6;font-weight:bold;">
+                Your sign-in code
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:12px;font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.55;color:#e0b0b0;">
+                Enter this code on NextXI to sign in. It expires after a short time.
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:28px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:32px;letter-spacing:0.24em;color:#f0c8a0;font-weight:bold;">
+                {{ .Token }}
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:28px;">
+                <a href="{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&amp;type=magiclink&amp;next=/onboarding" style="display:inline-block;background:#8a2323;color:#fdfbf6;text-decoration:none;font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;padding:12px 22px;border-radius:8px;">
+                  Sign in
+                </a>
+              </td>
+            </tr>
+            <tr>
+              <td style="padding-top:28px;font-family:Arial,Helvetica,sans-serif;font-size:13px;line-height:1.5;color:#6b6353;">
+                If you didn&apos;t ask to sign in, you can ignore this email.
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

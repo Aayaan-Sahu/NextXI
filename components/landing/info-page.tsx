@@ -4,9 +4,9 @@ import { LandingFooter } from "@/components/landing/landing-footer";
 import { Kicker, Wordmark } from "@/components/ui";
 
 /**
- * Quiet reading shell for the pre-launch info pages (privacy, terms,
- * safeguarding, contact): the landing nav's rust bar without the waitlist
- * CTA, a narrow measure on the cream page ground, and the shared footer.
+ * Quiet reading shell for the info pages (privacy, terms, safeguarding,
+ * contact): the landing nav's rust bar, a narrow measure on the cream page
+ * ground, and the shared footer.
  */
 export function InfoPage({
   title,
@@ -32,8 +32,11 @@ export function InfoPage({
           </Link>
         </div>
       </header>
-      <main className="mx-auto w-full max-w-[720px] flex-1 px-6 py-14 sm:px-12 sm:py-16">
-        <Kicker>Pre-launch</Kicker>
+      <main
+        className="mx-auto w-full max-w-[720px] flex-1 px-6 py-14 sm:px-12 sm:py-16"
+        id="main-content"
+      >
+        <Kicker>NextXI</Kicker>
         <h1 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase">
           {title}
         </h1>

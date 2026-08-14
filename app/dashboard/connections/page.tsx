@@ -44,7 +44,7 @@ function connectionNote(
   }
   if (incoming > 0) return "Requests are waiting on your answer.";
   if (connected === 0) {
-    return "Nothing connected yet — send a request by username to start.";
+    return "Nothing connected yet — send a request by name or @username, or find someone in the directory.";
   }
   return "Connections decide who can message you and who sees your work.";
 }

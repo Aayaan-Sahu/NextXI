@@ -31,7 +31,7 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   const waitlist = waitlistState(firstParam((await searchParams).waitlist));
 
   return (
-    <main>
+    <main id="main-content">
       <LandingNav />
       <BallHero />
       <HeroScrubVideo src="/hero-drive.mp4" poster="/hero-drive-poster.jpg" />

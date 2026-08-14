@@ -216,12 +216,10 @@ export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
         <form action={sendConnectionRequest} className="mt-4 flex gap-2.5">
           <div className="grid min-w-0 flex-1">
             <TextInput
-              aria-label="Username"
-              name="username"
-              pattern="[A-Za-z0-9_]{3,30}"
-              placeholder="Username"
+              aria-label="Name or username"
+              name="query"
+              placeholder="Name or @username"
               required
-              title="Use 3-30 letters, numbers, or underscores."
               type="text"
             />
           </div>

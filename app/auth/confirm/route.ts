@@ -1,5 +1,6 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { CANONICAL_SITE_URL } from "@/lib/site-url";
 import { getSupabaseConfig } from "@/lib/supabase/server";
 
 function safeNext(value: string | null, fallback: string) {
@@ -8,6 +9,14 @@ function safeNext(value: string | null, fallback: string) {
 
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
+
+  // Production aliases (*.vercel.app, apex nextxi.pro) must confirm on the
+  // canonical host. Token-hash links survive the hop; PKCE `code` links that
+  // started on www.nextxi.pro get their verifier cookie back.
+  if (process.env.VERCEL_ENV === "production" && url.origin !== CANONICAL_SITE_URL) {
+    return NextResponse.redirect(new URL(url.pathname + url.search, CANONICAL_SITE_URL), 308);
+  }
+
   const tokenHash = url.searchParams.get("token_hash");
   const code = url.searchParams.get("code");
   const type = url.searchParams.get("type");
@@ -34,15 +43,18 @@ export async function GET(request: NextRequest) {
   // sends; accept it alongside the types the default templates use so the
   // dashboard template and this route can't drift apart.
   const result =
-    tokenHash && (type === "email" || type === "signup" || type === "recovery")
+    tokenHash &&
+    (type === "email" || type === "signup" || type === "magiclink" || type === "recovery")
       ? await supabase.auth.verifyOtp({ token_hash: tokenHash, type })
       : code
         ? await supabase.auth.exchangeCodeForSession(code)
         : { error: new Error("Missing confirmation token.") };
 
+  const origin =
+    process.env.VERCEL_ENV === "production" ? CANONICAL_SITE_URL : url.origin;
   const redirectTo = result.error
-    ? new URL(`/auth?error=${encodeURIComponent(result.error.message)}`, url.origin)
-    : new URL(next, url.origin);
+    ? new URL(`/auth?error=${encodeURIComponent(result.error.message)}`, origin)
+    : new URL(next, origin);
 
   const response = NextResponse.redirect(redirectTo);
   cookiesToSet.forEach((cookie) => response.cookies.set(...cookie));

@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { ComponentProps, ReactNode } from "react";
 import { signOut } from "@/app/auth/actions";
 import { AuthMount } from "@/components/auth-mount";
+import { AuthStepper, type AuthStep } from "@/components/auth-stepper";
 
 type Children = {
   children: ReactNode;
@@ -75,7 +76,10 @@ export function AuthShell({
   brandLine?: string;
 }) {
   return (
-    <main className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-2 md:bg-transparent">
+    <main
+      className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-2 md:bg-transparent"
+      id="main-content"
+    >
       <aside className="relative flex shrink-0 flex-col overflow-hidden bg-seam-stitch px-6 py-8 sm:px-10 md:min-h-dvh md:px-12 md:py-14">
         <div className="md:hidden">
           <Wordmark size="lg" tone="dark" />
@@ -106,16 +110,19 @@ export function AuthCard({
   description,
   footer,
   kicker = "ACCOUNT",
+  step,
   title,
 }: Children & {
   description?: string;
   footer?: ReactNode;
   kicker?: string;
+  step?: AuthStep;
   title: string;
 }) {
   return (
     <section className="relative w-full overflow-hidden rounded-xl bg-white text-ink-900 shadow-2xl shadow-black/45 md:rounded-[10px] md:border md:border-cream-400 md:shadow-none">
       <div className="p-9">
+        {step && <AuthStepper current={step} />}
         <Kicker>{kicker}</Kicker>
         <h1 className="mt-2.5 font-display text-[26px] leading-tight font-bold uppercase">
           {title}
@@ -164,7 +171,11 @@ export function Notice({
 }
 
 export function PageShell({ children }: Children) {
-  return <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12">{children}</main>;
+  return (
+    <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12" id="main-content">
+      {children}
+    </main>
+  );
 }
 
 /** Soft cream tonal band behind StatusBoard / GatePanel on role homes. */

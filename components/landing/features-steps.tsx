@@ -13,7 +13,7 @@ const STEPS = [
   {
     kicker: "01 · Upload",
     title: "Players upload videos",
-    body: "No training session goes wasted. Please find our guide for how to record your videos here:",
+    body: "Film a clip from the nets. Watch the short guide so the report can actually see your action.",
     guide: true,
     animation: <UploadAnimation />,
   },

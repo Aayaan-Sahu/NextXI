@@ -5,6 +5,7 @@ import {
 } from "@/components/dashboard-reveal";
 import { DeleteAccountPanel } from "@/components/delete-account";
 import { EditCoachProfilePanel, EditPlayerProfilePanel } from "@/components/edit-profile";
+import { SetPasswordPanel } from "@/components/set-password";
 import { Notice, PageShell, StatusBand, StatusBoard } from "@/components/ui";
 import { getAvatarUrl } from "@/lib/avatars.server";
 import { getProfile, isAdmin, requireUser } from "@/lib/auth";
@@ -79,6 +80,9 @@ export default async function ProfilePage({
                 username={profile.username}
               />
             )}
+            <div className="mt-5">
+              <SetPasswordPanel />
+            </div>
             <div className="mt-5">
               <DeleteAccountPanel />
             </div>

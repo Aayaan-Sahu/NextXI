@@ -29,9 +29,12 @@ function optionalInt(formData: FormData, name: string, min: number, max: number)
   if (!raw) return null;
 
   const value = Number(raw);
-  if (!Number.isInteger(value) || value < min || value > max) return INVALID_NUMBER;
+  if (!Number.isFinite(value)) return INVALID_NUMBER;
 
-  return value;
+  const rounded = Math.round(value);
+  if (rounded < min || rounded > max) return INVALID_NUMBER;
+
+  return rounded;
 }
 
 const INVALID_TEXT = Symbol("invalid-text");
