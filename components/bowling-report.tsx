@@ -1,3 +1,5 @@
+import type { MeasuredMetric } from "@/components/measured-metric";
+import { DerivedMeasurements } from "@/components/measured-report";
 import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -147,15 +149,23 @@ export function BowlingReport({
   parsed,
   report,
   tone,
+  derived,
 }: {
   parsed: ParsedBowlingReport;
   report: VideoReport;
   tone: Tone;
+  /** History-derived measurement rows (lib/report-history.ts); lead when present. */
+  derived?: MeasuredMetric[] | null;
 }) {
   const dark = tone === "dark";
   const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
   const bodyText = dark ? "text-cream-200" : "text-ink-900";
   const mutedText = dark ? "text-sage-400" : "text-ink-600";
+
+  const measurements = derived ?? [];
+  // A measurement row supersedes its plain stat line — no number twice.
+  const measuredNames = new Set(measurements.map((metric) => metric.name));
+  const statRows = parsed.stats.filter((stat) => !measuredNames.has(stat.label));
 
   const { brace } = parsed;
   const angleLine =
@@ -184,6 +194,10 @@ export function BowlingReport({
         </p>
       ) : (
         <>
+          {measurements.length > 0 && (
+            <DerivedMeasurements metrics={measurements} tone={tone} />
+          )}
+
           {hasBrace && (
             <div className={`border-b py-3.5 ${rowBorder}`}>
               <div className="flex items-baseline justify-between gap-3">
@@ -200,9 +214,9 @@ export function BowlingReport({
             </div>
           )}
 
-          {parsed.stats.length > 0 && (
+          {statRows.length > 0 && (
             <div className={`grid gap-1 border-b py-3.5 ${rowBorder}`}>
-              {parsed.stats.map((stat) => (
+              {statRows.map((stat) => (
                 <div
                   className="flex items-baseline justify-between gap-3 text-[12.5px]"
                   key={stat.key}

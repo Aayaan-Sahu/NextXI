@@ -5,6 +5,7 @@ import {
   parseBattingReport,
 } from "@/components/batting-report";
 import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
+import type { MeasuredMetric } from "@/components/measured-metric";
 import {
   MeasuredReport,
   measuredConsistency,
@@ -292,11 +293,19 @@ export function ReportPanel({
   report,
   subtitle,
   tone = "light",
+  derived,
 }: {
   report: VideoReport | null;
   /** Optional mono line under the kicker, e.g. the video filename. */
   subtitle?: string;
   tone?: Tone;
+  /**
+   * Measurement rows derived from the payload plus the player's report
+   * history (lib/report-history.ts) — value, own recent range, last-session
+   * progress. Pages that can load history pass them; the panel still renders
+   * fine without.
+   */
+  derived?: MeasuredMetric[] | null;
 }) {
   const dark = tone === "dark";
   const ready = report?.status === ReportStatus.READY;
@@ -404,9 +413,9 @@ export function ReportPanel({
         (measured ? (
           <MeasuredReport parsed={measured} report={report} tone={tone} />
         ) : batting ? (
-          <BattingReport parsed={batting} report={report} tone={tone} />
+          <BattingReport parsed={batting} report={report} tone={tone} derived={derived} />
         ) : bowling ? (
-          <BowlingReport parsed={bowling} report={report} tone={tone} />
+          <BowlingReport parsed={bowling} report={report} tone={tone} derived={derived} />
         ) : (
           <ReadyReport report={report} tone={tone} />
         ))}

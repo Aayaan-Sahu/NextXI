@@ -279,8 +279,18 @@ follow-through yet, so those rows simply stay empty.
 
 > **UI implemented.** `ReportPanel` prefers a `measurements` array and renders
 > it through the shared `MeasuredMetricRow` (same component as the landing
-> demo). The worker producer that emits this array is still landing — until it
-> does, live reports keep using the v2 batting/bowling shapes below.
+> demo). The worker producer that emits this array is still landing — but v2
+> payloads no longer wait for it: the **platform derives measurement rows
+> server-side** (`lib/report-measurements.ts` + `lib/report-history.ts`) from
+> the v2 shot/delivery scalars plus the player's stored report history. Each
+> derived row carries the value in real units, a `session` reference band
+> (min–max of the player's previous occasions, "Your range · Last N
+> sessions"), and the previous occasion's value as a progress marker + plain
+> read ("Last session 58 cm — 4 cm longer this time"). The worker cannot
+> produce the `session` kind — it sees one video and no history — so this
+> stays platform-side even after a worker `measurements` producer lands; a
+> payload that ships its own `measurements` array is rendered as-is and skips
+> derivation.
 
 v3 exists because a 0-100 score is not actionable. "Stride 82/100" does not tell
 a player whether the stride was too short or too long; "Stride 1.02 m, your usual
