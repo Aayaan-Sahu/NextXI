@@ -78,6 +78,14 @@ export type MeasuredMetric = {
    * Falls back to `note` when absent.
    */
   noteShort?: string;
+  /**
+   * The same measurement from the player's most recent previous occasion —
+   * the progress tracker. Renders as a hollow marker on the scale beside the
+   * solid "you" marker; the note carries it in words ("Last session 58 cm —
+   * 4 cm longer this time"). Derived platform-side from report history
+   * (lib/report-measurements.ts), never sent by the worker.
+   */
+  previous?: { value: number; label: string };
 };
 
 /** The band, when the reference has one. */
@@ -126,13 +134,15 @@ export function bandLabel(metric: MeasuredMetric): string | null {
 }
 
 /**
- * Axis extent for the scale: covers the value and the band with a margin, so
- * the marker never sits on the edge. Derived rather than authored — one less
- * number per metric to get wrong.
+ * Axis extent for the scale: covers the value, the band, and the previous
+ * marker with a margin, so no marker ever sits on the edge. Derived rather
+ * than authored — one less number per metric to get wrong.
  */
 function scaleFor(metric: MeasuredMetric, band: [number, number]): [number, number] {
-  const low = Math.min(metric.value, band[0]);
-  const high = Math.max(metric.value, band[1]);
+  const points = [metric.value, band[0], band[1]];
+  if (metric.previous) points.push(metric.previous.value);
+  const low = Math.min(...points);
+  const high = Math.max(...points);
   const pad = high - low > 0 ? (high - low) * 0.45 : Math.abs(high) * 0.1 || 1;
   return [low - pad, high + pad];
 }
@@ -209,6 +219,14 @@ function Scale({
           style={{ left: `${left}%` }}
         />
       ))}
+      {metric.previous && (
+        <span
+          className={`absolute top-1/2 size-[8px] -translate-x-1/2 -translate-y-1/2 rotate-45 border ${
+            dark ? "border-cream-200/60" : "border-ink-900/40"
+          }`}
+          style={{ left: `${position(metric.previous.value, scale)}%` }}
+        />
+      )}
       <span
         className={`absolute top-1/2 size-[9px] -translate-x-1/2 -translate-y-1/2 rotate-45 ${
           off ? (dark ? "bg-rust-500" : "bg-rust-600") : dark ? "bg-gold-500" : "bg-gold-600"
@@ -228,11 +246,18 @@ function Scale({
 export function ScaleLegend({
   tone,
   compact = false,
+  withPrevious = false,
+  withBenchmark,
 }: {
   tone: Tone;
   compact?: boolean;
+  /** Adds the hollow "last session" marker to the key. */
+  withPrevious?: boolean;
+  /** Shows the benchmark swatch; defaults to the pre-existing !compact rule. */
+  withBenchmark?: boolean;
 }) {
   const dark = tone === "dark";
+  const benchmark = withBenchmark ?? !compact;
   return (
     <span
       aria-hidden
@@ -244,13 +269,23 @@ export function ScaleLegend({
         className={`size-[7px] self-center rotate-45 ${dark ? "bg-gold-500" : "bg-gold-600"}`}
       />
       you
+      {withPrevious && (
+        <>
+          <span
+            className={`ml-1 size-[7px] self-center rotate-45 border ${
+              dark ? "border-cream-200/60" : "border-ink-900/40"
+            }`}
+          />
+          last session
+        </>
+      )}
       <span
         className={`ml-1 h-[7px] w-4 self-center rounded-[1px] ${
           dark ? "bg-vision-500/40" : "bg-vision-700/25"
         }`}
       />
       {compact ? "range" : "your range"}
-      {!compact && (
+      {benchmark && (
         <>
           <span
             className={`ml-1 h-[7px] w-4 self-center rounded-[1px] ${
@@ -273,16 +308,33 @@ export function ScaleLegend({
 export function MeasurementsIntro({
   tone,
   compact = false,
+  withPrevious = false,
+  withBenchmark,
+  withLegend = true,
+  explainer,
 }: {
   tone: Tone;
   compact?: boolean;
+  withPrevious?: boolean;
+  withBenchmark?: boolean;
+  /** False when no row renders a scale (first analysis) — nothing to key. */
+  withLegend?: boolean;
+  /** Overrides the default explainer line (e.g. for a first analysis). */
+  explainer?: string;
 }) {
   const dark = tone === "dark";
   return (
     <div>
       <div className="flex items-center justify-between gap-3">
         <Kicker tone={tone}>Measurements</Kicker>
-        <ScaleLegend tone={tone} compact={compact} />
+        {withLegend && (
+          <ScaleLegend
+            tone={tone}
+            compact={compact}
+            withPrevious={withPrevious}
+            withBenchmark={withBenchmark}
+          />
+        )}
       </div>
       {!compact && (
         <p
@@ -290,7 +342,7 @@ export function MeasurementsIntro({
             dark ? "text-sage-400" : "text-ink-600"
           }`}
         >
-          {MEASUREMENTS_EXPLAINER}
+          {explainer ?? MEASUREMENTS_EXPLAINER}
         </p>
       )}
     </div>

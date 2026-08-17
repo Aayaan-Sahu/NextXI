@@ -13,6 +13,7 @@ import { CommentForm, VideoComments } from "@/components/video-comments";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
+import { getDerivedMeasurements } from "@/lib/report-history";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoSize } from "@/lib/videos";
 import { getVideoReport } from "@/lib/videos.server";
@@ -43,6 +44,7 @@ export default async function CoachVideoPage({
       status: PlayerVideoStatus.READY,
     },
     select: {
+      category: true,
       createdAt: true,
       originalFilename: true,
       playerId: true,
@@ -116,6 +118,9 @@ export default async function CoachVideoPage({
     getVideoReport(videoId),
   ]);
 
+  // Value + own-range + last-session rows for the report, from prior reports.
+  const derived = await getDerivedMeasurements(video, report);
+
   const uploadedAt = (video.uploadedAt ?? video.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -144,7 +149,7 @@ export default async function CoachVideoPage({
             preload="metadata"
             src={data.signedUrl}
           />
-          <ReportPanel report={report} />
+          <ReportPanel derived={derived} report={report} />
         </div>
         {/* Feedback stays connection-gated (the action re-checks server-side). */}
         <VideoComments
