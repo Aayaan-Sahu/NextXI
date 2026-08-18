@@ -61,6 +61,15 @@ function parseBand(value: unknown): [number, number] | null {
   return [low, high];
 }
 
+/** { players, shots } when both are finite — the reference population's size. */
+function parseSample(raw: unknown): { players: number; shots: number } | undefined {
+  if (!isRecord(raw)) return undefined;
+  const players = num(raw.players);
+  const shots = num(raw.shots);
+  if (players === null || shots === null) return undefined;
+  return { players, shots };
+}
+
 function parseReference(raw: unknown): MetricReference | null {
   if (!isRecord(raw) || typeof raw.kind !== "string" || !REF_KINDS.has(raw.kind)) {
     return null;
@@ -82,7 +91,7 @@ function parseReference(raw: unknown): MetricReference | null {
   if (raw.kind === "published") {
     return { kind: "published", label: raw.label, band, source };
   }
-  return { kind: "elite", label: raw.label, band, source };
+  return { kind: "elite", label: raw.label, band, source, sample: parseSample(raw.sample) };
 }
 
 function parseMetric(raw: unknown): MeasuredMetric | null {
@@ -90,7 +99,6 @@ function parseMetric(raw: unknown): MeasuredMetric | null {
   if (typeof raw.name !== "string" || !raw.name.trim()) return null;
   if (typeof raw.short !== "string" || !raw.short.trim()) return null;
   if (typeof raw.unit !== "string" || !raw.unit.trim()) return null;
-  if (typeof raw.note !== "string" || !raw.note.trim()) return null;
 
   const value = num(raw.value);
   const decimals = num(raw.decimals);
@@ -113,10 +121,21 @@ function parseMetric(raw: unknown): MeasuredMetric | null {
     decimals: Math.min(6, Math.floor(decimals)),
     reference,
     direction,
-    note: raw.note,
   };
+  if (typeof raw.note === "string" && raw.note.trim()) {
+    metric.note = raw.note;
+  }
   if (typeof raw.noteShort === "string" && raw.noteShort.trim()) {
     metric.noteShort = raw.noteShort;
+  }
+  // A percentile without its sample size is not renderable honestly, so both
+  // must parse or the row simply shows no rank.
+  if (isRecord(raw.percentile)) {
+    const rank = num(raw.percentile.value);
+    const sample = parseSample(raw.percentile.sample);
+    if (rank !== null && sample) {
+      metric.percentile = { value: Math.round(rank), sample };
+    }
   }
   return metric;
 }
@@ -132,11 +151,24 @@ function meanConsistency(payload: Record<string, unknown>): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
+/** True when a v2/v1 renderer could show something for this payload. */
+function hasFallbackBody(payload: Record<string, unknown>): boolean {
+  if (Array.isArray(payload.shots) && payload.shots.length > 0) return true;
+  if (isRecord(payload.delivery)) return true;
+  if (num(payload.overall_score) !== null) return true;
+  return Array.isArray(payload.metrics) && payload.metrics.length > 0;
+}
+
 /**
  * Returns the parsed v3 measurements report, or null when the payload has no
  * measurements array (so the caller can fall through to v2 batting/bowling).
- * An empty / unscored measurements payload still returns a parsed object so
- * ReportPanel can show the honest decline copy rather than a legacy score.
+ *
+ * Also returns null when there is nothing to render as measurements *and* the
+ * payload still carries a v2/v1 body. Declining ("not enough of the action was
+ * clearly visible") while holding a perfectly good shot breakdown is a lie
+ * about the data — the measurements array is an addition to the payload, so
+ * its absence must never subtract from what the older renderers can already
+ * show. A payload with no fallback body still gets the honest decline copy.
  */
 export function parseMeasuredReport(payload: unknown): ParsedMeasuredReport | null {
   if (!isRecord(payload) || !Array.isArray(payload.measurements)) return null;
@@ -148,6 +180,8 @@ export function parseMeasuredReport(payload: unknown): ParsedMeasuredReport | nu
   const metrics = scored
     ? payload.measurements.flatMap((raw) => parseMetric(raw) ?? [])
     : [];
+
+  if (metrics.length === 0 && hasFallbackBody(payload)) return null;
 
   return {
     metrics,

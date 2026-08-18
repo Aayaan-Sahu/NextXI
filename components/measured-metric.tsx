@@ -39,7 +39,7 @@ export type Tone = "light" | "dark";
 /** One-line explainer under the Measurements heading — stops readers hunting
     for an elite band on every row. */
 export const MEASUREMENTS_EXPLAINER =
-  "Compared to your recent sessions, unless labelled Benchmark.";
+  "Compared to your recent sessions, unless labelled Benchmark or Elite.";
 
 /** Which way is better. `none` means the metric is descriptive, not scored. */
 export type Direction = "higher" | "lower" | "inside" | "none";
@@ -49,7 +49,14 @@ export type MetricReference =
       toward. Only use where the source population genuinely was elite, and name
       that population in `label`. Sitting below an elite band is headroom, not a
       fault: it never renders in the error colour. */
-  | { kind: "elite"; label: string; band: [number, number]; source?: string }
+  | {
+      kind: "elite";
+      label: string;
+      band: [number, number];
+      source?: string;
+      /** Size of the reference population, when the producer sends one. */
+      sample?: { players: number; shots: number; provisional?: boolean };
+    }
   | { kind: "session"; label: string; band: [number, number] }
   | { kind: "published"; label: string; band: [number, number]; source?: string }
   | { kind: "none"; label: string };
@@ -70,8 +77,17 @@ export type MeasuredMetric = {
    * Plain-English read, carrying the magnitude and the direction where there
    * is one — e.g. "8 cm shorter than your usual; the stride is repeatable".
    * Authored per metric rather than templated, so the coaching stays human.
+   * Optional: a producer that has measurements but no defensible sentence to
+   * write about them sends none, and the row simply ends at the scale.
    */
-  note: string;
+  note?: string;
+  /**
+   * Where the value lands in the reference population: the share of that
+   * population's samples below it. Rendered as a plain rank beside the
+   * reference, never as a score — `direction` already says which way is
+   * better, and the scale already shows the position.
+   */
+  percentile?: { value: number; sample: { players: number; shots: number } };
   /**
    * One-line version of `note` for the pinned hero card, which shares the
    * viewport with the video and cannot afford three wrapped lines per row.
@@ -112,6 +128,13 @@ export function isOffReference(metric: MeasuredMetric): boolean {
 }
 
 const fmt = (value: number, decimals: number) => value.toFixed(decimals);
+
+/** "1st", "2nd", "3rd", "86th" — English ordinals, teens included. */
+function ordinal(value: number): string {
+  const tens = value % 100;
+  if (tens >= 11 && tens <= 13) return `${value}th`;
+  return `${value}${["th", "st", "nd", "rd"][value % 10] ?? "th"}`;
+}
 
 /** The reference band as a range with one unit: "0.94–1.05 m". The unit is
     bound with a no-break space so it can never orphan onto its own line when
@@ -379,16 +402,38 @@ export function MeasuredMetricRow({
         )}
       </div>
 
+      {/* Where the player lands in the reference population. Deliberately a
+          bare rank: `direction` says which way is better and the scale above
+          already shows the position, so wording it as good or bad here would
+          be inventing a judgement the measurement does not carry. The
+          population and its size are already on the reference line above, so
+          they are not repeated — but the parser still requires the sample,
+          because a percentile whose n is unknown is not renderable honestly. */}
+      {metric.percentile && (
+        <div
+          className={`font-mono tracking-[.08em] ${
+            compact ? "mt-0.5 text-[10px]" : "mt-1 text-[10.5px]"
+          } ${dark ? "text-sage-400" : "text-ink-600"}`}
+        >
+          <span className={dark ? "font-semibold text-gold-500" : "font-semibold text-gold-600"}>
+            {ordinal(metric.percentile.value)} percentile
+          </span>
+        </div>
+      )}
+
       {/* In the pinned hero the card shares the viewport with the video, so the
           row uses the one-line read and clamps as a backstop; the standalone
-          report always shows the full note. */}
-      <p
-        className={`${
-          compact ? "mt-1 line-clamp-2 text-[11px] leading-[1.45]" : "mt-1.5 text-[12.5px] leading-[1.5]"
-        } ${dark ? "text-cream-200" : "text-ink-900"}`}
-      >
-        {compact ? (metric.noteShort ?? metric.note) : metric.note}
-      </p>
+          report always shows the full note. A producer with no note sends
+          none, and the row ends here. */}
+      {(compact ? (metric.noteShort ?? metric.note) : metric.note) && (
+        <p
+          className={`${
+            compact ? "mt-1 line-clamp-2 text-[11px] leading-[1.45]" : "mt-1.5 text-[12.5px] leading-[1.5]"
+          } ${dark ? "text-cream-200" : "text-ink-900"}`}
+        >
+          {compact ? (metric.noteShort ?? metric.note) : metric.note}
+        </p>
+      )}
     </div>
   );
 }

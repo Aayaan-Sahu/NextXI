@@ -277,10 +277,10 @@ follow-through yet, so those rows simply stay empty.
 
 ## Measurements — schema_version 3
 
-> **UI implemented.** `ReportPanel` prefers a `measurements` array and renders
-> it through the shared `MeasuredMetricRow` (same component as the landing
-> demo). The worker producer that emits this array is still landing — until it
-> does, live reports keep using the v2 batting/bowling shapes below.
+> **Live.** `ReportPanel` prefers a `measurements` array and renders it through
+> the shared `MeasuredMetricRow` (same component as the landing demo).
+> `api_batting.analyze_batting` now emits the array (schema_version 3) for
+> batting; bowling still sends the v2 shape below.
 
 v3 exists because a 0-100 score is not actionable. "Stride 82/100" does not tell
 a player whether the stride was too short or too long; "Stride 1.02 m, your usual
@@ -313,11 +313,15 @@ is one of four kinds and must always say which:
   quantity the phone pipeline measures, the sample adequate (Mann 2013 is
   elite-only but n=2 on a head-mounted eye tracker — not compliant), the effect
   not a published null, and no invented youth scaling. In practice that means
-  the only expected producer is the NextXI professional reference set, once the
-  pipeline has run over rights-cleared pro footage (`MODEL-STATUS.md` Stage 2)
-  — same pipeline, same measurands, adequate n — labelled e.g. "NextXI pro
-  reference · n=N players". No current metric qualifies; the UI kind exists
-  (typed and styled) but must stay unused until one does.
+  the only expected producer is the NextXI professional reference set — same
+  pipeline, same measurands. **That producer now exists** (CRICKET repo,
+  `pro/build_reference.py` + `pro_reference.py`), but it is deliberately
+  provisional: the first build is 2 players and 8 shots, which is nowhere near
+  "adequate n". It therefore ships two safeguards rather than a claim — the
+  `label` states the population and its exact size on every row ("Front-foot
+  drive · 2 pro players, 8 shots"), and `reference.sample.provisional` is true.
+  Read a band from it as "what these two batters did", not as a benchmark, and
+  raise the bar before dropping the size from the label.
 - `"none"` — no defensible comparison. Send the measurement without a band.
 
 ```jsonc
@@ -348,15 +352,38 @@ is one of four kinds and must always say which:
         "kind": "session",          // "session" | "published" | "elite" | "none"
         "label": "Last 5 sessions",
         "band": [0.94, 1.05],       // omitted when kind is "none"
-        "source": "…"               // optional, published/elite only: full academic
+        "source": "…",              // optional, published/elite only: full academic
                                     // citation. Provenance for devs; never rendered
                                     // to players — the label carries the population
+        "sample": {                 // optional, elite only: how big the population is
+          "players": 2,
+          "shots": 8,
+          "provisional": true
+        }
+      },
+      "percentile": {               // optional: where the value lands in `reference`
+        "value": 62,                // 1-99, share of the population below the value
+        "of": "elite",
+        "sample": { "players": 2, "shots": 8 },
+        "provisional": true
       },
       "note": "Varies by only ±4 cm across 12 balls — your most repeatable movement."
     }
   ]
 }
 ```
+
+`percentile` renders as a bare ordinal under the reference line ("62nd
+percentile") and nothing more. It is deliberately not worded as good or bad:
+`direction` already says which way is better and the scale already shows the
+position, so a phrasing here would be inventing a judgement the measurement
+does not carry. The renderer requires `percentile.sample` — a percentile whose
+n is unknown is not renderable honestly — but does not print it, because the
+reference line above already names the population and its size.
+
+`note` is **optional**. A producer with measurements but no defensible sentence
+to write about them sends none, and the row ends at the scale. Do not author
+filler: an invented read is worse than a missing one.
 
 `direction` drives whether being outside the band reads as a fault. Send
 `"none"` for descriptive metrics — the UI will show the measurement and the
