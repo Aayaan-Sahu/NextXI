@@ -1,4 +1,6 @@
 import { ConsistencyList, type ConsistencyItem } from "@/components/consistency";
+import type { MeasuredMetric } from "@/components/measured-metric";
+import { DerivedMeasurements } from "@/components/measured-report";
 import { Kicker } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -249,18 +251,37 @@ export function BattingReport({
   parsed,
   report,
   tone,
+  derived,
 }: {
   parsed: ParsedBattingReport;
   report: VideoReport;
   tone: Tone;
+  /** History-derived measurement rows (lib/report-history.ts); lead when present. */
+  derived?: MeasuredMetric[] | null;
 }) {
   const dark = tone === "dark";
   const shotCount = parsed.shots.length;
+  const measurements = derived ?? [];
   const metaParts = [
     parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
     parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
     report.modelVersion,
   ].filter(Boolean);
+
+  const shotRows = (
+    <div className="mt-1">
+      {parsed.shots.map((shot, index) => (
+        <ShotRow key={index} shot={shot} index={index} tone={tone} />
+      ))}
+    </div>
+  );
+
+  const consistencyBlock = parsed.consistency.length > 0 && (
+    <div className={`border-b py-4 ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
+      <Kicker tone={tone}>Consistency across shots</Kicker>
+      <ConsistencyList items={parsed.consistency} tone={tone} />
+    </div>
+  );
 
   return (
     <div className={dark ? "" : "pt-4"}>
@@ -268,6 +289,24 @@ export function BattingReport({
         <p className={`pt-4 text-sm ${dark ? "text-sage-400" : "text-ink-600"}`}>
           The analysis ran but didn&apos;t detect a clear batting shot in this video.
         </p>
+      ) : measurements.length > 0 ? (
+        // The clear read leads: each measurement with the player's range and
+        // last-session marker, then repeatability. The per-shot number wall is
+        // still there, behind a disclosure instead of dominating the card.
+        <>
+          <DerivedMeasurements metrics={measurements} tone={tone} />
+          {consistencyBlock}
+          <details className={`border-b ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
+            <summary
+              className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${
+                dark ? "text-sage-400" : "text-ink-600"
+              }`}
+            >
+              Ball-by-ball detail · {shotCount} {shotCount === 1 ? "shot" : "shots"}
+            </summary>
+            {shotRows}
+          </details>
+        </>
       ) : (
         <>
           <div className={dark ? "" : "pb-1"}>
@@ -276,18 +315,9 @@ export function BattingReport({
             </Kicker>
           </div>
 
-          <div className="mt-1">
-            {parsed.shots.map((shot, index) => (
-              <ShotRow key={index} shot={shot} index={index} tone={tone} />
-            ))}
-          </div>
+          {shotRows}
 
-          {parsed.consistency.length > 0 && (
-            <div className={`border-b py-4 ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
-              <Kicker tone={tone}>Consistency across shots</Kicker>
-              <ConsistencyList items={parsed.consistency} tone={tone} />
-            </div>
-          )}
+          {consistencyBlock}
         </>
       )}
 

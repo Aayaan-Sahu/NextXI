@@ -212,6 +212,46 @@ export function MeasuredReport({
   );
 }
 
+/**
+ * Measurement rows derived platform-side from a v2 payload plus the player's
+ * report history (lib/report-measurements.ts): the same MeasuredMetricRow the
+ * v3 path and the landing demo use, with the player's own recent range as the
+ * band and the last-session marker as the progress tracker.
+ */
+export function DerivedMeasurements({
+  metrics,
+  tone,
+}: {
+  metrics: MeasuredMetric[];
+  tone: Tone;
+}) {
+  const withPrevious = metrics.some((metric) => metric.previous);
+  const withBenchmark = metrics.some(
+    (metric) => metric.reference.kind === "published" || metric.reference.kind === "elite",
+  );
+  const firstAnalysis = metrics.every((metric) => metric.reference.kind === "none");
+  return (
+    <div>
+      <MeasurementsIntro
+        tone={tone}
+        withPrevious={withPrevious}
+        withBenchmark={withBenchmark}
+        withLegend={!firstAnalysis}
+        explainer={
+          firstAnalysis
+            ? "Your first analysis — your range appears from the next session."
+            : undefined
+        }
+      />
+      <div className="mt-1">
+        {metrics.map((metric) => (
+          <MeasuredMetricRow key={metric.name} metric={metric} tone={tone} />
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /** Compact scoreboard stats for LatestReportCard. */
 export function measuredCardStats(parsed: ParsedMeasuredReport): {
   headline: string;
