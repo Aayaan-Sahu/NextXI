@@ -1,4 +1,5 @@
 import { Kicker } from "@/components/ui";
+import { WallFigure } from "@/components/landing/wall-figure";
 
 /**
  * The wall — every player who gets a trial, a coach, or a call-up through the
@@ -55,20 +56,24 @@ export function TheWall() {
 
   return (
     <section className="bg-pitch-900 px-6 py-24 sm:px-12">
-      <div className="mx-auto w-full max-w-[1200px]">
-        <header className="mb-12 text-center">
+      <div className="mx-auto grid w-full max-w-[1200px] items-center gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-20">
+        {/* Left page of the spread: the pitch — copy plus the platform's
+            skeleton view of a batter. The board hangs on the right. */}
+        <div>
           <Kicker tone="dark">Noticed through NextXI</Kicker>
           <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] text-cream-50 uppercase sm:text-5xl">
             The wall
           </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed text-cream-200">
+          <p className="mt-4 max-w-[52ch] text-[15px] leading-relaxed text-cream-200">
             Players who get a trial, a coach, or a call-up through this platform
             can land here — when they and their guardian want that story told.
             Every story is real. There&apos;s room for yours.
           </p>
-        </header>
+          <WallFigure className="mx-auto mt-10 w-full max-w-[400px] lg:mx-0" />
+        </div>
 
-        <div className="relative overflow-hidden rounded-[12px] bg-pitch-800">
+        <div>
+          <div className="relative overflow-hidden rounded-[12px] bg-pitch-800">
           <div
             aria-hidden
             className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
@@ -138,13 +143,14 @@ export function TheWall() {
               </article>
             );
           })}
-        </div>
+          </div>
 
-        <p className="mx-auto mt-8 max-w-[64ch] text-center font-mono text-[11px] leading-relaxed tracking-[.06em] text-cream-200">
-          Nothing on this wall is ever invented. Every story is a real player,
-          shared with their guardian&apos;s permission — first name and initial
-          only.
-        </p>
+          <p className="mt-5 max-w-[64ch] font-mono text-[11px] leading-relaxed tracking-[.06em] text-cream-200">
+            Nothing on this wall is ever invented. Every story is a real
+            player, shared with their guardian&apos;s permission — first name
+            and initial only.
+          </p>
+        </div>
       </div>
     </section>
   );
