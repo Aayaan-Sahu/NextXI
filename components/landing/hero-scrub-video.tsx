@@ -15,6 +15,23 @@ import { useCanScrub } from "@/components/landing/use-can-scrub";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
+// The card's stepped print: how much of the report column is unveiled at a
+// given pin progress. Holds are the dwells between section steps (tiles at
+// 0.72, focus at 0.78, coach stamp at 0.84) — all after SPLIT_END.
+const PRINT_STOPS = [0, 0.72, 0.75, 0.78, 0.81, 0.84, 0.86, 1];
+const PRINT_OPEN = [40, 40, 71, 71, 92, 92, 100, 100];
+
+function piecewise(p: number, stops: number[], values: number[]) {
+  if (p <= stops[0]) return values[0];
+  for (let i = 1; i < stops.length; i++) {
+    if (p <= stops[i]) {
+      const t = (p - stops[i - 1]) / (stops[i] - stops[i - 1]);
+      return values[i - 1] + t * (values[i] - values[i - 1]);
+    }
+  }
+  return values[values.length - 1];
+}
+
 /**
  * Scale the mock card down only when it would clip the viewport, origin at
  * the right so extra gap opens toward the batter instead of covering them.
@@ -77,7 +94,10 @@ function PinFit({
 // frozen split for a couple of extra viewports before How it works.
 const VIDEO_END = 0.55;
 const SPLIT_START = 0.55;
-const SPLIT_END = 0.8;
+// The split forms fully before the report starts printing (PRINT_STOPS run
+// 0.72 → 0.86), so the row-by-row build happens on a settled stage instead of
+// half-offscreen while the card is still riding in.
+const SPLIT_END = 0.7;
 
 /**
  * Pinned hero: scrolling scrubs the analysis video, then — in the SAME shot,
@@ -153,25 +173,30 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   const videoTop = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
   const videoBottom = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
   const videoRadius = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0px", "0px", "26px", "26px"]);
-  // The card arrives as just the dark hero plate — everything below is
-  // clipped away — then its bottom edge sweeps down and "prints" the rest of
-  // the report, a gold scan line riding the edge. VariantScoreboard's
-  // staggered reveals land on freshly printed board, so the card is never a
-  // tall empty slab waiting for content.
-  const reportOpacity = useTransform(scrollYProgress, [0, SPLIT_START, 0.62, 1], [0, 0, 1, 1]);
-  const reportX = useTransform(scrollYProgress, [0, SPLIT_START, 0.62, 1], [48, 48, 0, 0]);
-  const printT = (p: number) => clamp01((p - 0.62) / 0.23);
-  // Bottom-edge cut as a fraction of the column; 72% ≈ everything below the
-  // hero plate. A feathered mask, not a hard clip: fresh card dissolves in
-  // over an ~8%-tall band so the white body never flashes against the dark
-  // stage as it prints.
-  const printCut = (p: number) => (1 - printT(p)) * 72;
-  const reportMask = useTransform(scrollYProgress, (p) => {
-    const open = 100 - printCut(p);
-    return `linear-gradient(180deg, #000 ${(open - 6).toFixed(2)}%, transparent ${(open + 2).toFixed(2)}%)`;
+  // The card never fades in over the video — it rides the split: starting
+  // just off the right viewport edge, its left edge tracks the video's right
+  // edge at the constant 1.5rem gutter (the same inset expression, remaining
+  // fraction), so the two panels form the split as one rigid motion and can
+  // never overlap.
+  const reportX = useTransform(scrollYProgress, (p) => {
+    const r = 1 - splitT(p);
+    return `calc(${r.toFixed(4)} * (1.75vw + min(44vw, 580px) * ${cardScale.toFixed(4)} + 1.5rem))`;
   });
-  const printEdgeTop = useTransform(scrollYProgress, (p) => `${(98 - printCut(p)).toFixed(2)}%`);
-  const printEdgeOpacity = useTransform(scrollYProgress, [0.62, 0.645, 0.82, 0.85], [0, 1, 1, 0]);
+  // The card arrives already showing its hero plate and session cells, then
+  // extends downward in three decisive steps — tiles, focus, coach stamp —
+  // like a broadcast scoreboard adding rows: hard edge, quick step, hold.
+  // Section fades lead each step so a step only ever exposes painted card
+  // (no white flash), and the crisp edge matches the site's mechanical
+  // scroll language — a feathered sweep read hazy against it. (Function
+  // transforms, not string keyframes — motion won't numerically mix these
+  // inset() strings.)
+  const openAt = (p: number) => piecewise(p, PRINT_STOPS, PRINT_OPEN);
+  const reportClip = useTransform(
+    scrollYProgress,
+    (p) => `inset(-24px -24px ${(100 - openAt(p)).toFixed(2)}% -24px round 14px)`,
+  );
+  const printEdgeTop = useTransform(scrollYProgress, (p) => `${openAt(p).toFixed(2)}%`);
+  const printEdgeOpacity = useTransform(scrollYProgress, [0.7, 0.72, 0.85, 0.88], [0, 1, 1, 0]);
 
   return (
     // In scrub mode the section tucks under the ball opener's final viewport
@@ -244,11 +269,8 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         {/* report, right side, revealing line by line (scrub only) */}
         {scrub && (
           <div className="pointer-events-none absolute inset-y-0 right-[1.75%] flex w-[44%] max-w-[580px] items-center py-6">
-            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="relative h-full min-h-0 w-full">
-              <motion.div
-                style={{ maskImage: reportMask, WebkitMaskImage: reportMask }}
-                className="h-full min-h-0 w-full"
-              >
+            <motion.div style={{ x: reportX }} className="relative h-full min-h-0 w-full">
+              <motion.div style={{ clipPath: reportClip }} className="h-full min-h-0 w-full">
                 <PinFit onScale={setCardScale}>
                   <VariantScoreboard progress={scrollYProgress} tone="light" />
                 </PinFit>
@@ -261,7 +283,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
                   opacity: printEdgeOpacity,
                   width: `${(cardScale * 100).toFixed(2)}%`,
                 }}
-                className="absolute right-0 h-[2px] bg-gold-500/50"
+                className="absolute right-0 h-[2px] bg-gold-500/70"
               />
             </motion.div>
           </div>

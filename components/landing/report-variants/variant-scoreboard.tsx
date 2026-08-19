@@ -113,12 +113,12 @@ export function VariantScoreboard({
   const compact = compactProp ?? !!progress;
   const pin = !!progress;
   const dark = tone === "dark";
-  // Pin reveals LEAD hero-scrub's print edge (mask sweep 0.62 → 0.85): each
-  // section is fully painted before the edge unveils it, so the print never
-  // exposes empty white card against the dark stage. All finish well before
-  // the unpin so no line pops in on a frozen card.
-  const S = pin ? 0.585 : 0.62;
-  const step = pin ? 0.055 : 0.07;
+  // Pin reveals LEAD hero-scrub's stepped print edge (tiles unveil 0.72,
+  // focus 0.78, stamp 0.84): each section is painted before its step exposes
+  // it, so a step never shows empty white card. All finish well before the
+  // unpin so no line pops in on a frozen card.
+  const S = pin ? 0.57 : 0.62;
+  const step = pin ? 0.07 : 0.07;
   const dur = pin ? 0.04 : 0.05;
   const w = (i: number) => ({ from: S + i * step, to: S + i * step + dur });
   const focusI = pin ? 2 : 3;
@@ -153,10 +153,9 @@ export function VariantScoreboard({
         <Reveal progress={progress} {...w(1)}>
           <ScoreTiles
             compact={compact}
-            // Bars fill as the print edge crosses them (edge reaches the
-            // tiles ~0.66 and clears them ~0.74), not during the earlier
-            // section fade — so each fill happens in view.
-            fillWindow={pin ? [0.66, 0.72] : undefined}
+            // Bars fill as the tiles step unveils them (0.72 → 0.75), not
+            // during the earlier section fade — so each fill happens in view.
+            fillWindow={pin ? [0.725, 0.775] : undefined}
             progress={progress}
             tiles={DEMO_TILES}
             tone={tone}
