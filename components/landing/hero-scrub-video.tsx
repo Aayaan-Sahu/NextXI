@@ -19,7 +19,14 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
  * Scale the mock card down only when it would clip the viewport, origin at
  * the right so extra gap opens toward the batter instead of covering them.
  */
-function PinFit({ children }: { children: ReactNode }) {
+function PinFit({
+  children,
+  onScale,
+}: {
+  children: ReactNode;
+  /** Reports the applied scale so the split can reclaim the width a shrunken card gives up. */
+  onScale?: (scale: number) => void;
+}) {
   const outerRef = useRef<HTMLDivElement>(null);
   const innerRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -32,14 +39,16 @@ function PinFit({ children }: { children: ReactNode }) {
       const available = outer.clientHeight;
       const natural = inner.scrollHeight;
       if (available <= 0 || natural <= 0) return;
-      setScale(Math.min(1, available / natural));
+      const next = Math.min(1, available / natural);
+      setScale(next);
+      onScale?.(next);
     };
     fit();
     const observer = new ResizeObserver(fit);
     observer.observe(outer);
     observer.observe(inner);
     return () => observer.disconnect();
-  }, []);
+  }, [onScale]);
 
   return (
     <div ref={outerRef} className="flex h-full min-h-0 w-full items-center justify-end">
@@ -126,14 +135,23 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   );
   // Size the post-split panel to the 16:9 frame (object-contain in a tall
   // rounded rect just letterboxed into empty pitch). `right` reserves the
-  // report column + a gap so the white card never covers the batter.
-  const splitRight = "calc(1.75% + min(38%, 500px) + 1.5rem)";
-  const splitVertical =
-    "max(1.25rem, calc((100dvh - (100vw - 1.25vw - 1.75vw - min(38vw, 500px) - 1.5rem) * 9 / 16) / 2))";
-  const videoLeft = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0%", "0%", "1.25%", "1.25%"]);
-  const videoRight = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0%", "0%", splitRight, splitRight]);
-  const videoTop = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0%", "0%", splitVertical, splitVertical]);
-  const videoBottom = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0%", "0%", splitVertical, splitVertical]);
+  // report column + a gap so the white card never covers the batter. The
+  // reserve tracks PinFit's applied scale: when a short viewport shrinks the
+  // card (toward its top-right anchor), the panel widens to absorb the freed
+  // width instead of leaving a dead gap between video and report.
+  const [cardScale, setCardScale] = useState(1);
+  const cardReserve = `min(38%, 500px) * ${cardScale.toFixed(4)}`;
+  const splitRight = `1.75% + ${cardReserve} + 1.5rem`;
+  const splitVertical = `max(1.25rem, (100dvh - (100vw - 1.25vw - 1.75vw - min(38vw, 500px) * ${cardScale.toFixed(4)} - 1.5rem) * 9 / 16) / 2)`;
+  // Keyframe strings containing min()/max() don't numerically interpolate
+  // (motion hard-swaps them at the segment boundary, snapping the video
+  // straight to its panel at SPLIT_START), so emit each frame's calc with an
+  // animated multiplier instead.
+  const splitT = (p: number) => clamp01((p - SPLIT_START) / (SPLIT_END - SPLIT_START));
+  const videoLeft = useTransform(scrollYProgress, (p) => `${(splitT(p) * 1.25).toFixed(3)}%`);
+  const videoRight = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * (${splitRight}))`);
+  const videoTop = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
+  const videoBottom = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
   const videoRadius = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0px", "0px", "26px", "26px"]);
   // Card fades in across the same window the video slides; line reveals in
   // VariantScoreboard finish before the pin unpins.
@@ -212,7 +230,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         {scrub && (
           <div className="pointer-events-none absolute inset-y-0 right-[1.75%] flex w-[38%] max-w-[500px] items-center py-6">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full min-h-0 w-full">
-              <PinFit>
+              <PinFit onScale={setCardScale}>
                 <VariantScoreboard progress={scrollYProgress} tone="light" />
               </PinFit>
             </motion.div>
