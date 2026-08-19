@@ -325,10 +325,15 @@ export function ReportPanel({
       : null;
   const legacyScore =
     !measured && !batting && !bowling && payload ? readOverallScore(payload) : null;
-  // The batting scoreboard hero carries the consistency dial; showing the
-  // same number again in the header would be the figure twice.
+  // The scoreboard hero carries the 0–100 dial; showing the same number
+  // again in the header would be the figure twice.
   const heroRenders =
-    !!batting && !!derived && derived.metrics.length > 0 && consistency !== null;
+    (!!batting && batting.shots.length > 0) ||
+    (!!bowling &&
+      (bowling.brace.label !== null ||
+        bowling.stats.length > 0 ||
+        bowling.events.length > 0)) ||
+    (!!measured && measured.scored && measured.metrics.length > 0);
 
   return (
     <section

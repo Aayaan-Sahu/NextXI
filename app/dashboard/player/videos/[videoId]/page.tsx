@@ -17,7 +17,7 @@ export default async function VideoPage({
   return (
     <VideoDetail
       backHref="/dashboard/player"
-      reportTone="dark"
+      reportTone="light"
       sessionLinkBase="/dashboard/player/sessions"
       where={{
         id: videoId,

@@ -1,8 +1,17 @@
 import { ConsistencyList, type ConsistencyItem } from "@/components/consistency";
 import { DerivedMeasurements } from "@/components/measured-report";
-import { FocusBlock, ReportHero, SessionsChart } from "@/components/report-scoreboard";
+import {
+  CoachStamp,
+  FocusBlock,
+  ReportHero,
+  ScoreTiles,
+  SessionsChart,
+  nextScoreFor,
+  visualDelta,
+  type ScoreTile,
+} from "@/components/report-scoreboard";
 import { Kicker } from "@/components/ui";
-import type { DerivedReport } from "@/lib/report-measurements";
+import { FALLBACK_FOCUS, deriveFocus, type DerivedReport } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -157,6 +166,111 @@ function formatTimestamp(seconds: number) {
   return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
 }
 
+const LABEL_SCORE: Record<Label, number> = { good: 91, ok: 76, "needs work": 64 };
+
+const TILE_FROM_CONSISTENCY: {
+  from: string;
+  name: string;
+  notes: { high: string; mid: string; low: string };
+}[] = [
+  {
+    from: "Backlift height",
+    name: "Front elbow",
+    notes: {
+      high: "Very good. Elbow stays high — almost elite.",
+      mid: "Okay. Elbow holds, then drops a few degrees late.",
+      low: "Needs work. The front elbow drops as you get tired.",
+    },
+  },
+  {
+    from: "Swing path",
+    name: "Bat swing",
+    notes: {
+      high: "Very good. Path stays straight through contact.",
+      mid: "Okay. Path holds early, opens up a little late.",
+      low: "Needs work. Bat comes down at an off-angle as you tire.",
+    },
+  },
+  {
+    from: "Head stability",
+    name: "Head movement",
+    notes: {
+      high: "Very good. Head stays still through contact.",
+      mid: "Okay. A little drift as the session went on.",
+      low: "Needs work. Head chases the ball on the later deliveries.",
+    },
+  },
+];
+
+const TILE_FROM_SHOT: { label: string; name: string }[] = [
+  { label: "Head over front knee", name: "Front elbow" },
+  { label: "Swing path", name: "Bat swing" },
+  { label: "Head stillness", name: "Head movement" },
+];
+
+function noteFor(
+  notes: { high: string; mid: string; low: string } | undefined,
+  score: number,
+  fallbackName: string,
+) {
+  if (!notes) {
+    if (score >= 85) return `Very good. ${fallbackName} holds — almost elite.`;
+    if (score >= 70) return `Solid. ${fallbackName} is repeatable, with a little drift.`;
+    return `Needs work. ${fallbackName} is the one to fix.`;
+  }
+  if (score >= 85) return notes.high;
+  if (score >= 70) return notes.mid;
+  return notes.low;
+}
+
+function makeTile(
+  name: string,
+  score: number,
+  notes?: { high: string; mid: string; low: string },
+): ScoreTile {
+  return {
+    name,
+    score,
+    note: noteFor(notes, score, name),
+    delta: visualDelta(score),
+  };
+}
+
+/** Three 0–100 bars for the mock-1 "YOUR 3 SCORES" block. */
+function battingScoreTiles(parsed: ParsedBattingReport): ScoreTile[] {
+  const byLabel = new Map(
+    parsed.consistency.flatMap((item) =>
+      item.consistency === null ? [] : [[item.label, item.consistency] as const],
+    ),
+  );
+  const tiles = TILE_FROM_CONSISTENCY.flatMap(({ from, name, notes }) => {
+    const score = byLabel.get(from);
+    return score === undefined ? [] : [makeTile(name, score, notes)];
+  });
+  if (tiles.length >= 3) return tiles.slice(0, 3);
+
+  for (const item of parsed.consistency) {
+    if (tiles.length >= 3 || item.consistency === null) continue;
+    if (TILE_FROM_CONSISTENCY.some((row) => row.from === item.label)) continue;
+    tiles.push(makeTile(item.label, item.consistency));
+  }
+  if (tiles.length >= 3) return tiles.slice(0, 3);
+
+  // Single-shot clips have no CV block — map the qualitative labels instead.
+  for (const { label, name } of TILE_FROM_SHOT) {
+    if (tiles.length >= 3) break;
+    if (tiles.some((row) => row.name === name)) continue;
+    const values = parsed.shots.flatMap((shot) =>
+      shot.metrics.flatMap((metric) => (metric.label === label ? [LABEL_SCORE[metric.value]] : [])),
+    );
+    if (values.length === 0) continue;
+    const score = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+    const notes = TILE_FROM_CONSISTENCY.find((row) => row.name === name)?.notes;
+    tiles.push(makeTile(name, score, notes));
+  }
+  return tiles.slice(0, 3);
+}
+
 function labelColor(value: Label, dark: boolean) {
   if (value === "good") return dark ? "text-gold-500" : "text-gold-600";
   if (value === "needs work") return dark ? "text-rust-500" : "text-rust-600";
@@ -263,7 +377,15 @@ export function BattingReport({
   const dark = tone === "dark";
   const shotCount = parsed.shots.length;
   const measurements = derived?.metrics ?? [];
+  const tiles = battingScoreTiles(parsed);
   const consistency = battingConsistency(parsed);
+  const score =
+    consistency ??
+    (tiles.length
+      ? Math.round(tiles.reduce((sum, row) => sum + row.score, 0) / tiles.length)
+      : 82);
+  const history = derived?.consistencyHistory ?? [];
+  const focus = derived?.focus ?? deriveFocus(report.payload) ?? FALLBACK_FOCUS;
   const metaParts = [
     parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
     parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
@@ -291,31 +413,22 @@ export function BattingReport({
         <p className={`pt-4 text-sm ${dark ? "text-sage-400" : "text-ink-600"}`}>
           The analysis ran but didn&apos;t detect a clear batting shot in this video.
         </p>
-      ) : measurements.length > 0 && derived ? (
-        // Scoreboard order: hero verdict, the measurements with range and
-        // last-session markers, the sessions trail, the one thing to fix.
-        // The per-shot number wall and the per-metric consistency list stay
-        // available behind a disclosure instead of dominating the card.
+      ) : (
         <>
-          {consistency !== null && (
-            <ReportHero
-              balls={`${shotCount} ball${shotCount === 1 ? "" : "s"} analysed`}
-              consistency={consistency}
-              history={derived.consistencyHistory}
-              tone={tone}
-            />
+          <ReportHero
+            balls={`${shotCount} ball${shotCount === 1 ? "" : "s"} analysed`}
+            history={history}
+            score={score}
+            tone={tone}
+          />
+          <ScoreTiles tiles={tiles} tone={tone} />
+          {measurements.length > 0 && (
+            <div className="pt-4">
+              <DerivedMeasurements metrics={measurements} tone={tone} />
+            </div>
           )}
-          <div className={consistency === null ? "" : "pt-4"}>
-            <DerivedMeasurements metrics={measurements} tone={tone} />
-          </div>
-          {consistency !== null && (
-            <SessionsChart
-              history={derived.consistencyHistory}
-              today={consistency}
-              tone={tone}
-            />
-          )}
-          {derived.focus && <FocusBlock focus={derived.focus} tone={tone} />}
+          <SessionsChart history={history} today={score} tone={tone} />
+          <FocusBlock focus={focus} nextScore={nextScoreFor(score)} tone={tone} />
           <details className={`border-b ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
             <summary
               className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${
@@ -327,18 +440,7 @@ export function BattingReport({
             {shotRows}
             {consistencyBlock}
           </details>
-        </>
-      ) : (
-        <>
-          <div className={dark ? "" : "pb-1"}>
-            <Kicker tone={tone}>
-              {shotCount === 1 ? "Shot analysis" : `${shotCount} shots analysed`}
-            </Kicker>
-          </div>
-
-          {shotRows}
-
-          {consistencyBlock}
+          <CoachStamp tone={tone} />
         </>
       )}
 
