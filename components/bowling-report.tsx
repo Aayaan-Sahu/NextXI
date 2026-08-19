@@ -226,9 +226,9 @@ export function BowlingReport({
   const mutedText = dark ? "text-sage-400" : "text-ink-600";
 
   const measurements = derived?.metrics ?? [];
+  const history = derived?.consistencyHistory ?? [];
   const tiles = bowlingScoreTiles(parsed);
   const score = bowlingScore(parsed);
-  const history = derived?.consistencyHistory ?? [];
   const focus = derived?.focus ?? deriveFocus(report.payload) ?? FALLBACK_FOCUS;
   // A measurement row supersedes its plain stat line — no number twice.
   const measuredNames = new Set(measurements.map((metric) => metric.name));
@@ -263,21 +263,24 @@ export function BowlingReport({
         <>
           <ReportHero balls="1 delivery analysed" history={history} score={score} tone={tone} />
           <ScoreTiles tiles={tiles} tone={tone} />
-          {measurements.length > 0 && (
-            <div className="pt-1">
-              <DerivedMeasurements metrics={measurements} tone={tone} />
-            </div>
-          )}
           <SessionsChart history={history} today={score} tone={tone} />
           <FocusBlock focus={focus} nextScore={nextScoreFor(score)} tone={tone} />
 
-          {(hasBrace || statRows.length > 0 || parsed.events.length > 0) && (
+          {(measurements.length > 0 ||
+            hasBrace ||
+            statRows.length > 0 ||
+            parsed.events.length > 0) && (
             <details className={`border-b ${rowBorder}`}>
               <summary
                 className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${mutedText}`}
               >
-                Delivery detail
+                Measurements &amp; delivery detail
               </summary>
+              {measurements.length > 0 && (
+                <div className="pt-2 pb-1">
+                  <DerivedMeasurements metrics={measurements} tone={tone} />
+                </div>
+              )}
               {hasBrace && (
                 <div className={`border-b py-3.5 ${rowBorder}`}>
                   <div className="flex items-baseline justify-between gap-3">

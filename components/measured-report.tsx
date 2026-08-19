@@ -181,7 +181,10 @@ function tilesFromMeasured(metrics: MeasuredMetric[]): ScoreTile[] {
       name: metric.short,
       score,
       note: metric.noteShort ?? metric.note,
-      delta: visualDelta(score),
+      // Prefer the metric's real last-session change; demo arrows otherwise.
+      delta: metric.deltaPill
+        ? { text: metric.deltaPill.text, dir: metric.deltaPill.dir }
+        : visualDelta(score),
     };
   });
 }
@@ -233,16 +236,26 @@ export function MeasuredReport({
         tone={tone}
       />
       <ScoreTiles tiles={tiles} tone={tone} />
-      <div className="pt-4">
-        <MeasurementsIntro tone={tone} />
-        <div className="mt-1">
-          {parsed.metrics.map((metric) => (
-            <MeasuredMetricRow key={metric.name} metric={metric} tone={tone} />
-          ))}
-        </div>
-      </div>
       <SessionsChart history={[]} today={score} tone={tone} />
       <FocusBlock focus={FALLBACK_FOCUS} nextScore={nextScoreFor(score)} tone={tone} />
+      {/* Full measurement rows one tap away, same as the v2 renderers. */}
+      <details className={`border-b ${dark ? "border-cream-200/15" : "border-cream-300"}`}>
+        <summary
+          className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${
+            dark ? "text-sage-400" : "text-ink-600"
+          }`}
+        >
+          Measurements · {parsed.metrics.length}
+        </summary>
+        <div className="pt-2 pb-1">
+          <MeasurementsIntro tone={tone} />
+          <div className="mt-1">
+            {parsed.metrics.map((metric) => (
+              <MeasuredMetricRow key={metric.name} metric={metric} tone={tone} />
+            ))}
+          </div>
+        </div>
+      </details>
       <CoachStamp tone={tone} />
       {metaParts.length > 0 && (
         <p className={`mt-3 font-mono text-[10.5px] ${dark ? "text-sage-400" : "text-ink-600"}`}>

@@ -30,6 +30,15 @@ function verdictFor(score: number): string {
   return "Keep building";
 }
 
+function clampScore(value: number) {
+  return Math.max(50, Math.min(99, Math.round(value)));
+}
+
+/** Demo fill: with no last session yet, sit 6 points under today so the pill and cells still read. */
+function fallbackLastSession(score: number) {
+  return clampScore(score - 6);
+}
+
 function relativeTime(date: Date): string {
   const days = Math.max(0, Math.floor((Date.now() - date.getTime()) / 86_400_000));
   if (days < 1) return "today";
@@ -40,14 +49,6 @@ function relativeTime(date: Date): string {
   return months === 1 ? "1 month ago" : `${months} months ago`;
 }
 
-function clampScore(value: number) {
-  return Math.max(50, Math.min(99, Math.round(value)));
-}
-
-/** When there's no last session yet, sit 6 points under today so the pill and cells still read. */
-export function fallbackLastSession(score: number) {
-  return clampScore(score - 6);
-}
 
 /** Mock section heads are grey mono, not the rust/gold Kicker. */
 function SectionLabel({ children, tone }: { children: React.ReactNode; tone: Tone }) {
@@ -151,6 +152,8 @@ export function ReportHero({
   flush?: boolean;
 }) {
   const dark = tone === "dark";
+  // Demo fill: with no history yet the cells and pill still read like the
+  // mock rather than sitting empty on a first upload.
   const previous = history.length
     ? history[history.length - 1].value
     : fallbackLastSession(score);
@@ -357,8 +360,8 @@ type ChartColumn = { value: number; isToday: boolean };
 
 /**
  * Always six columns so the trail matches the mock. Missing history fills
- * backwards from today in small steps — the card looks finished even on
- * a first upload.
+ * backwards from today in small steps — demo fill, so the card looks
+ * finished even on a first upload.
  */
 function sixColumns(history: ConsistencyPoint[], today: number): ChartColumn[] {
   const previous = history.slice(-5).map((point) => ({
