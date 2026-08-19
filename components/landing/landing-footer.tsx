@@ -11,11 +11,11 @@ export function LandingFooter() {
         <div className="flex items-center justify-between gap-4 max-md:flex-col">
           <div className="flex flex-col gap-1 max-md:items-center">
             <Wordmark tone="dark" />
-            <p className="text-[13px] text-cream-200/50">
+            <p className="text-[13px] text-cream-200">
               Cricket talent, seen properly.
             </p>
           </div>
-          <nav className="flex items-center gap-6 text-sm font-semibold text-cream-200/70">
+          <nav className="flex items-center gap-6 text-sm font-semibold text-cream-200">
             <Link href="/auth" className={`hover:text-gold-500 ${focusRing}`}>
               Sign in
             </Link>
@@ -29,7 +29,7 @@ export function LandingFooter() {
         </div>
         {/* The receipts row: safeguarding is the product's differentiator, so it leads. */}
         <div className="mt-8 flex items-center justify-between gap-4 border-t border-cream-200/10 pt-6 max-md:flex-col">
-          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold text-cream-200/60">
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold text-cream-200">
             <Link href="/safeguarding" className={`hover:text-gold-500 ${focusRing}`}>
               Safeguarding
             </Link>
@@ -43,7 +43,7 @@ export function LandingFooter() {
               Contact
             </Link>
           </nav>
-          <p className="text-[12.5px] text-cream-200/40 max-md:text-center">
+          <p className="text-[12.5px] text-cream-200 max-md:text-center">
             Built for young players, their guardians, and the coaches who find them.
           </p>
         </div>

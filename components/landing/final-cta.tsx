@@ -9,7 +9,7 @@ export function FinalCta({ waitlist }: { waitlist?: WaitlistState }) {
         <h2 className="max-w-[20ch] font-display text-4xl leading-[0.98] font-bold text-cream-50 uppercase sm:text-5xl">
           Ready to get seen.
         </h2>
-        <p className="mt-4 max-w-[42ch] text-[15px] leading-relaxed text-cream-200/80">
+        <p className="mt-4 max-w-[42ch] text-[15px] leading-relaxed text-cream-200">
           Create a player account. A couple of minutes, then you&apos;re on the card.
           Coaches and parents join from there.
         </p>
@@ -20,7 +20,7 @@ export function FinalCta({ waitlist }: { waitlist?: WaitlistState }) {
           Create account
         </Link>
         <div className="mt-10 w-full scroll-mt-24" id="waitlist">
-          <p className="mb-3 text-[13px] text-sage-400">
+          <p className="mb-3 text-[13px] text-cream-200">
             Not ready for an account yet? Leave your email and we&apos;ll write when
             there&apos;s news.
           </p>

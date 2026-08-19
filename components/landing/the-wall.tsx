@@ -4,14 +4,13 @@ import { Kicker } from "@/components/ui";
  * The wall — every player who gets a trial, a coach, or a call-up through the
  * platform ends up here. It sits directly after the how-it-works story ends on
  * "Coaches & scouts find you", so the proof lands right where the promise is
- * made. Styled as the design system's dark honours board (scanline scoreboard
- * panels, gold for achievement).
+ * made. One honours board: a gold-stitched plate for the confirmed name, then
+ * open slots that read as upcoming stories. Nothing here is ever invented.
  *
- * ENTRIES holds only confirmed stories: the wall's credibility rests on nothing
- * here ever being invented. Every story added must be a real player, shared
- * with their guardian's permission, first name and initial only — and states
- * only what is actually known (detail line omitted until confirmed). Append
- * entries as they are confirmed — the placeholder slots give way on their own.
+ * Every story added must be a real player, shared with their guardian's
+ * permission, first name and initial only — and states only what is actually
+ * known (detail line omitted until confirmed). Append entries as they are
+ * confirmed; placeholder slots give way on their own.
  */
 type WallEntry = {
   /** First name and initial only, e.g. "S. Patel". */
@@ -31,12 +30,29 @@ const ENTRIES: WallEntry[] = [
 // correctly at ANY entry count and carry no calendar claim that can silently
 // go stale — the footnote below stakes this section on literal accuracy.
 const PLACEHOLDERS = [
-  { big: "The first story", small: "lands here" },
-  { big: "More stories", small: "on their way" },
-  { big: "Your name", small: "could be here" },
+  { title: "The first story", note: "Lands here" },
+  { title: "Your story will be here soon", note: "Coming up" },
+  { title: "More stories on their way", note: "Coming up" },
 ];
 
+function EntryCopy({ entry }: { entry: WallEntry }) {
+  return (
+    <>
+      <h3 className="font-display text-xl leading-tight font-semibold tracking-[.02em] text-cream-50 uppercase">
+        {entry.name}
+      </h3>
+      {entry.detail && (
+        <p className="mt-1 font-mono text-[11px] tracking-[.08em] text-cream-200">{entry.detail}</p>
+      )}
+      <p className="mt-1 font-mono text-[12px] tracking-[.06em] text-gold-500">{entry.outcome}</p>
+    </>
+  );
+}
+
 export function TheWall() {
+  const [featured, ...rest] = ENTRIES;
+  const openSlots = PLACEHOLDERS.slice(ENTRIES.length);
+
   return (
     <section className="bg-pitch-900 px-6 py-24 sm:px-12">
       <div className="mx-auto w-full max-w-[1200px]">
@@ -45,70 +61,86 @@ export function TheWall() {
           <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] text-cream-50 uppercase sm:text-5xl">
             The wall
           </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed text-sage-400">
+          <p className="mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed text-cream-200">
             Players who get a trial, a coach, or a call-up through this platform
             can land here — when they and their guardian want that story told.
             Every story is real. There&apos;s room for yours.
           </p>
         </header>
 
-        <div className="grid gap-4 sm:grid-cols-3">
-          {/* Keyed by index, not name: "first name and initial only" makes
-              duplicate names likely, and a duplicate key would silently drop a
-              real player's card. The list is append-only, so index is stable. */}
-          {ENTRIES.map((entry, i) => (
-            <div
-              key={i}
-              className="relative overflow-hidden rounded-[12px] bg-pitch-800 p-6"
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
-              />
-              <div className="relative">
+        <div className="relative overflow-hidden rounded-[12px] bg-pitch-800">
+          <div
+            aria-hidden
+            className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
+          />
+
+          {featured ? (
+            <article className="relative border-b border-gold-500/40 px-6 py-8 sm:px-8">
+              <div className="flex items-baseline justify-between gap-4">
                 <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
                   Noticed
                 </span>
-                <h3 className="mt-2 font-display text-xl leading-tight font-semibold text-cream-200 uppercase">
-                  {entry.name}
-                </h3>
-                {entry.detail && (
-                  <p className="mt-1 font-mono text-[11px] tracking-[.08em] text-sage-400">
-                    {entry.detail}
-                  </p>
-                )}
-                <p className="mt-3 text-sm leading-relaxed text-cream-200/85">
-                  {entry.outcome}
-                </p>
+                <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
+                  01
+                </span>
               </div>
-            </div>
+              <h3 className="mt-5 font-display text-3xl leading-tight font-bold tracking-[.02em] text-cream-50 uppercase sm:text-4xl">
+                {featured.name}
+              </h3>
+              {featured.detail && (
+                <p className="mt-2 font-mono text-[11px] tracking-[.08em] text-cream-200">
+                  {featured.detail}
+                </p>
+              )}
+              <p className="mt-3 font-mono text-[13px] tracking-[.08em] text-gold-500">
+                {featured.outcome}
+              </p>
+            </article>
+          ) : null}
+
+          {rest.map((entry, i) => (
+            <article
+              key={i}
+              className={`relative px-6 py-6 sm:px-8 ${
+                i === rest.length - 1 && openSlots.length === 0 ? "" : "border-b border-gold-500/25"
+              }`}
+            >
+              <div className="flex items-center gap-6">
+                <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
+                  {String(i + 2).padStart(2, "0")}
+                </span>
+                <div className="min-w-0">
+                  <EntryCopy entry={entry} />
+                </div>
+              </div>
+            </article>
           ))}
 
-          {PLACEHOLDERS.slice(ENTRIES.length).map((slot, i) => (
-            <div
-              key={slot.big}
-              className="relative flex min-h-36 flex-col justify-between overflow-hidden rounded-[12px] bg-pitch-800 p-6"
-            >
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
-              />
-              <span className="relative font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500/70 uppercase">
-                {String(ENTRIES.length + i + 1).padStart(2, "0")}
-              </span>
-              <div className="relative">
-                <span className="font-display text-xl leading-tight font-semibold text-cream-200/55 uppercase">
-                  {slot.big}
-                </span>
-                <span className="mt-1.5 block font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
-                  {slot.small}
-                </span>
-              </div>
-            </div>
-          ))}
+          {openSlots.map((slot, i) => {
+            const n = ENTRIES.length + i + 1;
+            const last = i === openSlots.length - 1;
+            return (
+              <article
+                key={slot.title}
+                className={`relative px-6 py-7 sm:px-8 ${last ? "" : "border-b border-gold-500/25"}`}
+              >
+                <div className="flex items-baseline justify-between gap-4">
+                  <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
+                    {slot.note}
+                  </span>
+                  <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
+                    {String(n).padStart(2, "0")}
+                  </span>
+                </div>
+                <h3 className="mt-4 font-display text-2xl leading-tight font-semibold tracking-[.02em] text-cream-100 uppercase sm:text-3xl">
+                  {slot.title}
+                </h3>
+              </article>
+            );
+          })}
         </div>
 
-        <p className="mx-auto mt-8 max-w-[64ch] text-center font-mono text-[11px] leading-relaxed tracking-[.06em] text-sage-400">
+        <p className="mx-auto mt-8 max-w-[64ch] text-center font-mono text-[11px] leading-relaxed tracking-[.06em] text-cream-200">
           Nothing on this wall is ever invented. Every story is a real player,
           shared with their guardian&apos;s permission — first name and initial
           only.

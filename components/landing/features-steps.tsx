@@ -33,6 +33,7 @@ const STEPS = [
   },
 ];
 
+/** Rust band: the video story — upload, report, get found. */
 export function FeaturesSteps() {
   return (
     <section className="bg-seam-stitch px-6 py-24 sm:px-12">
@@ -49,9 +50,9 @@ export function FeaturesSteps() {
             {i > 0 && <StepArrow flip={i % 2 === 0} />}
             <article className="grid items-center gap-8 md:grid-cols-2 md:gap-16">
               <div className={i % 2 === 1 ? "md:order-2" : ""}>{step.animation}</div>
-              <div className={i % 2 === 1 ? "md:order-1 md:text-right" : ""}>
+              <div>
                 <Kicker tone="dark">{step.kicker}</Kicker>
-                <h3 className="mt-2 font-display text-2xl leading-tight font-bold text-cream-50 uppercase sm:text-3xl">
+                <h3 className="mt-2 font-display text-2xl leading-tight font-bold tracking-[.02em] text-cream-50 uppercase sm:text-3xl">
                   {step.title}
                 </h3>
                 <p className="mt-3 text-[15px] leading-relaxed text-cream-200">

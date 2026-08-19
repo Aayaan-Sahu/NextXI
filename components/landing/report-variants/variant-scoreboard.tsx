@@ -31,13 +31,13 @@ const DEMO_TILES: ScoreTile[] = [
   {
     name: "Bat swing",
     score: 64,
-    note: "Needs work. Bat comes down at an off-angle as you tire.",
+    note: "Needs work. Bat comes down 4.1 cm off straight, costing you the most.",
     delta: { text: "▼ 3", dir: "down" },
   },
   {
     name: "Head movement",
     score: 88,
-    note: "Very good. Head stays still through contact.",
+    note: "Big improvement. Head 3 cm steadier than usual.",
     delta: { text: "▲ 2", dir: "up" },
   },
 ];
@@ -93,52 +93,62 @@ function RevealBox({
 }
 
 /**
- * Product scoreboard. Dark full card on /report-preview; light compact card
- * (hero + three bars + one fix) in the homepage pin, same chrome as live reports.
+ * Coaching report in the published simple-mock register: white card, dark
+ * stacked hero, fat green/red bars, last-6 trail, peach fix, coach stamp.
+ * Compact (homepage pin / mobile) is that card at readable scale — not a
+ * floodlit split graphic. The pin drops the last-6 trail so dial + bars +
+ * peach can render larger in the viewport; mobile compact keeps the trail.
+ * Full (preview) also keeps measurement diamonds from the second mock.
  */
 export function VariantScoreboard({
   progress,
-  tone = "dark",
+  tone = "light",
   compact: compactProp,
 }: {
   progress?: MotionValue<number>;
   tone?: "light" | "dark";
-  /** Homepage pin/mobile: hero + scores + one fix. Preview keeps the full card. */
+  /** Homepage pin/mobile: mock card without the diamond rows. */
   compact?: boolean;
 } = {}) {
   const compact = compactProp ?? !!progress;
+  const pin = !!progress;
   const dark = tone === "dark";
-  const S = 0.62;
-  const step = 0.07;
-  const dur = 0.05;
+  // Pin reveals ride the split (hero-scrub VIDEO_END 0.55 → ~0.8) and must
+  // finish before the pin unpins, or the last lines pop in on a frozen card.
+  const S = pin ? 0.58 : 0.62;
+  const step = pin ? 0.055 : 0.07;
+  const dur = pin ? 0.04 : 0.05;
   const w = (i: number) => ({ from: S + i * step, to: S + i * step + dur });
+  const focusI = pin ? 2 : 3;
+  const stampI = pin ? 3 : 4;
 
   return (
     <div
       className={
         dark
-          ? `rounded-[12px] bg-pitch-800 bg-[repeating-linear-gradient(0deg,transparent_0_44px,rgba(0,0,0,.10)_44px_46px)] px-6 text-cream-200 shadow-2xl shadow-black/45 sm:px-7 ${
-              compact ? "pt-5 pb-3" : "pt-6 pb-4"
-            }`
-          : `rounded-[12px] border border-cream-400 bg-white px-6 text-ink-900 shadow-2xl shadow-black/30 sm:px-7 ${
-              compact ? "pt-5 pb-3" : "pt-6 pb-4"
-            }`
+          ? "overflow-hidden rounded-[12px] bg-pitch-800 text-cream-200 ring-1 ring-inset ring-cream-200/12"
+          : "overflow-hidden rounded-[12px] border border-cream-400 bg-white text-ink-900 shadow-2xl shadow-black/30"
       }
     >
       <Reveal progress={progress} {...w(0)}>
         <ReportHero
-          balls={`${SHOTS_ANALYSED} balls analysed`}
+          balls={
+            compact
+              ? "Aryaman · Front-foot drive · 12 balls"
+              : `${SHOTS_ANALYSED} balls analysed`
+          }
           compact={compact}
+          flush
           history={DEMO_HISTORY}
           score={82}
           tone={tone}
         />
       </Reveal>
-      <Reveal progress={progress} {...w(1)}>
-        <ScoreTiles compact={compact} tiles={DEMO_TILES} tone={tone} />
-      </Reveal>
-      {!compact && (
-        <>
+      <div className={compact ? "px-5 pb-4" : "px-6 pb-4 sm:px-7"}>
+        <Reveal progress={progress} {...w(1)}>
+          <ScoreTiles compact={compact} tiles={DEMO_TILES} tone={tone} />
+        </Reveal>
+        {!compact && (
           <div className="pt-4">
             <MeasurementsIntro tone={tone} withPrevious withBenchmark={false} />
             {METRICS.slice(0, 3).map((metric, index) => (
@@ -160,23 +170,27 @@ export function VariantScoreboard({
               />
             ))}
           </div>
-          <SessionsChart history={DEMO_HISTORY} today={82} tone={tone} />
-        </>
-      )}
-      <Reveal progress={progress} {...w(2)}>
-        <FocusBlock
-          compact={compact}
-          focus={{
-            ...FOCUS,
-            detail: compact ? WEAKEST_SHORT : WEAKEST,
-          }}
-          nextScore={nextScoreFor(82)}
-          tone={tone}
-        />
-      </Reveal>
-      <Reveal progress={progress} {...w(3)}>
-        <CoachStamp compact={compact} tone={tone} />
-      </Reveal>
+        )}
+        {!pin && (
+          <Reveal progress={progress} {...w(2)}>
+            <SessionsChart compact={compact} history={DEMO_HISTORY} today={82} tone={tone} />
+          </Reveal>
+        )}
+        <Reveal progress={progress} {...w(focusI)}>
+          <FocusBlock
+            compact={compact}
+            focus={{
+              ...FOCUS,
+              detail: compact ? WEAKEST_SHORT : WEAKEST,
+            }}
+            nextScore={nextScoreFor(82)}
+            tone={tone}
+          />
+        </Reveal>
+        <Reveal progress={progress} {...w(stampI)}>
+          <CoachStamp compact={compact} tone={tone} />
+        </Reveal>
+      </div>
     </div>
   );
 }
