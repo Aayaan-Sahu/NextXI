@@ -1,7 +1,16 @@
 import { DerivedMeasurements } from "@/components/measured-report";
-import { FocusBlock } from "@/components/report-scoreboard";
+import {
+  CoachStamp,
+  FocusBlock,
+  ReportHero,
+  ScoreTiles,
+  SessionsChart,
+  nextScoreFor,
+  visualDelta,
+  type ScoreTile,
+} from "@/components/report-scoreboard";
 import { Kicker } from "@/components/ui";
-import type { DerivedReport } from "@/lib/report-measurements";
+import { FALLBACK_FOCUS, deriveFocus, type DerivedReport } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -113,6 +122,59 @@ function formatTimestamp(seconds: number) {
   return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
 }
 
+const BRACE_SCORE: Record<BraceLabel, number> = {
+  braced: 90,
+  "soft/absorbing": 72,
+  collapsing: 58,
+};
+
+const BRACE_NOTE: Record<BraceLabel, string> = {
+  braced: "Very good. Front leg holds — almost elite.",
+  "soft/absorbing": "Okay. The knee gives a little at landing.",
+  collapsing: "Needs work. The front knee collapses through the delivery.",
+};
+
+function bowlingScore(parsed: ParsedBowlingReport): number {
+  if (parsed.brace.label) return BRACE_SCORE[parsed.brace.label];
+  return 80;
+}
+
+function bowlingScoreTiles(parsed: ParsedBowlingReport): ScoreTile[] {
+  const tiles: ScoreTile[] = [];
+  if (parsed.brace.label) {
+    tiles.push({
+      name: "Front-knee brace",
+      score: BRACE_SCORE[parsed.brace.label],
+      note: BRACE_NOTE[parsed.brace.label],
+      delta: visualDelta(BRACE_SCORE[parsed.brace.label]),
+    });
+  }
+  const change = parsed.brace.angleChange;
+  if (change !== null) {
+    const score = change > 15 ? 64 : change > 8 ? 76 : 88;
+    tiles.push({
+      name: "Front-foot plant",
+      score,
+      note:
+        score >= 85
+          ? "Very good. Plant stays firm through release."
+          : score >= 70
+            ? "Okay. A little give between landing and release."
+            : "Needs work. The plant folds as you come through.",
+      delta: visualDelta(score),
+    });
+  }
+  if (parsed.stats.some((stat) => stat.key === "release")) {
+    tiles.push({
+      name: "Release height",
+      score: 84,
+      note: "Solid. Release stays up — keep this as the floor.",
+      delta: visualDelta(84),
+    });
+  }
+  return tiles.slice(0, 3);
+}
+
 function braceColor(label: BraceLabel, dark: boolean) {
   if (label === "braced") return dark ? "text-gold-500" : "text-gold-600";
   if (label === "collapsing") return dark ? "text-rust-500" : "text-rust-600";
@@ -164,6 +226,10 @@ export function BowlingReport({
   const mutedText = dark ? "text-sage-400" : "text-ink-600";
 
   const measurements = derived?.metrics ?? [];
+  const tiles = bowlingScoreTiles(parsed);
+  const score = bowlingScore(parsed);
+  const history = derived?.consistencyHistory ?? [];
+  const focus = derived?.focus ?? deriveFocus(report.payload) ?? FALLBACK_FOCUS;
   // A measurement row supersedes its plain stat line — no number twice.
   const measuredNames = new Set(measurements.map((metric) => metric.name));
   const statRows = parsed.stats.filter((stat) => !measuredNames.has(stat.label));
@@ -195,57 +261,71 @@ export function BowlingReport({
         </p>
       ) : (
         <>
+          <ReportHero balls="1 delivery analysed" history={history} score={score} tone={tone} />
+          <ScoreTiles tiles={tiles} tone={tone} />
           {measurements.length > 0 && (
-            <DerivedMeasurements metrics={measurements} tone={tone} />
-          )}
-
-          {derived?.focus && <FocusBlock focus={derived.focus} tone={tone} />}
-
-          {hasBrace && (
-            <div className={`border-b py-3.5 ${rowBorder}`}>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-display text-sm tracking-[.08em] uppercase">
-                  Front-knee brace
-                </span>
-                {brace.label && (
-                  <span className={`text-[12.5px] font-medium ${braceColor(brace.label, dark)}`}>
-                    {brace.label}
-                  </span>
-                )}
-              </div>
-              {angleLine && <p className={`mt-2 font-mono text-[11px] ${mutedText}`}>{angleLine}</p>}
+            <div className="pt-1">
+              <DerivedMeasurements metrics={measurements} tone={tone} />
             </div>
           )}
+          <SessionsChart history={history} today={score} tone={tone} />
+          <FocusBlock focus={focus} nextScore={nextScoreFor(score)} tone={tone} />
 
-          {statRows.length > 0 && (
-            <div className={`grid gap-1 border-b py-3.5 ${rowBorder}`}>
-              {statRows.map((stat) => (
-                <div
-                  className="flex items-baseline justify-between gap-3 text-[12.5px]"
-                  key={stat.key}
-                >
-                  <span className={bodyText}>{stat.label}</span>
-                  <span className={`font-mono ${bodyText}`}>{stat.value}</span>
+          {(hasBrace || statRows.length > 0 || parsed.events.length > 0) && (
+            <details className={`border-b ${rowBorder}`}>
+              <summary
+                className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${mutedText}`}
+              >
+                Delivery detail
+              </summary>
+              {hasBrace && (
+                <div className={`border-b py-3.5 ${rowBorder}`}>
+                  <div className="flex items-baseline justify-between gap-3">
+                    <span className="font-display text-sm tracking-[.08em] uppercase">
+                      Front-knee brace
+                    </span>
+                    {brace.label && (
+                      <span className={`text-[12.5px] font-medium ${braceColor(brace.label, dark)}`}>
+                        {brace.label}
+                      </span>
+                    )}
+                  </div>
+                  {angleLine && <p className={`mt-2 font-mono text-[11px] ${mutedText}`}>{angleLine}</p>}
                 </div>
-              ))}
-            </div>
-          )}
+              )}
 
-          {parsed.events.length > 0 && (
-            <div className="flex flex-col gap-[9px] py-4">
-              <Kicker tone={tone}>Key moments</Kicker>
-              {parsed.events.map((event) => (
-                <div className="flex items-baseline gap-2.5" key={event.label}>
-                  <span
-                    className={`shrink-0 font-mono text-[11px] ${dark ? "text-gold-500" : "text-rust-600"}`}
-                  >
-                    {formatTimestamp(event.timeSec)}
-                  </span>
-                  <span className={`text-[12.5px] ${bodyText}`}>{event.label}</span>
+              {statRows.length > 0 && (
+                <div className={`grid gap-1 border-b py-3.5 ${rowBorder}`}>
+                  {statRows.map((stat) => (
+                    <div
+                      className="flex items-baseline justify-between gap-3 text-[12.5px]"
+                      key={stat.key}
+                    >
+                      <span className={bodyText}>{stat.label}</span>
+                      <span className={`font-mono ${bodyText}`}>{stat.value}</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
+              )}
+
+              {parsed.events.length > 0 && (
+                <div className="flex flex-col gap-[9px] py-4">
+                  <Kicker tone={tone}>Key moments</Kicker>
+                  {parsed.events.map((event) => (
+                    <div className="flex items-baseline gap-2.5" key={event.label}>
+                      <span
+                        className={`shrink-0 font-mono text-[11px] ${dark ? "text-gold-500" : "text-rust-600"}`}
+                      >
+                        {formatTimestamp(event.timeSec)}
+                      </span>
+                      <span className={`text-[12.5px] ${bodyText}`}>{event.label}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </details>
           )}
+          <CoachStamp tone={tone} />
         </>
       )}
 

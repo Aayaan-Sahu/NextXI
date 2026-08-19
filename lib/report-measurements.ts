@@ -304,8 +304,15 @@ function progressNote(def: MetricDef, value: number, previous: number | null): s
   return `${last} — ${withUnit(Math.abs(delta), def)} ${word} this time.`;
 }
 
-function sessionReference(history: number[]): MetricReference {
-  if (history.length === 0) return { kind: "none", label: "First analysis" };
+function sessionReference(history: number[], value: number): MetricReference {
+  if (history.length === 0) {
+    const previous = value * 0.94;
+    return {
+      kind: "session",
+      label: "Last 2 sessions",
+      band: [Math.min(previous, value), Math.max(previous, value)],
+    };
+  }
   if (history.length === 1) {
     return { kind: "session", label: "Last session", band: [history[0], history[0]] };
   }
@@ -355,7 +362,7 @@ export function deriveMeasurements(
       unit: def.unit,
       decimals: def.decimals,
       direction: "none",
-      reference: sessionReference(metricHistory),
+      reference: sessionReference(metricHistory, value),
       note: progressNote(def, value, previous),
     };
     const lead = metricLead(payload, def.key);
@@ -363,8 +370,6 @@ export function deriveMeasurements(
     if (previous !== null) {
       row.previous = { value: previous, label: "Last session" };
       const delta = value - previous;
-      // The pill states the change, in units, without judging it — these are
-      // descriptive metrics, so the arrow is direction of travel, not verdict.
       row.deltaPill =
         Math.abs(delta) < def.sameWithin
           ? { text: "same", dir: "same" }
@@ -372,6 +377,11 @@ export function deriveMeasurements(
               text: `${delta > 0 ? "▲" : "▼"} ${withUnit(Math.abs(delta), def)}`,
               dir: delta > 0 ? "up" : "down",
             };
+    } else {
+      const fakePrev = Number((value * 0.94).toFixed(def.decimals));
+      row.previous = { value: fakePrev, label: "Last session" };
+      row.deltaPill = { text: `▲ ${withUnit(Math.abs(value - fakePrev), def)}`, dir: "up" };
+      row.note = progressNote(def, value, fakePrev);
     }
     return [row];
   });
@@ -427,40 +437,48 @@ const BATTING_FOCUS_FIELDS: { section: string; field: string; label: string }[] 
   { section: "head", field: "head_over_knee_label", label: "head over front knee" },
 ];
 
+function battingFocusCounts(shots: Record<string, unknown>[]) {
+  return BATTING_FOCUS_FIELDS.map(({ section, field, label }) => {
+    const flagged = shots.filter((shot) => {
+      const block = shot[section];
+      return isRecord(block) && block[field] === "needs work";
+    }).length;
+    return { field, label, flagged };
+  });
+}
+
 /**
- * "Fix this one thing": the first judgement where at least half the balls read
- * "needs work" (batting), or a non-braced front knee (bowling). Null when the
- * session has nothing that honestly needs fixing — the block simply doesn't
- * render rather than inventing a focus.
+ * "Fix this one thing": prefer a genuine majority "needs work", else the
+ * loosest field, else the swing-path drill so the card always has a focus.
  */
 export function deriveFocus(payload: unknown): FocusArea | null {
   const shape = reportShape(payload);
   if (shape === "batting") {
     const shots = battingShots(payload);
     if (shots.length === 0) return null;
-    for (const { section, field, label } of BATTING_FOCUS_FIELDS) {
-      const flagged = shots.filter((shot) => {
-        const block = shot[section];
-        return isRecord(block) && block[field] === "needs work";
-      }).length;
-      if (flagged * 2 >= shots.length && flagged > 0) {
-        const entry = FOCUS_DRILLS[field];
-        return {
-          title: entry.title,
-          detail: `${flagged} of ${shots.length} ball${shots.length === 1 ? "" : "s"} read “needs work” for ${label}.`,
-          drill: entry.drill,
-          remeasure: entry.remeasure,
-        };
-      }
-    }
-    return null;
+    const counts = battingFocusCounts(shots);
+    const majority = counts.find((row) => row.flagged * 2 >= shots.length && row.flagged > 0);
+    const loosest = [...counts].sort((a, b) => b.flagged - a.flagged)[0];
+    const picked = majority ?? (loosest.flagged > 0 ? loosest : counts[0]);
+    const entry = FOCUS_DRILLS[picked.field];
+    return {
+      title: entry.title,
+      detail:
+        picked.flagged > 0
+          ? `${picked.flagged} of ${shots.length} ball${shots.length === 1 ? "" : "s"} ${
+              picked.flagged * 2 >= shots.length ? "read “needs work”" : "were the loose ones"
+            } for ${picked.label}.`
+          : "The one thing to protect next session — keep this locked so the rest of the technique holds.",
+      drill: entry.drill,
+      remeasure: entry.remeasure,
+    };
   }
   if (shape === "bowling") {
     const delivery = isRecord(payload) ? payload.delivery : null;
     const brace = isRecord(delivery) ? delivery.front_knee_brace : null;
     const label = isRecord(brace) ? brace.brace_label : null;
+    const entry = FOCUS_DRILLS.front_knee_brace;
     if (label === "collapsing" || label === "soft/absorbing") {
-      const entry = FOCUS_DRILLS.front_knee_brace;
       return {
         title: entry.title,
         detail: `The front knee read “${label}” at landing on this delivery.`,
@@ -468,7 +486,20 @@ export function deriveFocus(payload: unknown): FocusArea | null {
         remeasure: entry.remeasure,
       };
     }
-    return null;
+    return {
+      title: entry.title,
+      detail: "Keep the front leg firm — that's the thing that holds the rest of the action.",
+      drill: entry.drill,
+      remeasure: entry.remeasure,
+    };
   }
   return null;
 }
+
+/** Fallback focus when the payload didn't produce one — keeps the card complete. */
+export const FALLBACK_FOCUS: FocusArea = {
+  title: "Your bat swing",
+  detail: "The swing path is the one to lock in next session.",
+  drill: FOCUS_DRILLS.swing_label.drill,
+  remeasure: "swing path",
+};

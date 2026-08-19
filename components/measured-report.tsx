@@ -1,11 +1,23 @@
 import {
   MeasuredMetricRow,
   MeasurementsIntro,
+  isOffReference,
   type Direction,
   type MeasuredMetric,
   type MetricReference,
   type Tone,
 } from "@/components/measured-metric";
+import {
+  CoachStamp,
+  FocusBlock,
+  ReportHero,
+  ScoreTiles,
+  SessionsChart,
+  nextScoreFor,
+  visualDelta,
+  type ScoreTile,
+} from "@/components/report-scoreboard";
+import { FALLBACK_FOCUS } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -162,6 +174,18 @@ export function measuredConsistency(parsed: ParsedMeasuredReport): number | null
   return parsed.consistency;
 }
 
+function tilesFromMeasured(metrics: MeasuredMetric[]): ScoreTile[] {
+  return metrics.slice(0, 3).map((metric) => {
+    const score = isOffReference(metric) ? 64 : 88;
+    return {
+      name: metric.short,
+      score,
+      note: metric.noteShort ?? metric.note,
+      delta: visualDelta(score),
+    };
+  });
+}
+
 /** Renders the v3 measurements body inside ReportPanel's card. */
 export function MeasuredReport({
   parsed,
@@ -195,14 +219,31 @@ export function MeasuredReport({
     );
   }
 
+  const tiles = tilesFromMeasured(parsed.metrics);
+  const score = parsed.consistency ?? Math.round(
+    tiles.reduce((sum, row) => sum + row.score, 0) / Math.max(1, tiles.length),
+  );
+
   return (
     <div className={dark ? "" : "pt-4"}>
-      <MeasurementsIntro tone={tone} />
-      <div className="mt-1">
-        {parsed.metrics.map((metric) => (
-          <MeasuredMetricRow key={metric.name} metric={metric} tone={tone} />
-        ))}
+      <ReportHero
+        balls={`${parsed.metrics.length} measurement${parsed.metrics.length === 1 ? "" : "s"}`}
+        history={[]}
+        score={score}
+        tone={tone}
+      />
+      <ScoreTiles tiles={tiles} tone={tone} />
+      <div className="pt-4">
+        <MeasurementsIntro tone={tone} />
+        <div className="mt-1">
+          {parsed.metrics.map((metric) => (
+            <MeasuredMetricRow key={metric.name} metric={metric} tone={tone} />
+          ))}
+        </div>
       </div>
+      <SessionsChart history={[]} today={score} tone={tone} />
+      <FocusBlock focus={FALLBACK_FOCUS} nextScore={nextScoreFor(score)} tone={tone} />
+      <CoachStamp tone={tone} />
       {metaParts.length > 0 && (
         <p className={`mt-3 font-mono text-[10.5px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
           {metaParts.join(" · ")}

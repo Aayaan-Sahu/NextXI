@@ -10,7 +10,7 @@ import {
   useTransform,
 } from "motion/react";
 import { AnalysisHud } from "@/components/landing/analysis-hud";
-import { VariantEditorial } from "@/components/landing/report-variants/variant-editorial";
+import { VariantScoreboard } from "@/components/landing/report-variants/variant-scoreboard";
 import { useCanScrub } from "@/components/landing/use-can-scrub";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -77,7 +77,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   const videoTop = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
   const videoBottom = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
   const videoRadius = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0px", "0px", "26px", "26px"]);
-  // The report slides in on the right; its lines then reveal (in VariantEditorial,
+  // The report slides in on the right; its lines then reveal (in VariantScoreboard,
   // driven by scrollYProgress over roughly [0.6, 0.99]).
   const reportOpacity = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [0, 0, 1, 1]);
   const reportX = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [48, 48, 0, 0]);
@@ -154,7 +154,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         {scrub && (
           <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[46%] max-w-[500px] items-center">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="w-full">
-              <VariantEditorial progress={scrollYProgress} />
+              <VariantScoreboard progress={scrollYProgress} tone="light" />
             </motion.div>
           </div>
         )}
@@ -198,7 +198,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             transition={{ duration: 0.6 }}
             className="mx-auto w-full max-w-[460px]"
           >
-            <VariantEditorial />
+            <VariantScoreboard compact tone="light" />
           </motion.div>
         </div>
       )}
