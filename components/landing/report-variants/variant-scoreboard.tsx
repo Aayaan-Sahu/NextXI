@@ -113,9 +113,11 @@ export function VariantScoreboard({
   const compact = compactProp ?? !!progress;
   const pin = !!progress;
   const dark = tone === "dark";
-  // Pin reveals ride the split (hero-scrub VIDEO_END 0.55 → ~0.8) and must
-  // finish before the pin unpins, or the last lines pop in on a frozen card.
-  const S = pin ? 0.58 : 0.62;
+  // Pin reveals LEAD hero-scrub's print edge (mask sweep 0.62 → 0.85): each
+  // section is fully painted before the edge unveils it, so the print never
+  // exposes empty white card against the dark stage. All finish well before
+  // the unpin so no line pops in on a frozen card.
+  const S = pin ? 0.585 : 0.62;
   const step = pin ? 0.055 : 0.07;
   const dur = pin ? 0.04 : 0.05;
   const w = (i: number) => ({ from: S + i * step, to: S + i * step + dur });
@@ -138,15 +140,27 @@ export function VariantScoreboard({
               : `${SHOTS_ANALYSED} balls analysed`
           }
           compact={compact}
+          // Dial draws + score ticks up across the hero's landing beat.
+          countWindow={pin ? [S, S + 0.1] : undefined}
           flush
           history={DEMO_HISTORY}
+          progress={progress}
           score={82}
           tone={tone}
         />
       </Reveal>
       <div className={compact ? "px-5 pb-4" : "px-6 pb-4 sm:px-7"}>
         <Reveal progress={progress} {...w(1)}>
-          <ScoreTiles compact={compact} tiles={DEMO_TILES} tone={tone} />
+          <ScoreTiles
+            compact={compact}
+            // Bars fill as the print edge crosses them (edge reaches the
+            // tiles ~0.66 and clears them ~0.74), not during the earlier
+            // section fade — so each fill happens in view.
+            fillWindow={pin ? [0.66, 0.72] : undefined}
+            progress={progress}
+            tiles={DEMO_TILES}
+            tone={tone}
+          />
         </Reveal>
         {!compact && (
           <div className="pt-4">

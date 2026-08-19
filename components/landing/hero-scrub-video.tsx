@@ -140,9 +140,9 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   // card (toward its top-right anchor), the panel widens to absorb the freed
   // width instead of leaving a dead gap between video and report.
   const [cardScale, setCardScale] = useState(1);
-  const cardReserve = `min(38%, 500px) * ${cardScale.toFixed(4)}`;
+  const cardReserve = `min(44%, 580px) * ${cardScale.toFixed(4)}`;
   const splitRight = `1.75% + ${cardReserve} + 1.5rem`;
-  const splitVertical = `max(1.25rem, (100dvh - (100vw - 1.25vw - 1.75vw - min(38vw, 500px) * ${cardScale.toFixed(4)} - 1.5rem) * 9 / 16) / 2)`;
+  const splitVertical = `max(1.25rem, (100dvh - (100vw - 1.25vw - 1.75vw - min(44vw, 580px) * ${cardScale.toFixed(4)} - 1.5rem) * 9 / 16) / 2)`;
   // Keyframe strings containing min()/max() don't numerically interpolate
   // (motion hard-swaps them at the segment boundary, snapping the video
   // straight to its panel at SPLIT_START), so emit each frame's calc with an
@@ -153,10 +153,25 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   const videoTop = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
   const videoBottom = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
   const videoRadius = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0px", "0px", "26px", "26px"]);
-  // Card fades in across the same window the video slides; line reveals in
-  // VariantScoreboard finish before the pin unpins.
-  const reportOpacity = useTransform(scrollYProgress, [0, SPLIT_START, 0.72, 1], [0, 0, 1, 1]);
-  const reportX = useTransform(scrollYProgress, [0, SPLIT_START, 0.72, 1], [48, 48, 0, 0]);
+  // The card arrives as just the dark hero plate — everything below is
+  // clipped away — then its bottom edge sweeps down and "prints" the rest of
+  // the report, a gold scan line riding the edge. VariantScoreboard's
+  // staggered reveals land on freshly printed board, so the card is never a
+  // tall empty slab waiting for content.
+  const reportOpacity = useTransform(scrollYProgress, [0, SPLIT_START, 0.62, 1], [0, 0, 1, 1]);
+  const reportX = useTransform(scrollYProgress, [0, SPLIT_START, 0.62, 1], [48, 48, 0, 0]);
+  const printT = (p: number) => clamp01((p - 0.62) / 0.23);
+  // Bottom-edge cut as a fraction of the column; 72% ≈ everything below the
+  // hero plate. A feathered mask, not a hard clip: fresh card dissolves in
+  // over an ~8%-tall band so the white body never flashes against the dark
+  // stage as it prints.
+  const printCut = (p: number) => (1 - printT(p)) * 72;
+  const reportMask = useTransform(scrollYProgress, (p) => {
+    const open = 100 - printCut(p);
+    return `linear-gradient(180deg, #000 ${(open - 6).toFixed(2)}%, transparent ${(open + 2).toFixed(2)}%)`;
+  });
+  const printEdgeTop = useTransform(scrollYProgress, (p) => `${(98 - printCut(p)).toFixed(2)}%`);
+  const printEdgeOpacity = useTransform(scrollYProgress, [0.62, 0.645, 0.82, 0.85], [0, 1, 1, 0]);
 
   return (
     // In scrub mode the section tucks under the ball opener's final viewport
@@ -228,11 +243,26 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
 
         {/* report, right side, revealing line by line (scrub only) */}
         {scrub && (
-          <div className="pointer-events-none absolute inset-y-0 right-[1.75%] flex w-[38%] max-w-[500px] items-center py-6">
-            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full min-h-0 w-full">
-              <PinFit onScale={setCardScale}>
-                <VariantScoreboard progress={scrollYProgress} tone="light" />
-              </PinFit>
+          <div className="pointer-events-none absolute inset-y-0 right-[1.75%] flex w-[44%] max-w-[580px] items-center py-6">
+            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="relative h-full min-h-0 w-full">
+              <motion.div
+                style={{ maskImage: reportMask, WebkitMaskImage: reportMask }}
+                className="h-full min-h-0 w-full"
+              >
+                <PinFit onScale={setCardScale}>
+                  <VariantScoreboard progress={scrollYProgress} tone="light" />
+                </PinFit>
+              </motion.div>
+              {/* gold scan line riding the print edge, spanning the scaled card only */}
+              <motion.div
+                aria-hidden
+                style={{
+                  top: printEdgeTop,
+                  opacity: printEdgeOpacity,
+                  width: `${(cardScale * 100).toFixed(2)}%`,
+                }}
+                className="absolute right-0 h-[2px] bg-gold-500/50"
+              />
             </motion.div>
           </div>
         )}

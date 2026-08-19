@@ -1,3 +1,6 @@
+"use client";
+
+import { motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
 import type { FocusArea } from "@/lib/report-measurements";
 
 /**
@@ -6,6 +9,10 @@ import type { FocusArea } from "@/lib/report-measurements";
  * Elite level cells, three fat green/red score bars, a last-6-sessions trail,
  * a peach fix-this-one-thing card, and a coach stamp. Look first — when
  * history is thin we fill the shape so the card still reads like the mock.
+ *
+ * The dial and score bars accept an optional scroll `progress` so the landing
+ * pin can draw the arc, tick the score up, and fill the bars as they reveal;
+ * without it (every product report) they render settled and static.
  */
 
 type Tone = "light" | "dark";
@@ -50,6 +57,13 @@ function relativeTime(date: Date): string {
 }
 
 
+/** 0→1 ramp over `window` of a scroll progress; a settled constant 1 without one. */
+function useRevealRamp(progress?: MotionValue<number>, window?: [number, number]) {
+  const settled = useMotionValue(1);
+  const [from, to] = window ?? [0, 1];
+  return useTransform(progress ?? settled, [from, to], [0, 1]);
+}
+
 /** Mock section heads are grey mono, not the rust/gold Kicker. */
 function SectionLabel({ children, tone }: { children: React.ReactNode; tone: Tone }) {
   return (
@@ -63,9 +77,22 @@ function SectionLabel({ children, tone }: { children: React.ReactNode; tone: Ton
   );
 }
 
-function Dial({ value, compact = false }: { value: number; compact?: boolean }) {
+function Dial({
+  value,
+  compact = false,
+  progress,
+  countWindow,
+}: {
+  value: number;
+  compact?: boolean;
+  progress?: MotionValue<number>;
+  countWindow?: [number, number];
+}) {
   const circumference = 2 * Math.PI * 44;
   const filled = (Math.max(0, Math.min(100, value)) / 100) * circumference;
+  const ramp = useRevealRamp(progress, countWindow);
+  const dash = useTransform(ramp, (k) => `${filled * k} ${circumference}`);
+  const count = useTransform(ramp, (k) => Math.round(value * k));
   return (
     <div className={`relative mx-auto ${compact ? "size-[8.5rem]" : "size-36"}`}>
       <svg aria-hidden className="size-full -rotate-90" viewBox="0 0 100 100">
@@ -77,25 +104,23 @@ function Dial({ value, compact = false }: { value: number; compact?: boolean }) 
           r="44"
           strokeWidth="8"
         />
-        <circle
+        <motion.circle
           className="stroke-gold-500"
           cx="50"
           cy="50"
           fill="none"
           r="44"
-          strokeDasharray={`${filled} ${circumference}`}
           strokeLinecap="round"
           strokeWidth="8"
+          style={{ strokeDasharray: dash }}
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span
-          className={`font-mono leading-none font-semibold text-cream-50 ${
-            compact ? "text-[42px]" : "text-[44px]"
-          }`}
+        <motion.span
+          className="font-mono text-[44px] leading-none font-semibold text-cream-50"
         >
-          {value}
-        </span>
+          {count}
+        </motion.span>
         <span className="mt-1 font-mono text-[10px] font-semibold tracking-[.18em] text-sage-400 uppercase">
           Out of 100
         </span>
@@ -141,6 +166,8 @@ export function ReportHero({
   tone,
   compact = false,
   flush = false,
+  progress,
+  countWindow,
 }: {
   score: number;
   /** e.g. "12 balls analysed" or "Aryaman · Front-foot drive · 12 balls". */
@@ -150,6 +177,9 @@ export function ReportHero({
   compact?: boolean;
   /** Bleed the dark hero to the parent’s edges (homepage / preview card). */
   flush?: boolean;
+  /** Scroll progress driving the dial's arc draw + count-up (landing pin). */
+  progress?: MotionValue<number>;
+  countWindow?: [number, number];
 }) {
   const dark = tone === "dark";
   // Demo fill: with no history yet the cells and pill still read like the
@@ -159,7 +189,7 @@ export function ReportHero({
     : fallbackLastSession(score);
   const previousDate = history.length ? history[history.length - 1].date : null;
   const cellLabel = "font-mono text-[10px] font-semibold tracking-[.2em] uppercase";
-  const cellValue = `mt-1 font-mono leading-none font-semibold ${compact ? "text-[24px]" : "text-xl"}`;
+  const cellValue = `mt-1 font-mono leading-none font-semibold ${compact ? "text-[26px]" : "text-xl"}`;
   const cellSub = "mt-1 font-mono text-[10px] tracking-[.06em]";
 
   return (
@@ -173,11 +203,11 @@ export function ReportHero({
           {balls}
         </div>
         <div className={compact ? "mt-3.5 flex justify-center" : "mt-4 flex justify-center"}>
-          <Dial compact={compact} value={score} />
+          <Dial compact={compact} countWindow={countWindow} progress={progress} value={score} />
         </div>
         <div
           className={`font-display leading-tight font-bold tracking-[.04em] text-cream-50 uppercase ${
-            compact ? "mt-3.5 text-[24px]" : "mt-4 text-xl"
+            compact ? "mt-3.5 text-[26px]" : "mt-4 text-xl"
           }`}
         >
           {verdictFor(score)}
@@ -285,15 +315,85 @@ function TileNote({ note }: { note: string }) {
   );
 }
 
+/** One score row; its bar fills across `fillWindow` when scroll-driven. */
+function TileRow({
+  tile,
+  dark,
+  compact,
+  progress,
+  fillWindow,
+}: {
+  tile: ScoreTile;
+  dark: boolean;
+  compact: boolean;
+  progress?: MotionValue<number>;
+  fillWindow?: [number, number];
+}) {
+  const ramp = useRevealRamp(progress, fillWindow);
+  const target = Math.max(8, Math.min(100, tile.score));
+  const width = useTransform(ramp, (k) => `${target * k}%`);
+  return (
+    <div
+      className={`border-b last:border-b-0 ${compact ? "py-3" : "py-3.5"} ${
+        dark ? "border-cream-200/10" : "border-cream-300"
+      }`}
+    >
+      <div className="flex items-baseline justify-between gap-3">
+        <span className={`font-sans text-[15px] font-semibold ${dark ? "text-cream-100" : "text-ink-900"}`}>
+          {tile.name}
+        </span>
+        <span className="flex items-baseline gap-2">
+          {tile.delta && <DeltaMark dark={dark} delta={tile.delta} />}
+          <span
+            className={`font-mono leading-none font-semibold tabular-nums ${
+              compact ? "text-[22px]" : "text-xl"
+            } ${scoreColor(tile.score, dark)}`}
+          >
+            {tile.score}
+          </span>
+        </span>
+      </div>
+      <div
+        className={`relative mt-1.5 overflow-hidden rounded-full ${
+          dark ? "h-3 bg-pitch-900" : compact ? "h-3 bg-cream-300" : "h-3.5 bg-cream-300"
+        }`}
+        aria-hidden
+      >
+        <motion.div
+          className={`h-full rounded-full ${barFill(tile.score, dark)}`}
+          style={{ width }}
+        />
+        <div
+          className={`absolute inset-y-0 w-px ${dark ? "bg-cream-50/50" : "bg-ink-900/45"}`}
+          style={{ left: `${ELITE_LEVEL}%` }}
+        />
+      </div>
+      <p
+        className={`mt-1.5 ${compact ? "line-clamp-1 text-[14px] leading-snug" : "text-[12.5px] leading-[1.5]"} ${
+          dark ? "text-cream-200" : "text-ink-900"
+        }`}
+      >
+        <TileNote note={tile.note} />
+      </p>
+    </div>
+  );
+}
+
 /** Mock-1 "YOUR 3 SCORES": name, delta square, fat capsule bar, one-line read. */
 export function ScoreTiles({
   tiles,
   tone,
   compact = false,
+  progress,
+  fillWindow,
 }: {
   tiles: ScoreTile[];
   tone: Tone;
   compact?: boolean;
+  /** Scroll progress driving staggered bar fills (landing pin). */
+  progress?: MotionValue<number>;
+  /** Fill window for the first bar; each next bar trails by 0.03. */
+  fillWindow?: [number, number];
 }) {
   if (tiles.length === 0) return null;
   const dark = tone === "dark";
@@ -305,51 +405,15 @@ export function ScoreTiles({
         Your {shown.length} score{shown.length === 1 ? "" : "s"}
       </SectionLabel>
       <div className="mt-1">
-        {shown.map((tile) => (
-          <div
-            className={`border-b last:border-b-0 ${compact ? "py-3" : "py-3.5"} ${
-              dark ? "border-cream-200/10" : "border-cream-300"
-            }`}
+        {shown.map((tile, i) => (
+          <TileRow
+            compact={compact}
+            dark={dark}
+            fillWindow={fillWindow && [fillWindow[0] + i * 0.03, fillWindow[1] + i * 0.03]}
             key={tile.name}
-          >
-            <div className="flex items-baseline justify-between gap-3">
-              <span className={`font-sans text-[15px] font-semibold ${dark ? "text-cream-100" : "text-ink-900"}`}>
-                {tile.name}
-              </span>
-              <span className="flex items-baseline gap-2">
-                {tile.delta && <DeltaMark dark={dark} delta={tile.delta} />}
-                <span
-                  className={`font-mono leading-none font-semibold tabular-nums ${
-                    compact ? "text-[20px]" : "text-xl"
-                  } ${scoreColor(tile.score, dark)}`}
-                >
-                  {tile.score}
-                </span>
-              </span>
-            </div>
-            <div
-              className={`relative mt-1.5 overflow-hidden rounded-full ${
-                dark ? "h-3 bg-pitch-900" : compact ? "h-3 bg-cream-300" : "h-3.5 bg-cream-300"
-              }`}
-              aria-hidden
-            >
-              <div
-                className={`h-full rounded-full ${barFill(tile.score, dark)}`}
-                style={{ width: `${Math.max(8, Math.min(100, tile.score))}%` }}
-              />
-              <div
-                className={`absolute inset-y-0 w-px ${dark ? "bg-cream-50/50" : "bg-ink-900/45"}`}
-                style={{ left: `${ELITE_LEVEL}%` }}
-              />
-            </div>
-            <p
-              className={`mt-1.5 ${compact ? "line-clamp-1 text-[13px] leading-snug" : "text-[12.5px] leading-[1.5]"} ${
-                dark ? "text-cream-200" : "text-ink-900"
-              }`}
-            >
-              <TileNote note={tile.note} />
-            </p>
-          </div>
+            progress={progress}
+            tile={tile}
+          />
         ))}
       </div>
     </div>
@@ -471,14 +535,12 @@ export function FocusBlock({
         Fix this one thing
       </div>
       <div
-        className={`mt-1.5 font-sans leading-tight font-bold ${
-          compact ? "text-[18px]" : "text-xl"
-        } ${dark ? "text-cream-100" : "text-ink-900"}`}
+        className={`mt-1.5 font-sans text-xl leading-tight font-bold ${dark ? "text-cream-100" : "text-ink-900"}`}
       >
         {focus.title}
       </div>
       <p
-        className={`mt-1 text-[12.5px] ${compact ? "line-clamp-2 leading-snug" : "leading-[1.55]"} ${
+        className={`mt-1 ${compact ? "text-[13.5px] line-clamp-2 leading-snug" : "text-[12.5px] leading-[1.55]"} ${
           dark ? "text-cream-200" : "text-ink-900"
         }`}
       >
@@ -497,7 +559,7 @@ export function FocusBlock({
           Your drill
         </div>
         <p
-          className={`mt-1 text-[12.5px] ${compact ? "line-clamp-2 leading-snug" : "leading-[1.55]"} ${
+          className={`mt-1 ${compact ? "text-[13.5px] line-clamp-2 leading-snug" : "text-[12.5px] leading-[1.55]"} ${
             dark ? "text-cream-200" : "text-ink-900"
           }`}
         >
