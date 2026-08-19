@@ -86,6 +86,18 @@ export type MeasuredMetric = {
    * (lib/report-measurements.ts), never sent by the worker.
    */
   previous?: { value: number; label: string };
+  /**
+   * Bold lead word rendered before `note` — only ever a judgement the worker
+   * itself made ("Needs work.") or a neutral fact. Never derived from the
+   * band: descriptive metrics don't get verdicts the pipeline didn't emit.
+   */
+  lead?: string;
+  /**
+   * Change vs the previous occasion, as a small chip beside the value
+   * ("▲ 4 cm"). `dir` is direction of travel, not a verdict — the chip stays
+   * neutral-coloured because a longer stride is a fact, not an improvement.
+   */
+  deltaPill?: { text: string; dir: "up" | "down" | "same" };
 };
 
 /** The band, when the reference has one. */
@@ -202,33 +214,39 @@ function Scale({
           : "bg-vision-700/50";
 
   return (
-    <div className={`relative ${compact ? "mt-1.5 h-2.5" : "mt-2.5 h-3"}`} aria-hidden>
+    <div className={`relative ${compact ? "mt-1.5 h-2.5" : "mt-2.5 h-4"}`} aria-hidden>
       <span
-        className={`absolute top-1/2 right-0 left-0 h-px -translate-y-1/2 ${
-          dark ? "bg-cream-200/20" : "bg-cream-400"
-        }`}
+        className={`absolute top-1/2 right-0 left-0 -translate-y-1/2 rounded-sm ${
+          compact ? "h-px" : "h-[3px]"
+        } ${dark ? "bg-cream-200/20" : "bg-cream-300"}`}
       />
       <span
-        className={`absolute top-1/2 h-[7px] -translate-y-1/2 rounded-[1px] ${bandFill}`}
+        className={`absolute top-1/2 -translate-y-1/2 rounded-[2px] ${
+          compact ? "h-[7px]" : "h-[10px]"
+        } ${bandFill}`}
         style={{ left: `${bandLeft}%`, width: `${bandWidth}%` }}
       />
       {[bandLeft, bandLeft + bandWidth].map((left, i) => (
         <span
           key={i}
-          className={`absolute top-1/2 h-[7px] w-px -translate-y-1/2 ${bandEdge}`}
+          className={`absolute top-1/2 w-px -translate-y-1/2 ${
+            compact ? "h-[7px]" : "h-[10px]"
+          } ${bandEdge}`}
           style={{ left: `${left}%` }}
         />
       ))}
       {metric.previous && (
         <span
-          className={`absolute top-1/2 size-[8px] -translate-x-1/2 -translate-y-1/2 rotate-45 border ${
-            dark ? "border-cream-200/60" : "border-ink-900/40"
-          }`}
+          className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 border ${
+            compact ? "size-[8px]" : "size-[9px]"
+          } ${dark ? "border-cream-200/60" : "border-ink-900/40"}`}
           style={{ left: `${position(metric.previous.value, scale)}%` }}
         />
       )}
       <span
-        className={`absolute top-1/2 size-[9px] -translate-x-1/2 -translate-y-1/2 rotate-45 ${
+        className={`absolute top-1/2 -translate-x-1/2 -translate-y-1/2 rotate-45 ${
+          compact ? "size-[9px]" : "size-[11px]"
+        } ${
           off ? (dark ? "bg-rust-500" : "bg-rust-600") : dark ? "bg-gold-500" : "bg-gold-600"
         }`}
         style={{ left: `${marker}%` }}
@@ -381,16 +399,27 @@ export function MeasuredMetricRow({
         >
           {metric.name}
         </span>
-        <span
-          className={`font-mono font-semibold tabular-nums ${compact ? "text-[15px]" : "text-xl"} ${
-            off ? (dark ? "text-rust-500" : "text-rust-600") : dark ? "text-gold-500" : "text-ink-900"
-          }`}
-        >
-          {fmt(metric.value, metric.decimals)}
+        <span className="flex items-baseline gap-2">
+          {metric.deltaPill && !compact && (
+            <span
+              className={`self-center rounded-full px-1.5 py-0.5 font-mono text-[10px] font-semibold tracking-[.04em] whitespace-nowrap ${
+                dark ? "bg-black/30 text-sage-400" : "bg-cream-200 text-ink-600"
+              }`}
+            >
+              {metric.deltaPill.text}
+            </span>
+          )}
           <span
-            className={`ml-1 text-[11px] font-medium ${dark ? "text-sage-400" : "text-ink-600"}`}
+            className={`font-mono font-semibold tabular-nums ${compact ? "text-[15px]" : "text-xl"} ${
+              off ? (dark ? "text-rust-500" : "text-rust-600") : dark ? "text-gold-500" : "text-ink-900"
+            }`}
           >
-            {metric.unit}
+            {fmt(metric.value, metric.decimals)}
+            <span
+              className={`ml-1 text-[11px] font-medium ${dark ? "text-sage-400" : "text-ink-600"}`}
+            >
+              {metric.unit}
+            </span>
           </span>
         </span>
       </div>
@@ -439,6 +468,7 @@ export function MeasuredMetricRow({
           compact ? "mt-1 line-clamp-2 text-[11px] leading-[1.45]" : "mt-1.5 text-[12.5px] leading-[1.5]"
         } ${dark ? "text-cream-200" : "text-ink-900"}`}
       >
+        {metric.lead && !compact && <span className="font-semibold">{metric.lead} </span>}
         {compact ? (metric.noteShort ?? metric.note) : metric.note}
       </p>
     </div>

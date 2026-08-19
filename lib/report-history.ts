@@ -4,12 +4,14 @@ import {
   ReportStatus,
   VideoCategory,
 } from "@/app/generated/prisma/enums";
-import type { MeasuredMetric } from "@/components/measured-metric";
 import { prisma } from "@/lib/prisma";
 import {
+  deriveFocus,
   deriveMeasurements,
   occasionMetricValues,
+  payloadConsistency,
   reportShape,
+  type DerivedReport,
   type OccasionValues,
 } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
@@ -38,7 +40,7 @@ type VideoForHistory = {
 export async function getDerivedMeasurements(
   video: VideoForHistory,
   report: VideoReport | null,
-): Promise<MeasuredMetric[] | null> {
+): Promise<DerivedReport | null> {
   if (report?.status !== ReportStatus.READY) return null;
   const shape = reportShape(report.payload);
   if (!shape) return null;
@@ -84,10 +86,33 @@ export async function getDerivedMeasurements(
     occasions.set(key, occasion);
   }
 
-  const history: OccasionValues[] = [...occasions.values()]
-    .sort((a, b) => a.date.getTime() - b.date.getTime())
+  const ordered = [...occasions.values()].sort(
+    (a, b) => a.date.getTime() - b.date.getTime(),
+  );
+
+  const history: OccasionValues[] = ordered
     .map((occasion) => occasionMetricValues(shape, occasion.payloads))
     .filter((values) => Object.keys(values).length > 0);
 
-  return deriveMeasurements(report.payload, history);
+  const metrics = deriveMeasurements(report.payload, history);
+  if (!metrics) return null;
+
+  // One headline-consistency point per occasion (mean of its videos'), for
+  // the hero's Last session / Your best cells and the sessions chart.
+  // Bowling payloads carry no per-video consistency, so bowling reports get
+  // an empty trail — the hero and chart simply don't render for them.
+  const consistencyHistory = ordered.flatMap(({ date, payloads }) => {
+    const values = payloads
+      .map(payloadConsistency)
+      .filter((value): value is number => value !== null);
+    if (values.length === 0) return [];
+    return [
+      {
+        date,
+        value: Math.round(values.reduce((sum, value) => sum + value, 0) / values.length),
+      },
+    ];
+  });
+
+  return { metrics, consistencyHistory, focus: deriveFocus(report.payload) };
 }

@@ -1,7 +1,8 @@
 import { ConsistencyList, type ConsistencyItem } from "@/components/consistency";
-import type { MeasuredMetric } from "@/components/measured-metric";
 import { DerivedMeasurements } from "@/components/measured-report";
+import { FocusBlock, ReportHero, SessionsChart } from "@/components/report-scoreboard";
 import { Kicker } from "@/components/ui";
+import type { DerivedReport } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -256,12 +257,13 @@ export function BattingReport({
   parsed: ParsedBattingReport;
   report: VideoReport;
   tone: Tone;
-  /** History-derived measurement rows (lib/report-history.ts); lead when present. */
-  derived?: MeasuredMetric[] | null;
+  /** History-derived scoreboard data (lib/report-history.ts); leads when present. */
+  derived?: DerivedReport | null;
 }) {
   const dark = tone === "dark";
   const shotCount = parsed.shots.length;
-  const measurements = derived ?? [];
+  const measurements = derived?.metrics ?? [];
+  const consistency = battingConsistency(parsed);
   const metaParts = [
     parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
     parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
@@ -289,13 +291,31 @@ export function BattingReport({
         <p className={`pt-4 text-sm ${dark ? "text-sage-400" : "text-ink-600"}`}>
           The analysis ran but didn&apos;t detect a clear batting shot in this video.
         </p>
-      ) : measurements.length > 0 ? (
-        // The clear read leads: each measurement with the player's range and
-        // last-session marker, then repeatability. The per-shot number wall is
-        // still there, behind a disclosure instead of dominating the card.
+      ) : measurements.length > 0 && derived ? (
+        // Scoreboard order: hero verdict, the measurements with range and
+        // last-session markers, the sessions trail, the one thing to fix.
+        // The per-shot number wall and the per-metric consistency list stay
+        // available behind a disclosure instead of dominating the card.
         <>
-          <DerivedMeasurements metrics={measurements} tone={tone} />
-          {consistencyBlock}
+          {consistency !== null && (
+            <ReportHero
+              balls={`${shotCount} ball${shotCount === 1 ? "" : "s"} analysed`}
+              consistency={consistency}
+              history={derived.consistencyHistory}
+              tone={tone}
+            />
+          )}
+          <div className={consistency === null ? "" : "pt-4"}>
+            <DerivedMeasurements metrics={measurements} tone={tone} />
+          </div>
+          {consistency !== null && (
+            <SessionsChart
+              history={derived.consistencyHistory}
+              today={consistency}
+              tone={tone}
+            />
+          )}
+          {derived.focus && <FocusBlock focus={derived.focus} tone={tone} />}
           <details className={`border-b ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
             <summary
               className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${
@@ -305,6 +325,7 @@ export function BattingReport({
               Ball-by-ball detail · {shotCount} {shotCount === 1 ? "shot" : "shots"}
             </summary>
             {shotRows}
+            {consistencyBlock}
           </details>
         </>
       ) : (
