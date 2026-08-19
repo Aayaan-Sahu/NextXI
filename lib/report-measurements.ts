@@ -24,6 +24,23 @@ export const HISTORY_WINDOW = 5;
 
 export type ReportShape = "batting" | "bowling";
 
+/**
+ * The scoreboard hero's "one thing to fix": the worker judgement that read
+ * worst this session, with a curated drill. Everything factual in it comes
+ * from the payload (label counts); the drills are static coaching copy keyed
+ * by metric, not generated claims.
+ */
+export type FocusArea = {
+  /** e.g. "Your bat swing". */
+  title: string;
+  /** The honest observation, e.g. `7 of 12 balls read "needs work" for swing path.` */
+  detail: string;
+  /** Curated drill copy. */
+  drill: string;
+  /** What the next upload will re-measure, e.g. "swing path". */
+  remeasure: string;
+};
+
 type MetricDef = {
   key: string;
   name: string;
@@ -120,6 +137,34 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/** Same CV fields the renderers use for the headline repeatability figure. */
+const CONSISTENCY_CV_FIELDS = [
+  "stride_length_cv",
+  "backlift_height_cv",
+  "swing_straightness_mean_cv",
+  "trigger_duration_cv",
+  "trigger_gap_cv",
+  "head_stability_frac_height_cv",
+  "stance_ratio_cv",
+] as const;
+
+/**
+ * Headline consistency (0-100) for one payload — the same mean-of-CVs figure
+ * BattingReport shows, computable without parsing the full report. Null for
+ * payloads with no consistency block (bowling: one delivery per video).
+ */
+export function payloadConsistency(payload: unknown): number | null {
+  if (!isRecord(payload) || !isRecord(payload.consistency)) return null;
+  const block = payload.consistency;
+  const values = CONSISTENCY_CV_FIELDS.flatMap((field) => {
+    const cv = block[field];
+    if (typeof cv !== "number" || !Number.isFinite(cv)) return [];
+    return [Math.round(100 * (1 - Math.min(Math.max(cv, 0), 1)))];
+  });
+  if (values.length === 0) return null;
+  return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
+}
+
 /** Which v2 shape a payload is, or null (v1 legacy / v3 measurements / junk). */
 export function reportShape(payload: unknown): ReportShape | null {
   if (!isRecord(payload)) return null;
@@ -153,6 +198,18 @@ function metricMedian(instances: unknown[], path: readonly string[]): number | n
 export type OccasionValues = Record<string, number>;
 
 /**
+ * Everything the scoreboard report derives from history: the measurement
+ * rows, the headline-consistency trail feeding the hero cells and sessions
+ * chart, and the focus block. Assembled by lib/report-history.ts.
+ */
+export type DerivedReport = {
+  metrics: MeasuredMetric[];
+  /** Previous occasions' headline consistency, oldest first. */
+  consistencyHistory: { date: Date; value: number }[];
+  focus: FocusArea | null;
+};
+
+/**
  * Pools one filming occasion's ready payloads into per-metric medians, keyed
  * by metric key. Metrics the occasion never measured are simply absent.
  */
@@ -172,6 +229,65 @@ const fmt = (value: number, decimals: number) => value.toFixed(decimals);
 function withUnit(value: number, def: MetricDef): string {
   const joiner = def.unit === "°" ? "" : " ";
   return `${fmt(value, def.decimals)}${joiner}${def.unit}`;
+}
+
+/**
+ * Majority worker label for a per-shot judgement across the payload's shots
+ * ("good" | "ok" | "needs work"), or null when fewer than half the shots carry
+ * one. These are the labels the ball-by-ball detail already shows — surfacing
+ * the majority at row level adds no new claim.
+ */
+function majorityShotLabel(
+  payload: unknown,
+  sectionKey: string,
+  field: string,
+): string | null {
+  const shots = battingShots(payload);
+  const counts = new Map<string, number>();
+  for (const shot of shots) {
+    const section = shot[sectionKey];
+    const label = isRecord(section) ? section[field] : null;
+    if (label === "good" || label === "ok" || label === "needs work") {
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    }
+  }
+  let winner: string | null = null;
+  let winnerCount = 0;
+  for (const [label, count] of counts) {
+    if (count > winnerCount) {
+      winner = label;
+      winnerCount = count;
+    }
+  }
+  return winnerCount * 2 >= shots.length && shots.length > 0 ? winner : null;
+}
+
+/** Bold lead word for a row, from the worker's own labels only. */
+const SHOT_LABEL_LEADS: Record<string, string> = {
+  good: "Solid.",
+  ok: "Okay.",
+  "needs work": "Needs work.",
+};
+
+const BRACE_LABEL_LEADS: Record<string, string> = {
+  braced: "Braced.",
+  "soft/absorbing": "Soft landing.",
+  collapsing: "Collapsing.",
+};
+
+/** The worker judgement backing a metric row's lead, where one exists. */
+function metricLead(payload: unknown, key: string): string | null {
+  if (key === "head_movement") {
+    const label = majorityShotLabel(payload, "head", "head_movement_label");
+    return label ? SHOT_LABEL_LEADS[label] : null;
+  }
+  if (key === "front_knee_brace") {
+    const delivery = isRecord(payload) ? payload.delivery : null;
+    const brace = isRecord(delivery) ? delivery.front_knee_brace : null;
+    const label = isRecord(brace) ? brace.brace_label : null;
+    return typeof label === "string" ? (BRACE_LABEL_LEADS[label] ?? null) : null;
+  }
+  return null;
 }
 
 /** "Last session 58 cm — 4 cm longer this time." Plain words, real units. */
@@ -242,11 +358,117 @@ export function deriveMeasurements(
       reference: sessionReference(metricHistory),
       note: progressNote(def, value, previous),
     };
+    const lead = metricLead(payload, def.key);
+    if (lead) row.lead = lead;
     if (previous !== null) {
       row.previous = { value: previous, label: "Last session" };
+      const delta = value - previous;
+      // The pill states the change, in units, without judging it — these are
+      // descriptive metrics, so the arrow is direction of travel, not verdict.
+      row.deltaPill =
+        Math.abs(delta) < def.sameWithin
+          ? { text: "same", dir: "same" }
+          : {
+              text: `${delta > 0 ? "▲" : "▼"} ${withUnit(Math.abs(delta), def)}`,
+              dir: delta > 0 ? "up" : "down",
+            };
     }
     return [row];
   });
 
   return rows.length > 0 ? rows : null;
+}
+
+/**
+ * The curated drill per fixable judgement. Static coaching copy — review it
+ * like any other product copy; nothing in it is generated per player.
+ */
+const FOCUS_DRILLS: Record<
+  string,
+  { title: string; remeasure: string; drill: string }
+> = {
+  swing_label: {
+    title: "Your bat swing",
+    remeasure: "swing path",
+    drill:
+      "3 sets of 10 front-foot drives with a cone under your back heel. Stop the set the moment the swing bends — you are training the last few balls, not the first few.",
+  },
+  head_movement_label: {
+    title: "Your head position",
+    remeasure: "head movement",
+    drill:
+      "Throw-downs: hold your head dead still until the shot finishes. 3 sets of 10 — stop the set the moment your head starts chasing the ball.",
+  },
+  balance_label: {
+    title: "Your balance",
+    remeasure: "balance",
+    drill:
+      "Shadow 10 drives and freeze the finish for two full seconds — a wobble means the rep does not count. 3 sets.",
+  },
+  head_over_knee_label: {
+    title: "Head over front knee",
+    remeasure: "head position",
+    drill:
+      "Shadow drives with a stump just outside your front foot: finish every rep with your head over your front knee. 3 sets of 10.",
+  },
+  front_knee_brace: {
+    title: "Your front knee",
+    remeasure: "front-knee brace",
+    drill:
+      "Walk-through deliveries landing on a firm front leg. 3 sets of 6 — stop the set the moment the knee gives.",
+  },
+};
+
+/** Judgements scanned for a focus, most coachable first (mirrors the mock). */
+const BATTING_FOCUS_FIELDS: { section: string; field: string; label: string }[] = [
+  { section: "swing", field: "swing_label", label: "swing path" },
+  { section: "head", field: "head_movement_label", label: "head stillness" },
+  { section: "balance", field: "balance_label", label: "balance" },
+  { section: "head", field: "head_over_knee_label", label: "head over front knee" },
+];
+
+/**
+ * "Fix this one thing": the first judgement where at least half the balls read
+ * "needs work" (batting), or a non-braced front knee (bowling). Null when the
+ * session has nothing that honestly needs fixing — the block simply doesn't
+ * render rather than inventing a focus.
+ */
+export function deriveFocus(payload: unknown): FocusArea | null {
+  const shape = reportShape(payload);
+  if (shape === "batting") {
+    const shots = battingShots(payload);
+    if (shots.length === 0) return null;
+    for (const { section, field, label } of BATTING_FOCUS_FIELDS) {
+      const flagged = shots.filter((shot) => {
+        const block = shot[section];
+        return isRecord(block) && block[field] === "needs work";
+      }).length;
+      if (flagged * 2 >= shots.length && flagged > 0) {
+        const entry = FOCUS_DRILLS[field];
+        return {
+          title: entry.title,
+          detail: `${flagged} of ${shots.length} ball${shots.length === 1 ? "" : "s"} read “needs work” for ${label}.`,
+          drill: entry.drill,
+          remeasure: entry.remeasure,
+        };
+      }
+    }
+    return null;
+  }
+  if (shape === "bowling") {
+    const delivery = isRecord(payload) ? payload.delivery : null;
+    const brace = isRecord(delivery) ? delivery.front_knee_brace : null;
+    const label = isRecord(brace) ? brace.brace_label : null;
+    if (label === "collapsing" || label === "soft/absorbing") {
+      const entry = FOCUS_DRILLS.front_knee_brace;
+      return {
+        title: entry.title,
+        detail: `The front knee read “${label}” at landing on this delivery.`,
+        drill: entry.drill,
+        remeasure: entry.remeasure,
+      };
+    }
+    return null;
+  }
+  return null;
 }

@@ -1,6 +1,7 @@
-import type { MeasuredMetric } from "@/components/measured-metric";
 import { DerivedMeasurements } from "@/components/measured-report";
+import { FocusBlock } from "@/components/report-scoreboard";
 import { Kicker } from "@/components/ui";
+import type { DerivedReport } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -154,15 +155,15 @@ export function BowlingReport({
   parsed: ParsedBowlingReport;
   report: VideoReport;
   tone: Tone;
-  /** History-derived measurement rows (lib/report-history.ts); lead when present. */
-  derived?: MeasuredMetric[] | null;
+  /** History-derived scoreboard data (lib/report-history.ts); leads when present. */
+  derived?: DerivedReport | null;
 }) {
   const dark = tone === "dark";
   const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
   const bodyText = dark ? "text-cream-200" : "text-ink-900";
   const mutedText = dark ? "text-sage-400" : "text-ink-600";
 
-  const measurements = derived ?? [];
+  const measurements = derived?.metrics ?? [];
   // A measurement row supersedes its plain stat line — no number twice.
   const measuredNames = new Set(measurements.map((metric) => metric.name));
   const statRows = parsed.stats.filter((stat) => !measuredNames.has(stat.label));
@@ -197,6 +198,8 @@ export function BowlingReport({
           {measurements.length > 0 && (
             <DerivedMeasurements metrics={measurements} tone={tone} />
           )}
+
+          {derived?.focus && <FocusBlock focus={derived.focus} tone={tone} />}
 
           {hasBrace && (
             <div className={`border-b py-3.5 ${rowBorder}`}>

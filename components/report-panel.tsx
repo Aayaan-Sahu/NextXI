@@ -5,7 +5,7 @@ import {
   parseBattingReport,
 } from "@/components/batting-report";
 import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
-import type { MeasuredMetric } from "@/components/measured-metric";
+import type { DerivedReport } from "@/lib/report-measurements";
 import {
   MeasuredReport,
   measuredConsistency,
@@ -300,12 +300,12 @@ export function ReportPanel({
   subtitle?: string;
   tone?: Tone;
   /**
-   * Measurement rows derived from the payload plus the player's report
-   * history (lib/report-history.ts) — value, own recent range, last-session
-   * progress. Pages that can load history pass them; the panel still renders
+   * Scoreboard data derived from the payload plus the player's report
+   * history (lib/report-history.ts) — measurement rows, consistency trail,
+   * focus. Pages that can load history pass it; the panel still renders
    * fine without.
    */
-  derived?: MeasuredMetric[] | null;
+  derived?: DerivedReport | null;
 }) {
   const dark = tone === "dark";
   const ready = report?.status === ReportStatus.READY;
@@ -325,6 +325,10 @@ export function ReportPanel({
       : null;
   const legacyScore =
     !measured && !batting && !bowling && payload ? readOverallScore(payload) : null;
+  // The batting scoreboard hero carries the consistency dial; showing the
+  // same number again in the header would be the figure twice.
+  const heroRenders =
+    !!batting && !!derived && derived.metrics.length > 0 && consistency !== null;
 
   return (
     <section
@@ -349,7 +353,7 @@ export function ReportPanel({
             </div>
           )}
         </div>
-        {consistency !== null && (
+        {consistency !== null && !heroRenders && (
           <div className="text-right">
             <div
               className={`font-mono leading-none font-semibold ${
