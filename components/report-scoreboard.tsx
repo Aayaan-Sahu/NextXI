@@ -50,12 +50,12 @@ export function fallbackLastSession(score: number) {
   return clampScore(score - 6);
 }
 
-function Dial({ value, tone }: { value: number; tone: Tone }) {
+function Dial({ value, tone, compact = false }: { value: number; tone: Tone; compact?: boolean }) {
   const dark = tone === "dark";
   const circumference = 2 * Math.PI * 45;
   const filled = (Math.max(0, Math.min(100, value)) / 100) * circumference;
   return (
-    <div className="relative size-36">
+    <div className={`relative ${compact ? "size-24" : "size-36"}`}>
       <svg aria-hidden className="size-full -rotate-90" viewBox="0 0 100 100">
         <circle
           className={dark ? "stroke-cream-200/15" : "stroke-cream-200/20"}
@@ -77,7 +77,11 @@ function Dial({ value, tone }: { value: number; tone: Tone }) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="font-mono text-[44px] leading-none font-semibold text-cream-50">
+        <span
+          className={`font-mono leading-none font-semibold text-cream-50 ${
+            compact ? "text-[28px]" : "text-[44px]"
+          }`}
+        >
           {value}
         </span>
         <span className="mt-1 font-mono text-[10px] font-semibold tracking-[.18em] text-sage-400 uppercase">
@@ -121,12 +125,14 @@ export function ReportHero({
   balls,
   history,
   tone,
+  compact = false,
 }: {
   score: number;
   /** e.g. "12 balls analysed". */
   balls: string;
   history: ConsistencyPoint[];
   tone: Tone;
+  compact?: boolean;
 }) {
   const dark = tone === "dark";
   const previous = history.length
@@ -134,26 +140,30 @@ export function ReportHero({
     : fallbackLastSession(score);
   const previousDate = history.length ? history[history.length - 1].date : null;
   const cellLabel = "font-mono text-[10px] font-semibold tracking-[.2em] uppercase";
-  const cellValue = "mt-1 font-mono text-xl leading-none font-semibold";
+  const cellValue = `mt-1 font-mono leading-none font-semibold ${compact ? "text-lg" : "text-xl"}`;
   const cellSub = "mt-1 font-mono text-[10px] tracking-[.06em]";
 
   return (
-    <div className="pt-4">
+    <div className={compact ? "pt-0" : "pt-4"}>
       <div
-        className={`rounded-[10px] px-6 pt-5 pb-6 text-center ${
-          dark ? "bg-black/25" : "bg-pitch-900"
-        }`}
+        className={`rounded-[10px] text-center ${
+          compact ? "px-4 pt-3.5 pb-4" : "px-6 pt-5 pb-6"
+        } ${dark ? "bg-black/25" : "bg-pitch-900"}`}
       >
         <div className="font-mono text-[10px] font-semibold tracking-[.2em] text-sage-400 uppercase">
           {balls}
         </div>
-        <div className="mt-4 flex justify-center">
-          <Dial value={score} tone={tone} />
+        <div className={compact ? "mt-2.5 flex justify-center" : "mt-4 flex justify-center"}>
+          <Dial compact={compact} value={score} tone={tone} />
         </div>
-        <div className="mt-4 font-display text-xl leading-tight font-bold tracking-[.04em] text-cream-50 uppercase">
+        <div
+          className={`font-display leading-tight font-bold tracking-[.04em] text-cream-50 uppercase ${
+            compact ? "mt-2.5 text-lg" : "mt-4 text-xl"
+          }`}
+        >
           {verdictFor(score)}
         </div>
-        <div className="mt-2.5">
+        <div className={compact ? "mt-2" : "mt-2.5"}>
           <ChangePill now={score} previous={previous} />
         </div>
       </div>
@@ -163,7 +173,7 @@ export function ReportHero({
           dark ? "divide-cream-200/15 border-cream-200/15" : "divide-cream-300 border-cream-300"
         } divide-x`}
       >
-        <div className="py-3.5">
+        <div className={compact ? "py-2.5" : "py-3.5"}>
           <div className={`${cellLabel} ${dark ? "text-sage-400" : "text-ink-600"}`}>
             Last session
           </div>
@@ -174,7 +184,7 @@ export function ReportHero({
             {previousDate ? relativeTime(previousDate) : "previous"}
           </div>
         </div>
-        <div className="py-3.5">
+        <div className={compact ? "py-2.5" : "py-3.5"}>
           <div className={`${cellLabel} ${dark ? "text-sage-400" : "text-ink-600"}`}>
             Elite level
           </div>
@@ -201,33 +211,42 @@ function scoreColor(score: number, dark: boolean) {
 }
 
 /** Mock-1 "YOUR 3 SCORES": name, delta, fat coloured bar, one-line read. */
-export function ScoreTiles({ tiles, tone }: { tiles: ScoreTile[]; tone: Tone }) {
+export function ScoreTiles({
+  tiles,
+  tone,
+  compact = false,
+}: {
+  tiles: ScoreTile[];
+  tone: Tone;
+  compact?: boolean;
+}) {
   if (tiles.length === 0) return null;
   const dark = tone === "dark";
+  const shown = compact ? tiles.slice(0, 3) : tiles;
 
   return (
-    <div className={`border-b py-4 ${dark ? "border-cream-200/15" : "border-cream-300"}`}>
+    <div className={`border-b ${compact ? "py-2.5" : "py-4"} ${dark ? "border-cream-200/15" : "border-cream-300"}`}>
       <Kicker tone={tone}>
-        Your {tiles.length} score{tiles.length === 1 ? "" : "s"}
+        Your {shown.length} score{shown.length === 1 ? "" : "s"}
       </Kicker>
       <div className="mt-1">
-        {tiles.map((tile) => (
+        {shown.map((tile, index) => (
           <div
-            className={`border-b py-3.5 last:border-b-0 ${
+            className={`border-b last:border-b-0 ${compact ? "py-2" : "py-3.5"} ${
               dark ? "border-cream-200/10" : "border-cream-300"
-            }`}
+            } ${compact && index === 2 ? "[@media(max-height:760px)]:hidden" : ""}`}
             key={tile.name}
           >
             <div className="flex items-baseline justify-between gap-3">
               <span
-                className={`font-display text-[15px] font-semibold tracking-[.04em] ${
-                  dark ? "text-cream-100" : "text-ink-900"
-                }`}
+                className={`font-display font-semibold tracking-[.04em] ${
+                  compact ? "text-[13px]" : "text-[15px]"
+                } ${dark ? "text-cream-100" : "text-ink-900"}`}
               >
                 {tile.name}
               </span>
               <span className="flex items-baseline gap-2">
-                {tile.delta && (
+                {tile.delta && !compact && (
                   <span
                     className={`font-mono text-[11px] font-semibold ${
                       tile.delta.dir === "down"
@@ -247,18 +266,23 @@ export function ScoreTiles({ tiles, tone }: { tiles: ScoreTile[]; tone: Tone }) 
                   </span>
                 )}
                 <span
-                  className={`font-mono text-xl leading-none font-semibold tabular-nums ${scoreColor(
-                    tile.score,
-                    dark,
-                  )}`}
+                  className={`font-mono leading-none font-semibold tabular-nums ${
+                    compact ? "text-[15px]" : "text-xl"
+                  } ${scoreColor(tile.score, dark)}`}
                 >
                   {tile.score}
                 </span>
               </span>
             </div>
             <div
-              className={`mt-2 overflow-hidden rounded-sm ${
-                dark ? "h-2 bg-black/30" : "h-2.5 bg-cream-300"
+              className={`mt-1.5 overflow-hidden rounded-sm ${
+                compact
+                  ? dark
+                    ? "h-1.5 bg-black/30"
+                    : "h-2 bg-cream-300"
+                  : dark
+                    ? "h-2 bg-black/30"
+                    : "h-2.5 bg-cream-300"
               }`}
               aria-hidden
             >
@@ -267,13 +291,15 @@ export function ScoreTiles({ tiles, tone }: { tiles: ScoreTile[]; tone: Tone }) 
                 style={{ width: `${Math.max(8, Math.min(100, tile.score))}%` }}
               />
             </div>
-            <p
-              className={`mt-1.5 text-[12.5px] leading-[1.5] ${
-                dark ? "text-cream-200" : "text-ink-900"
-              }`}
-            >
-              {tile.note}
-            </p>
+            {!compact && (
+              <p
+                className={`mt-1.5 text-[12.5px] leading-[1.5] ${
+                  dark ? "text-cream-200" : "text-ink-900"
+                }`}
+              >
+                {tile.note}
+              </p>
+            )}
           </div>
         ))}
       </div>
@@ -365,15 +391,17 @@ export function FocusBlock({
   focus,
   tone,
   nextScore,
+  compact = false,
 }: {
   focus: FocusArea;
   tone: Tone;
   nextScore?: number;
+  compact?: boolean;
 }) {
   const dark = tone === "dark";
   return (
     <div
-      className={`my-4 rounded-[10px] px-4 pt-3.5 pb-4 ${
+      className={`rounded-[10px] ${compact ? "mt-3 px-3 pt-2.5 pb-3" : "my-4 px-4 pt-3.5 pb-4"} ${
         dark
           ? "border border-rust-500/40 bg-rust-500/10"
           : "border border-rust-600/20 bg-[#f6e6dc]"
@@ -387,17 +415,21 @@ export function FocusBlock({
         Fix this one thing
       </div>
       <div
-        className={`mt-2 font-display text-xl leading-tight font-bold tracking-[.04em] uppercase ${
-          dark ? "text-cream-100" : "text-ink-900"
-        }`}
+        className={`mt-1.5 font-display leading-tight font-bold tracking-[.04em] uppercase ${
+          compact ? "text-lg" : "text-xl"
+        } ${dark ? "text-cream-100" : "text-ink-900"}`}
       >
         {focus.title}
       </div>
-      <p className={`mt-1.5 text-[12.5px] leading-[1.55] ${dark ? "text-cream-200" : "text-ink-900"}`}>
+      <p
+        className={`mt-1 text-[12.5px] leading-[1.5] ${compact ? "line-clamp-2" : "leading-[1.55]"} ${
+          dark ? "text-cream-200" : "text-ink-900"
+        }`}
+      >
         {focus.detail}
       </p>
       <div
-        className={`mt-3 rounded-md px-3.5 py-3 ${
+        className={`mt-2.5 rounded-md px-3 py-2.5 ${
           dark ? "bg-black/30" : "border border-dashed border-cream-400 bg-white"
         }`}
       >
@@ -409,7 +441,7 @@ export function FocusBlock({
           Try this
         </div>
         <p
-          className={`mt-1.5 text-[12.5px] leading-[1.55] ${
+          className={`mt-1 text-[12.5px] ${compact ? "line-clamp-2 leading-snug" : "leading-[1.55]"} ${
             dark ? "text-cream-200" : "text-ink-900"
           }`}
         >
@@ -417,7 +449,7 @@ export function FocusBlock({
         </p>
       </div>
       <p
-        className={`mt-3 font-mono text-[11px] font-semibold tracking-[.02em] ${
+        className={`mt-2.5 font-mono text-[11px] font-semibold tracking-[.02em] ${
           dark ? "text-rust-500" : "text-rust-600"
         }`}
       >
@@ -430,10 +462,10 @@ export function FocusBlock({
 }
 
 /** Mock footer: green tick + coach sign-off. */
-export function CoachStamp({ tone }: { tone: Tone }) {
+export function CoachStamp({ tone, compact = false }: { tone: Tone; compact?: boolean }) {
   const dark = tone === "dark";
   return (
-    <div className="flex items-start gap-3 py-4">
+    <div className={`flex items-start gap-3 ${compact ? "pt-3 pb-1" : "py-4"}`}>
       <span
         className={`mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full text-sm ${
           dark ? "bg-vision-500/20 text-vision-300" : "bg-vision-700/15 text-vision-700"
@@ -443,20 +475,22 @@ export function CoachStamp({ tone }: { tone: Tone }) {
       </span>
       <div>
         <div
-          className={`font-display text-[13px] font-semibold tracking-[.06em] uppercase ${
-            dark ? "text-cream-100" : "text-ink-900"
-          }`}
+          className={`font-display font-semibold tracking-[.06em] uppercase ${
+            compact ? "text-[12.5px]" : "text-[13px]"
+          } ${dark ? "text-cream-100" : "text-ink-900"}`}
         >
           This report is approved by an ECB Level 3 coach
         </div>
-        <p
-          className={`mt-1.5 text-[12.5px] leading-[1.55] italic ${
-            dark ? "text-sage-400" : "text-ink-600"
-          }`}
-        >
-          &ldquo;Genuinely repeatable technique. Lock in the one thing above and the rest
-          holds.&rdquo;
-        </p>
+        {!compact && (
+          <p
+            className={`mt-1.5 text-[12.5px] leading-[1.55] italic ${
+              dark ? "text-sage-400" : "text-ink-600"
+            }`}
+          >
+            &ldquo;Genuinely repeatable technique. Lock in the one thing above and the rest
+            holds.&rdquo;
+          </p>
+        )}
       </div>
     </div>
   );
