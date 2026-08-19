@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState, type ReactNode } from "react";
 import {
   motion,
   useMotionValue,
@@ -15,9 +15,69 @@ import { useCanScrub } from "@/components/landing/use-can-scrub";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
+/**
+ * Scale the mock card down only when it would clip the viewport, origin at
+ * the right so extra gap opens toward the batter instead of covering them.
+ */
+function PinFit({
+  children,
+  onScale,
+}: {
+  children: ReactNode;
+  /** Reports the applied scale so the split can reclaim the width a shrunken card gives up. */
+  onScale?: (scale: number) => void;
+}) {
+  const outerRef = useRef<HTMLDivElement>(null);
+  const innerRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const outer = outerRef.current;
+    const inner = innerRef.current;
+    if (!outer || !inner) return;
+    const fit = () => {
+      const available = outer.clientHeight;
+      const natural = inner.scrollHeight;
+      if (available <= 0 || natural <= 0) return;
+      const next = Math.min(1, available / natural);
+      setScale(next);
+      onScale?.(next);
+    };
+    fit();
+    const observer = new ResizeObserver(fit);
+    observer.observe(outer);
+    observer.observe(inner);
+    return () => observer.disconnect();
+  }, [onScale]);
+
+  return (
+    <div ref={outerRef} className="flex h-full min-h-0 w-full items-center justify-end">
+      <div
+        className="w-full overflow-hidden"
+        style={scale < 1 ? { height: "100%" } : undefined}
+      >
+        <div
+          ref={innerRef}
+          className="w-full"
+          style={{
+            transform: `scale(${scale})`,
+            transformOrigin: "top right",
+          }}
+        >
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // The video scrub completes at this fraction of the pin; the rest of the
 // scroll drives the headline → "video slides left, report reveals" handoff.
-const VIDEO_END = 0.5;
+// Keep the story packed toward the end of the pin so you don't sit on a
+// frozen split for a couple of extra viewports before How it works.
+const VIDEO_END = 0.55;
+const SPLIT_START = 0.55;
+const SPLIT_END = 0.8;
 
 /**
  * Pinned hero: scrolling scrubs the analysis video, then — in the SAME shot,
@@ -59,35 +119,66 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
     if (scrub) entry.set(1 - clamp01(progress / 0.05));
   });
 
-  // Headline rises after the scrub, holds, then clears as the split forms.
-  // Keyframes span the full [0,1] input (Motion runs scroll-linked opacity as a
-  // ScrollTimeline animation and fills open ends from the mount value).
-  // All scroll-linked keyframes span the full [0,1] input and hold at their end
-  // value — an open-ended range gets an implicit ScrollTimeline keyframe that
-  // drifts it back over the pin's tail (the video would recentre, the report
-  // fade out). See the reveal note in variant-editorial.
-  const headlineOpacity = useTransform(scrollYProgress, [0, 0.44, 0.52, 0.6, 0.66, 1], [0, 0, 1, 1, 0, 0]);
-  const headlineY = useTransform(scrollYProgress, [0, 0.44, 0.52, 0.6, 0.66, 1], [32, 32, 0, 0, -28, -28]);
-  // The video collapses from full-frame into a rounded panel (squircle) on the
-  // left, sitting almost flush with the report. Animating the wrapper insets
-  // (rather than a transform) lets the batter's 16:9 frame fill the panel
-  // edge-to-edge. Tuned by screenshot.
-  const videoLeft = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "2.5%", "2.5%"]);
-  const videoRight = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "39.5%", "39.5%"]);
-  const videoTop = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
-  const videoBottom = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
-  const videoRadius = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0px", "0px", "26px", "26px"]);
-  // The report slides in on the right; its lines then reveal (in VariantScoreboard,
-  // driven by scrollYProgress over roughly [0.6, 0.99]).
-  const reportOpacity = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [0, 0, 1, 1]);
-  const reportX = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [48, 48, 0, 0]);
+  // Headline rises as the scrub finishes, then clears in the same beat the
+  // video slides — one shot, no hold. Keyframes span [0,1] so ScrollTimeline
+  // doesn't interpolate an open end back to the mount value (video recentres,
+  // report fades out). See the reveal note in variant-editorial.
+  const headlineOpacity = useTransform(
+    scrollYProgress,
+    [0, 0.46, 0.52, SPLIT_START, 0.7, 1],
+    [0, 0, 1, 1, 0, 0],
+  );
+  const headlineY = useTransform(
+    scrollYProgress,
+    [0, 0.46, 0.52, SPLIT_START, 0.7, 1],
+    [32, 32, 0, 0, -28, -28],
+  );
+  // Size the post-split panel to the 16:9 frame (object-contain in a tall
+  // rounded rect just letterboxed into empty pitch). `right` reserves the
+  // report column + a gap so the white card never covers the batter. The
+  // reserve tracks PinFit's applied scale: when a short viewport shrinks the
+  // card (toward its top-right anchor), the panel widens to absorb the freed
+  // width instead of leaving a dead gap between video and report.
+  const [cardScale, setCardScale] = useState(1);
+  const cardReserve = `min(44%, 580px) * ${cardScale.toFixed(4)}`;
+  const splitRight = `1.75% + ${cardReserve} + 1.5rem`;
+  const splitVertical = `max(1.25rem, (100dvh - (100vw - 1.25vw - 1.75vw - min(44vw, 580px) * ${cardScale.toFixed(4)} - 1.5rem) * 9 / 16) / 2)`;
+  // Keyframe strings containing min()/max() don't numerically interpolate
+  // (motion hard-swaps them at the segment boundary, snapping the video
+  // straight to its panel at SPLIT_START), so emit each frame's calc with an
+  // animated multiplier instead.
+  const splitT = (p: number) => clamp01((p - SPLIT_START) / (SPLIT_END - SPLIT_START));
+  const videoLeft = useTransform(scrollYProgress, (p) => `${(splitT(p) * 1.25).toFixed(3)}%`);
+  const videoRight = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * (${splitRight}))`);
+  const videoTop = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
+  const videoBottom = useTransform(scrollYProgress, (p) => `calc(${splitT(p).toFixed(4)} * ${splitVertical})`);
+  const videoRadius = useTransform(scrollYProgress, [0, SPLIT_START, SPLIT_END, 1], ["0px", "0px", "26px", "26px"]);
+  // The card arrives as just the dark hero plate — everything below is
+  // clipped away — then its bottom edge sweeps down and "prints" the rest of
+  // the report, a gold scan line riding the edge. VariantScoreboard's
+  // staggered reveals land on freshly printed board, so the card is never a
+  // tall empty slab waiting for content.
+  const reportOpacity = useTransform(scrollYProgress, [0, SPLIT_START, 0.62, 1], [0, 0, 1, 1]);
+  const reportX = useTransform(scrollYProgress, [0, SPLIT_START, 0.62, 1], [48, 48, 0, 0]);
+  const printT = (p: number) => clamp01((p - 0.62) / 0.23);
+  // Bottom-edge cut as a fraction of the column; 72% ≈ everything below the
+  // hero plate. A feathered mask, not a hard clip: fresh card dissolves in
+  // over an ~8%-tall band so the white body never flashes against the dark
+  // stage as it prints.
+  const printCut = (p: number) => (1 - printT(p)) * 72;
+  const reportMask = useTransform(scrollYProgress, (p) => {
+    const open = 100 - printCut(p);
+    return `linear-gradient(180deg, #000 ${(open - 6).toFixed(2)}%, transparent ${(open + 2).toFixed(2)}%)`;
+  });
+  const printEdgeTop = useTransform(scrollYProgress, (p) => `${(98 - printCut(p)).toFixed(2)}%`);
+  const printEdgeOpacity = useTransform(scrollYProgress, [0.62, 0.645, 0.82, 0.85], [0, 1, 1, 0]);
 
   return (
     // In scrub mode the section tucks under the ball opener's final viewport
     // (-mt-[100vh], lower z): its pin starts the instant the ball unpins.
     <section
       ref={sectionRef}
-      className={scrub ? "relative z-0 -mt-[100vh] h-[600vh]" : "relative"}
+      className={scrub ? "relative z-0 -mt-[100vh] h-[450vh]" : "relative"}
     >
       <div
         className={`flex flex-col justify-center overflow-hidden bg-pitch-950 ${
@@ -152,9 +243,26 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
 
         {/* report, right side, revealing line by line (scrub only) */}
         {scrub && (
-          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[46%] max-w-[500px] items-center">
-            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="w-full">
-              <VariantScoreboard progress={scrollYProgress} tone="light" />
+          <div className="pointer-events-none absolute inset-y-0 right-[1.75%] flex w-[44%] max-w-[580px] items-center py-6">
+            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="relative h-full min-h-0 w-full">
+              <motion.div
+                style={{ maskImage: reportMask, WebkitMaskImage: reportMask }}
+                className="h-full min-h-0 w-full"
+              >
+                <PinFit onScale={setCardScale}>
+                  <VariantScoreboard progress={scrollYProgress} tone="light" />
+                </PinFit>
+              </motion.div>
+              {/* gold scan line riding the print edge, spanning the scaled card only */}
+              <motion.div
+                aria-hidden
+                style={{
+                  top: printEdgeTop,
+                  opacity: printEdgeOpacity,
+                  width: `${(cardScale * 100).toFixed(2)}%`,
+                }}
+                className="absolute right-0 h-[2px] bg-gold-500/50"
+              />
             </motion.div>
           </div>
         )}
@@ -196,7 +304,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.2 }}
             transition={{ duration: 0.6 }}
-            className="mx-auto w-full max-w-[460px]"
+            className="mx-auto w-full max-w-[520px]"
           >
             <VariantScoreboard compact tone="light" />
           </motion.div>

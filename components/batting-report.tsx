@@ -226,7 +226,7 @@ function noteFor(
 function makeTile(
   name: string,
   score: number,
-  notes?: { high: string; mid: string; low: string },
+  notes: { high: string; mid: string; low: string } | undefined,
 ): ScoreTile {
   return {
     name,
@@ -236,30 +236,17 @@ function makeTile(
   };
 }
 
-/** Three 0–100 bars for the mock-1 "YOUR 3 SCORES" block. */
+/**
+ * Three 0–100 bars for the mock-1 "YOUR 3 SCORES" block. The worker's own
+ * qualitative labels drive score and note together, so a tile can never say
+ * "Very good" while the focus card counts the same judgement as "needs work"
+ * — the CV consistency figures only fill slots the labels don't cover.
+ */
 function battingScoreTiles(parsed: ParsedBattingReport): ScoreTile[] {
-  const byLabel = new Map(
-    parsed.consistency.flatMap((item) =>
-      item.consistency === null ? [] : [[item.label, item.consistency] as const],
-    ),
-  );
-  const tiles = TILE_FROM_CONSISTENCY.flatMap(({ from, name, notes }) => {
-    const score = byLabel.get(from);
-    return score === undefined ? [] : [makeTile(name, score, notes)];
-  });
-  if (tiles.length >= 3) return tiles.slice(0, 3);
+  const tiles: ScoreTile[] = [];
 
-  for (const item of parsed.consistency) {
-    if (tiles.length >= 3 || item.consistency === null) continue;
-    if (TILE_FROM_CONSISTENCY.some((row) => row.from === item.label)) continue;
-    tiles.push(makeTile(item.label, item.consistency));
-  }
-  if (tiles.length >= 3) return tiles.slice(0, 3);
-
-  // Single-shot clips have no CV block — map the qualitative labels instead.
   for (const { label, name } of TILE_FROM_SHOT) {
     if (tiles.length >= 3) break;
-    if (tiles.some((row) => row.name === name)) continue;
     const values = parsed.shots.flatMap((shot) =>
       shot.metrics.flatMap((metric) => (metric.label === label ? [LABEL_SCORE[metric.value]] : [])),
     );
@@ -267,6 +254,27 @@ function battingScoreTiles(parsed: ParsedBattingReport): ScoreTile[] {
     const score = Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
     const notes = TILE_FROM_CONSISTENCY.find((row) => row.name === name)?.notes;
     tiles.push(makeTile(name, score, notes));
+  }
+  if (tiles.length >= 3) return tiles.slice(0, 3);
+
+  const byLabel = new Map(
+    parsed.consistency.flatMap((item) =>
+      item.consistency === null ? [] : [[item.label, item.consistency] as const],
+    ),
+  );
+  for (const { from, name, notes } of TILE_FROM_CONSISTENCY) {
+    if (tiles.length >= 3) break;
+    if (tiles.some((row) => row.name === name)) continue;
+    const score = byLabel.get(from);
+    if (score === undefined) continue;
+    tiles.push(makeTile(name, score, notes));
+  }
+  if (tiles.length >= 3) return tiles.slice(0, 3);
+
+  for (const item of parsed.consistency) {
+    if (tiles.length >= 3 || item.consistency === null) continue;
+    if (TILE_FROM_CONSISTENCY.some((row) => row.from === item.label)) continue;
+    tiles.push(makeTile(item.label, item.consistency, undefined));
   }
   return tiles.slice(0, 3);
 }
@@ -422,21 +430,24 @@ export function BattingReport({
             tone={tone}
           />
           <ScoreTiles tiles={tiles} tone={tone} />
-          {measurements.length > 0 && (
-            <div className="pt-4">
-              <DerivedMeasurements metrics={measurements} tone={tone} />
-            </div>
-          )}
           <SessionsChart history={history} today={score} tone={tone} />
           <FocusBlock focus={focus} nextScore={nextScoreFor(score)} tone={tone} />
+          {/* The real-units measurements (with own-range bands and the
+              last-session marker) live one tap away so the card itself keeps
+              the mock's five-beat read: hero, scores, trail, fix, stamp. */}
           <details className={`border-b ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
             <summary
               className={`cursor-pointer py-3 font-display text-sm tracking-[.08em] uppercase ${
                 dark ? "text-sage-400" : "text-ink-600"
               }`}
             >
-              Ball-by-ball detail · {shotCount} {shotCount === 1 ? "shot" : "shots"}
+              Measurements &amp; ball-by-ball · {shotCount} {shotCount === 1 ? "shot" : "shots"}
             </summary>
+            {measurements.length > 0 && (
+              <div className="pt-2 pb-1">
+                <DerivedMeasurements metrics={measurements} tone={tone} />
+              </div>
+            )}
             {shotRows}
             {consistencyBlock}
           </details>

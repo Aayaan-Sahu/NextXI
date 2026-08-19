@@ -1,37 +1,59 @@
 import { Kicker } from "@/components/ui";
 
-const TRUST_ITEMS = [
+/**
+ * Safety as product chrome: three GatePanel-shaped cells (pitch header,
+ * kicker, title, one mono fact on cream). Anatomy matches `GatePanel` /
+ * `StatusBoard` without using those primitives — they render `<h1>` and a
+ * prose description, which is wrong for three marketing cells.
+ */
+const GATES = [
   {
+    kicker: "Under 18",
     title: "Guardians see everything",
-    body: "For players under the age of 18, parents/guardians get their own account linked to their child's. They see every report and every message.",
+    fact: "Linked account · every report · every message",
   },
   {
-    title: "Coaches are verified",
-    body: "Every coach is checked and approved by us before they can contact any player.",
+    kicker: "Coaches",
+    title: "Verified before contact",
+    fact: "Admin-approved · then they can write",
   },
   {
+    kicker: "Footage",
     title: "Your videos, your call",
-    body: "Videos stay private unless the player decides otherwise.",
+    fact: "Private unless the player opens them",
   },
 ];
 
-/** Dark band for the people who actually approve a young player's signup. */
 export function TrustStrip() {
   return (
     <section className="bg-pitch-900">
       <div className="mx-auto w-full max-w-[1280px] px-6 py-16 sm:px-12 sm:py-20">
         <Kicker tone="dark">Built safe for youth cricket</Kicker>
-        <h2 className="mt-3 max-w-[24ch] font-display text-3xl leading-[1.02] font-bold text-cream-50 uppercase sm:text-4xl">
+        <h2 className="mt-3 max-w-[24ch] font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] text-cream-50 uppercase sm:text-5xl">
           The adults stay in the loop
         </h2>
-        <div className="mt-10 grid gap-9 sm:grid-cols-3">
-          {TRUST_ITEMS.map((item) => (
-            <div key={item.title}>
-              <h3 className="font-display text-xl leading-tight font-semibold text-cream-200 uppercase">
-                {item.title}
-              </h3>
-              <p className="mt-2.5 text-[14.5px] leading-relaxed text-sage-400">{item.body}</p>
-            </div>
+        <div className="mt-10 grid gap-4 sm:grid-cols-3">
+          {GATES.map((gate) => (
+            <article
+              key={gate.title}
+              className="overflow-hidden rounded-[12px] border border-cream-400 bg-cream-50"
+            >
+              <div className="relative border-b border-gold-500/40 bg-pitch-800 px-6 py-5 text-cream-200">
+                <div
+                  aria-hidden
+                  className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
+                />
+                <div className="relative">
+                  <Kicker tone="dark">{gate.kicker}</Kicker>
+                  <h3 className="mt-2 font-display text-xl leading-tight font-semibold tracking-[.02em] text-cream-50 uppercase">
+                    {gate.title}
+                  </h3>
+                </div>
+              </div>
+              <p className="px-6 py-4 font-mono text-[11px] font-semibold tracking-[.08em] text-ink-900">
+                {gate.fact}
+              </p>
+            </article>
           ))}
         </div>
       </div>

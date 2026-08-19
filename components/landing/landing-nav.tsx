@@ -13,7 +13,7 @@ export function LandingNav() {
         <Wordmark tone="dark" />
         <div className="flex items-center gap-6">
           <Link
-            className="text-sm font-semibold text-sage-400 no-underline hover:text-cream-200"
+            className="text-sm font-semibold text-cream-200 no-underline hover:text-cream-50"
             href="/auth"
           >
             Sign in

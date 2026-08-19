@@ -60,7 +60,7 @@ export function WaitlistForm({
         </button>
       </form>
       <p
-        className={`mt-3 text-[13px] text-sage-400 ${centered ? "text-center" : ""}`}
+        className={`mt-3 text-[13px] text-cream-200 ${centered ? "text-center" : ""}`}
         role="status"
       >
         {pending ? (
