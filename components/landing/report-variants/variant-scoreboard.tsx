@@ -255,7 +255,7 @@ function DeltaMark({ delta }: { delta: ScoreTile["delta"] }) {
   return (
     <span className="flex items-center gap-1.5">
       <span
-        className={`inline-flex size-[18px] items-center justify-center rounded-[4px] text-[10px] leading-none ${
+        className={`inline-flex size-[18px] items-center justify-center rounded-[4px] text-micro leading-none ${
           down ? "bg-rust-600/12" : "bg-moss-600/12"
         } ${color}`}
       >
