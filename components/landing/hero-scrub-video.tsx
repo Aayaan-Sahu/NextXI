@@ -141,10 +141,10 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             style={{ opacity: headlineOpacity, y: headlineY }}
             className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
           >
-            <h2 className="max-w-5xl font-display text-4xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 uppercase [text-shadow:0_2px_28px_rgba(23,19,16,0.85)] sm:text-6xl lg:text-8xl">
+            <h2 className="max-w-5xl font-display text-4xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 text-shadow-display uppercase sm:text-6xl lg:text-8xl">
               AI-backed scouting for young cricketers
             </h2>
-            <p className="mt-6 font-mono text-[14px] font-semibold tracking-[.14em] text-cream-100 uppercase sm:text-base">
+            <p className="mt-6 text-caption font-semibold tracking-[.16em] text-cream-200 uppercase">
               Footage · Aryaman Varma · Professional cricketer
             </p>
           </motion.div>
@@ -184,10 +184,10 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
       {!scrub && (
         <div className="bg-pitch-950 px-6 py-16 sm:px-12">
           <div className="mx-auto mb-12 max-w-[460px] text-center">
-            <h2 className="font-display text-4xl leading-[1.04] font-bold tracking-[.02em] text-cream-100 uppercase sm:text-5xl">
+            <h2 className="font-display text-4xl leading-[1.04] font-bold tracking-[.02em] text-cream-100 uppercase">
               AI-backed scouting for young cricketers
             </h2>
-            <p className="mt-4 font-mono text-[13px] font-semibold tracking-[.14em] text-cream-100 uppercase">
+            <p className="mt-4 text-caption font-semibold tracking-[.16em] text-cream-200 uppercase">
               Footage · Aryaman Varma · Professional cricketer
             </p>
           </div>

@@ -40,24 +40,24 @@ const youPts = polygon(METRICS.map((m) => consistencyOf(m.short)));
     inventing one is exactly what this report is designed not to do. */
 export function VariantRadar() {
   return (
-    <div className="rounded-[12px] bg-pitch-800 bg-[repeating-linear-gradient(0deg,transparent_0_44px,rgba(0,0,0,.10)_44px_46px)] px-6 pt-6 pb-4 text-cream-200 shadow-2xl shadow-black/45 sm:px-7">
+    <div className="rounded-[10px] bg-thumb-scanlines px-6 pt-6 pb-4 text-cream-200 sm:px-7">
       <div className="flex items-end justify-between gap-4 border-b border-cream-200/15 pb-4">
-        <div>
+        <div className="min-w-0">
           <Kicker tone="dark">Coaching report</Kicker>
-          <div className="mt-2 font-mono text-[11px] text-sage-400">{SUBTITLE}</div>
+          <div className="mt-2 text-caption text-cream-200/70">{SUBTITLE}</div>
         </div>
-        <div className="text-right">
-          <div className="font-mono text-[44px] leading-none font-semibold text-gold-500">
+        <div className="shrink-0 text-right">
+          <div className="text-figure font-semibold tabular-nums text-cream-50">
             {CONSISTENCY}
-            <span className="text-2xl">%</span>
+            <span className="text-figure-sm">%</span>
           </div>
-          <div className="mt-0.5 font-display text-[10.5px] tracking-[.18em] text-sage-400 uppercase">
+          <div className="mt-1 whitespace-nowrap text-caption text-cream-200/70">
             Consistency · {SHOTS_ANALYSED} balls
           </div>
         </div>
       </div>
 
-      <p className="py-4 text-[13.5px] leading-[1.6] text-cream-100">{SUMMARY}</p>
+      <p className="py-4 text-body text-cream-100">{SUMMARY}</p>
 
       <div className="pb-1">
         <Kicker tone="dark">Repeatability across {SHOTS_ANALYSED} balls</Kicker>
@@ -72,7 +72,7 @@ export function VariantRadar() {
               key={pct}
               points={polygon(METRICS.map(() => pct))}
               fill="none"
-              stroke="rgba(239,234,217,0.12)"
+              className="stroke-cream-200/12"
               strokeWidth={0.6}
             />
           ))}
@@ -83,13 +83,13 @@ export function VariantRadar() {
             const anchor = lx > CX + 4 ? "start" : lx < CX - 4 ? "end" : "middle";
             return (
               <g key={m.name}>
-                <line x1={CX} y1={CY} x2={ax} y2={ay} stroke="rgba(239,234,217,0.12)" strokeWidth={0.6} />
+                <line x1={CX} y1={CY} x2={ax} y2={ay} className="stroke-cream-200/12" strokeWidth={0.6} />
                 <text
                   x={lx}
                   y={ly}
                   textAnchor={anchor}
                   dominantBaseline="middle"
-                  className="fill-sage-400 font-mono"
+                  className="fill-cream-200/70"
                   style={{ fontSize: 7, letterSpacing: 0.5 }}
                 >
                   {m.short.toUpperCase()}
@@ -97,7 +97,13 @@ export function VariantRadar() {
               </g>
             );
           })}
-          <polygon points={youPts} fill="rgba(240,200,160,0.22)" stroke="#f0c8a0" strokeWidth={1.4} />
+          {/* Amber is the measured value everywhere in the system, so the
+              plotted polygon is amber — not the peach that means "act". */}
+          <polygon
+            points={youPts}
+            className="fill-amber-500/20 stroke-amber-500"
+            strokeWidth={1.4}
+          />
           {METRICS.map((m, i) => {
             const [x, y] = point(consistencyOf(m.short), i);
             return (
@@ -106,7 +112,9 @@ export function VariantRadar() {
                 cx={x}
                 cy={y}
                 r={1.6}
-                className={consistencyOf(m.short) < LOW_CONSISTENCY ? "fill-rust-500" : "fill-gold-500"}
+                className={
+                  consistencyOf(m.short) < LOW_CONSISTENCY ? "fill-rust-500" : "fill-amber-500"
+                }
               />
             );
           })}
@@ -122,14 +130,14 @@ export function VariantRadar() {
               key={m.name}
               className="flex items-baseline justify-between gap-3 border-b border-cream-200/10 py-2 last:border-b-0"
             >
-              <span className="text-[12.5px] text-cream-100">{m.name}</span>
-              <span className="flex items-baseline gap-2.5 font-mono">
-                <span className="text-[11px] text-sage-400 tabular-nums">
+              <span className="text-ui text-cream-100">{m.name}</span>
+              <span className="flex items-baseline gap-2.5">
+                <span className="text-caption tabular-nums text-cream-200/70">
                   {m.value.toFixed(m.decimals)} {m.unit}
                 </span>
                 <span
-                  className={`text-sm font-semibold tabular-nums ${
-                    consistency < LOW_CONSISTENCY ? "text-rust-500" : "text-gold-500"
+                  className={`text-ui font-semibold tabular-nums ${
+                    consistency < LOW_CONSISTENCY ? "text-rust-500" : "text-amber-500"
                   }`}
                 >
                   {consistency}%

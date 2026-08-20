@@ -33,13 +33,11 @@ colors:
   pitch-800: "#2c2620"
   pitch-700: "#38312a"
   moss-600: "#2f6b3e"
-  sage-400: "#e0b0b0"
-  vision-300: "#b5f5dc"
-  vision-500: "#7ce8bf"
-  vision-700: "#2ea77d"
 typography:
   display:
     fontFamily: "Saira Condensed, Public Sans, sans-serif"
+    # 30px in the product and in every landing band; the two pinned heroes are
+    # the one place display type runs larger.
     fontSize: "30px"
     lineHeight: 1.05
     fontWeight: 700
@@ -147,6 +145,8 @@ components:
     backgroundColor: "{colors.rust-600}"
     textColor: "{colors.cream-200}"
     height: "56px"
+shadows:
+  float: "0 24px 60px rgb(36 28 21 / 0.35)"
 ---
 
 # Design System: NextXI ("Crease")
@@ -166,14 +166,16 @@ display face for the things that name a page, and everything else in plain
 Public Sans. Nothing is decorated; the hierarchy comes from size, spacing and
 a single hairline. Voice stays *measured, floodlit, earned* (PRODUCT.md).
 
-The system runs in two registers, and they are not the same design.
+The system runs everywhere, landing page included.
 
-- **Product** (`/dashboard`, `/onboarding`, `/auth`, the info pages) is the
-  system described below: seven colors, two faces, hairlines and spacing.
-- **Brand** (the landing page, `components/landing/*`) is cinematic — full-bleed
-  tonal bands, scroll-driven scenes, the machine-vision mint, and IBM Plex Mono
-  in the analysis HUD. It keeps its own grammar deliberately and is not a
-  reference for product work.
+The landing page was a second register for a while — its own mint, its own pink,
+IBM Plex Mono in the analysis HUD, six heading sizes and seven drop shadows. It
+read as a different product to the one it was selling. Now it is the same seven
+colors, the same two faces and the same nine roles; what it keeps is **scale**.
+Full-bleed tonal bands and scroll-driven scenes are still its grammar, and the
+two pinned heroes (`ball-hero`, `hero-scrub-video`) still run display type at
+full-viewport size over video, because a marketing hero is not a page title.
+Below the fold it is the product scale, through `BandHeading` / `BandIntro`.
 
 **Key characteristics**
 - Grouping by spacing and one hairline. A card is for a genuinely raised
@@ -210,8 +212,10 @@ is the one green — a positive verdict inside a report, never UI chrome.
 for a clip with no thumbnail, `olive-950` for the player well, `olive-700` for a
 player's avatar. It exists so a clip never reads as a panel.
 
-`pitch-800`, `pitch-700`, `sage-400` and `vision-*` belong to the landing page.
-`vision-*` is the machine-vision voice and never appears in product chrome.
+`pitch-800` and `pitch-700` are the landing page's darker bands. On any dark
+ground the muted step is `cream-200` at alpha, not a separate token — the pink
+`sage-400` and the phosphor-mint `vision-*` that used to do that job read as a
+second palette and have been removed.
 
 ### Named rules
 **The Three Jobs Rule.** Amber means *measured*. Peach means *do this*. Maroon
@@ -230,8 +234,10 @@ under 60 fills maroon instead of amber. Nowhere else.
 
 **Display:** Saira Condensed (500/600/700), falling back to Public Sans.
 **Body:** Public Sans, system-ui fallback.
-**Mono:** IBM Plex Mono — the landing page's analysis HUD only. **Mono is not a
-product face.** Aligned figures come from `tabular-nums`, not a font swap.
+**Mono:** none. There is no third face and none is loaded. Aligned figures come
+from `tabular-nums`, not a font swap. The analysis HUD on the landing page was
+the last mono holdout — it was set entirely in Plex Mono over pure white, which
+is why the overlay read as a different design bolted onto the page.
 
 ### The scale
 
@@ -290,8 +296,13 @@ dark panel — plus the one hairline.
 - **DarkPanel / dark headers** (`pitch-900`): the report header, the latest-report
   scoreboard, the guardian code, the admin bar, dialog eyebrows. Flat ink, no
   texture — texture belongs to video, not chrome.
-- **Shadows**: only on things that float — the confirm dialog and the auth sheet.
-  A resting card never has one.
+- **Shadows**: one token, `shadow-float` (`0 24px 60px` in ink at 35%), and it
+  goes only on things that genuinely float — the confirm dialog, the auth sheet,
+  a video modal, the report card riding the pinned hero footage. A resting card
+  never has one. Cast in ink, never black: pitch is the darkest material in the
+  system, and a black shadow on cream reads grey-blue. There were seven
+  hand-rolled recipes before this token existed, four of them the same intent at
+  four different opacities.
 
 ## 5. Components
 
@@ -348,8 +359,11 @@ external band (published or elite). The ink rule is the player. A metric with no
 defensible reference says so and shows the measurement alone.
 
 The data model, the parsing, and the honesty rules about references live in
-`components/measured-metric.tsx`, shared with the landing demo so the two can
-never disagree about what a measurement means. Only the drawing differs.
+`components/measured-metric.tsx`, which draws nothing. The drawing does not
+differ either: `ReportMetricRow` renders every measurement on every surface —
+`tone="dark"` for the dark format variants, `compact` for the pinned hero card —
+so the report in the marketing scroll is literally the component the dashboard
+ships. Two renderers is what let them drift in the first place.
 
 ### Meters
 `Meter`: a 4px `cream-350` track with an amber fill, maroon when the value is
@@ -402,18 +416,19 @@ card grid — in `cream-350`. Spinners live only inside pending buttons.
 - **Do** guard scroll-driven and infinite animation with `prefers-reduced-motion`.
 
 ### Don't
-- **Don't** use mono in the product. Use `tabular-nums` for aligned figures.
+- **Don't** use mono. There is no mono font loaded. Use `tabular-nums`.
 - **Don't** nest cards. If something is inside a Panel and wants its own Panel,
   it wants a section head and some spacing.
 - **Don't** draw a meter for a value nobody measured.
 - **Don't** add a third Saira Condensed size, a second accent colour, or a
   second rule weight.
-- **Don't** hard-code palette hexes in components. Known debts, all on the
+- **Don't** hard-code palette hexes in components. Known debts, both on the
   landing page: the leather-red vignette gradient (`#2c0b0b` family) in
   `ball-hero.tsx` and twice in `hero-scrub-video.tsx`, and the `#f0c8a0`
   pointLight in `ball-canvas.tsx`. Tokenize before reusing.
-- **Don't** use `vision-*`, `sage-400` or `pitch-800` in product chrome — those
-  belong to the landing register.
+- **Don't** use pure white. `cream-50` is the lightest value in the system, and
+  white next to cream reads cold and blue.
+- **Don't** add a second drop shadow. It is `shadow-float` or nothing.
 - **Don't** use pure black. Pitch and olive are the darkest materials.
 - **Don't** fake precision: demo numbers must be plausible and clearly staged
   (PRODUCT.md).

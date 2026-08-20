@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { IBM_Plex_Mono, Public_Sans, Saira_Condensed } from "next/font/google";
+import { Public_Sans, Saira_Condensed } from "next/font/google";
 import { SkipLink } from "@/components/skip-link";
 import "./globals.css";
 
@@ -12,12 +12,6 @@ const sairaCondensed = Saira_Condensed({
   subsets: ["latin"],
   variable: "--font-saira-condensed",
   weight: ["500", "600", "700"],
-});
-
-const plexMono = IBM_Plex_Mono({
-  subsets: ["latin"],
-  variable: "--font-plex-mono",
-  weight: ["500", "600"],
 });
 
 export const metadata: Metadata = {
@@ -51,7 +45,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`h-full antialiased ${publicSans.variable} ${sairaCondensed.variable} ${plexMono.variable}`}
+      className={`h-full antialiased ${publicSans.variable} ${sairaCondensed.variable}`}
     >
       <body className="flex min-h-dvh flex-col bg-cream-200 font-sans text-ink-900">
         <SkipLink />

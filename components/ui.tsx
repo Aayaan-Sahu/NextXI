@@ -165,7 +165,7 @@ export function AuthCard({
   title: string;
 }) {
   return (
-    <section className="relative w-full overflow-hidden rounded-[10px] bg-cream-200 text-ink-900 shadow-2xl shadow-black/25 md:bg-transparent md:shadow-none">
+    <section className="relative w-full overflow-hidden rounded-[10px] bg-cream-200 text-ink-900 shadow-float md:bg-transparent md:shadow-none">
       <div className="p-8 sm:p-9">
         {step && <AuthStepper current={step} />}
         <PageTitle>{title}</PageTitle>
@@ -214,7 +214,7 @@ export function AuthSheet({
         className={`w-full ${wide ? "max-w-[700px]" : "max-w-[460px]"}`}
         variant="form"
       >
-        <section className="overflow-hidden rounded-[10px] bg-cream-200 text-ink-900 shadow-[0_24px_60px_rgba(0,0,0,.12)]">
+        <section className="overflow-hidden rounded-[10px] bg-cream-200 text-ink-900 shadow-float">
           <div
             className={`flex items-center justify-between gap-4 bg-rust-600 py-4 ${wide ? "px-8" : "px-7"}`}
           >
@@ -710,7 +710,7 @@ export function ConfirmDialog({
           type="button"
         />
       ) : null}
-      <div className="relative w-full max-w-[420px] overflow-hidden rounded-lg border border-cream-400 bg-cream-200 shadow-[0_24px_60px_rgba(0,0,0,.35)]">
+      <div className="relative w-full max-w-[420px] overflow-hidden rounded-lg border border-cream-400 bg-cream-200 shadow-float">
         <div className="px-[22px] py-5">
           <h2 className="font-display text-title leading-tight font-bold tracking-[.02em] uppercase">
             {title}

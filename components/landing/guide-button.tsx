@@ -22,7 +22,7 @@ export function GuideButton() {
   return (
     <>
       <button
-        className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500"
+        className="mt-4 inline-flex cursor-pointer items-center gap-2 rounded-md bg-gold-500 px-4 py-2.5 text-ui font-semibold text-ink-900 hover:bg-gold-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
         onClick={() => setOpen(true)}
         type="button"
       >
@@ -38,7 +38,7 @@ export function GuideButton() {
           {/* muted: the guide has no audio track, and browsers only autoplay muted video */}
           <video
             autoPlay
-            className="w-full max-w-[960px] rounded-[10px] border border-cream-400 bg-white shadow-2xl shadow-black/40"
+            className="w-full max-w-[960px] rounded-[10px] border border-cream-400 bg-olive-950 shadow-float"
             controls
             muted
             onClick={(event) => event.stopPropagation()}

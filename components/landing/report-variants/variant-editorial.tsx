@@ -1,7 +1,7 @@
 "use client";
 
 import { motion, useTransform, type MotionValue } from "motion/react";
-import { MeasuredMetricRow, MeasurementsIntro } from "@/components/measured-metric";
+import { MeasurementsIntro, ReportMetricRow } from "@/components/report-metric";
 import { Kicker } from "@/components/ui";
 import {
   CONSISTENCY,
@@ -62,10 +62,12 @@ function RevealBox({
   );
 }
 
-/** Variant C — light "printed report" with measured metric rows. When a
-    `progress` MotionValue is passed (the pinned hero split), it reveals line by
-    line and runs a compact layout that fits a pinned viewport; without it (the
-    standalone /report-preview) it renders the full static card. */
+/** Variant C — the printed report, and the one that ships: a `cream-50` panel
+    with the product's own measurement rows, so the card in the marketing hero
+    is the same object the dashboard renders. When a `progress` MotionValue is
+    passed (the pinned hero split) it reveals line by line and runs the compact
+    layout that fits a pinned viewport; without it (the standalone
+    /report-preview) it renders the full static card. */
 export function VariantEditorial({ progress }: { progress?: MotionValue<number> } = {}) {
   const compact = !!progress;
   // 8 reveal blocks (header, summary, metrics kicker, 3 rows, focus, coach)
@@ -82,29 +84,31 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
   const metrics = compact ? METRICS.slice(0, 3) : METRICS;
 
   return (
+    // Shadow only in the pinned hero, where the card genuinely floats over the
+    // footage. On /report-preview it is a resting card, and a resting card
+    // never has one.
     <div
-      className={`rounded-[12px] border border-cream-400 bg-white px-6 text-ink-900 shadow-2xl shadow-black/30 sm:px-7 ${
-        compact ? "pt-5 pb-3" : "pt-6 pb-4"
+      className={`rounded-[10px] border border-cream-400 bg-cream-50 px-6 text-ink-900 sm:px-7 ${
+        compact ? "pt-5 pb-3 shadow-float" : "pt-6 pb-4"
       }`}
     >
       <Reveal
         progress={progress}
         {...w(0)}
-        className={`flex items-end justify-between gap-4 border-b border-cream-300 ${compact ? "pb-3" : "pb-4"}`}
+        className={`flex items-end justify-between gap-4 border-b border-cream-400 ${compact ? "pb-3" : "pb-4"}`}
       >
-        <div>
+        <div className="min-w-0">
           <Kicker>Coaching report</Kicker>
-          <div className="mt-2 font-mono text-[11px] text-ink-600">{SUBTITLE}</div>
+          <div className="mt-2 text-caption text-ink-600">{SUBTITLE}</div>
         </div>
-        <div className="text-right">
-          {/* Same size as ReportPanel's light tone (text-4xl); the dark
-              variants and the product's dark tone both use the 44px scoreboard
-              figure. Marketing must not drift from the real component. */}
-          <div className="font-mono text-4xl leading-none font-semibold text-ink-900">
+        {/* shrink-0 + nowrap: the figure's caption is a single fact and must
+            never break across two lines beside a 28px number. */}
+        <div className="shrink-0 text-right">
+          <div className="text-figure font-semibold tabular-nums text-ink-900">
             {CONSISTENCY}
-            <span className="text-2xl">%</span>
+            <span className="text-figure-sm">%</span>
           </div>
-          <div className="mt-0.5 font-display text-[10px] tracking-[.18em] text-ink-600 uppercase">
+          <div className="mt-1 whitespace-nowrap text-caption text-ink-600">
             Consistency · {SHOTS_ANALYSED} balls
           </div>
         </div>
@@ -113,18 +117,18 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
       <Reveal
         progress={progress}
         {...w(1)}
-        className={`border-b border-cream-300 text-[13px] leading-[1.5] text-ink-900 ${
+        className={`border-b border-cream-400 text-body text-ink-800 ${
           compact ? "py-2.5" : "py-3.5"
         }`}
       >
         {compact ? SUMMARY_SHORT : SUMMARY}
       </Reveal>
 
-      <div className={compact ? "pt-2.5" : "pt-3.5"}>
+      <div className={compact ? "pt-3" : "pt-4"}>
         <Reveal progress={progress} {...w(2)}>
-          <MeasurementsIntro tone="light" compact={compact} />
+          <MeasurementsIntro compact={compact} />
         </Reveal>
-        <div className="mt-1">
+        <div className="mt-2">
           {metrics.map((metric, i) => (
             <Reveal
               key={metric.name}
@@ -137,7 +141,7 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
               // than letting the card overflow.
               className={compact && i === 2 ? "[@media(max-height:760px)]:hidden" : undefined}
             >
-              <MeasuredMetricRow metric={metric} tone="light" compact={compact} />
+              <ReportMetricRow metric={metric} compact={compact} />
             </Reveal>
           ))}
         </div>
@@ -145,21 +149,20 @@ export function VariantEditorial({ progress }: { progress?: MotionValue<number> 
 
       {compact ? (
         <>
-          <Reveal progress={progress} {...w(6)} className="pt-3">
+          <Reveal progress={progress} {...w(6)} className="pt-4">
             <Kicker>Focus area</Kicker>
-            <p className="mt-2 text-[12.5px] leading-[1.5] text-ink-900">{WEAKEST_SHORT}</p>
-            <div className="mt-2 rounded-md border border-gold-500/40 bg-gold-500/12 px-3 py-2">
-              <div className="font-mono text-[10px] font-semibold tracking-[.2em] text-gold-600 uppercase">
-                Recommended drill
-              </div>
-              <p className="mt-1 text-[12.5px] leading-snug text-ink-900">{DRILL}</p>
+            <p className="mt-2 text-ui text-ink-800">{WEAKEST_SHORT}</p>
+            {/* The info flash: a left rule and a tinted ground, per Notice. */}
+            <div className="mt-2.5 border-l-2 border-amber-500 bg-cream-250 px-3 py-2">
+              <div className="text-caption font-semibold text-ink-900">Recommended drill</div>
+              <p className="mt-1 text-caption text-ink-800">{DRILL}</p>
             </div>
           </Reveal>
-          <Reveal progress={progress} {...w(7)} className="flex items-start gap-3 pt-3.5 pb-1">
-            <span className="mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-full bg-vision-700/15 text-sm text-vision-700">
+          <Reveal progress={progress} {...w(7)} className="flex items-start gap-2.5 pt-4 pb-1">
+            <span className="mt-px text-ui text-moss-600" aria-hidden>
               ✓
             </span>
-            <div className="font-display text-[12.5px] font-semibold tracking-[.06em] text-ink-900 uppercase">
+            <div className="text-ui font-semibold text-ink-900">
               Reviewed &amp; signed off · ECB Level 3 coach
             </div>
           </Reveal>

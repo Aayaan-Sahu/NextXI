@@ -1,3 +1,4 @@
+import { BandHeading, BandIntro } from "@/components/landing/landing-ui";
 import { Kicker } from "@/components/ui";
 
 /**
@@ -42,14 +43,14 @@ export function TheWall() {
       <div className="mx-auto w-full max-w-[1200px]">
         <header className="mb-12 text-center">
           <Kicker tone="dark">Noticed through NextXI</Kicker>
-          <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] text-cream-50 uppercase sm:text-5xl">
+          <BandHeading tone="dark" className="mt-3">
             The wall
-          </h2>
-          <p className="mx-auto mt-4 max-w-[52ch] text-[15px] leading-relaxed text-sage-400">
+          </BandHeading>
+          <BandIntro tone="dark" className="mx-auto mt-4 max-w-[52ch]">
             Players who get a trial, a coach, or a call-up through this platform
             can land here — when they and their guardian want that story told.
             Every story is real. There&apos;s room for yours.
-          </p>
+          </BandIntro>
         </header>
 
         <div className="grid gap-4 sm:grid-cols-3">
@@ -59,27 +60,21 @@ export function TheWall() {
           {ENTRIES.map((entry, i) => (
             <div
               key={i}
-              className="relative overflow-hidden rounded-[12px] bg-pitch-800 p-6"
+              className="relative overflow-hidden rounded-[10px] bg-pitch-800 p-6"
             >
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
               />
               <div className="relative">
-                <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
-                  Noticed
-                </span>
-                <h3 className="mt-2 font-display text-xl leading-tight font-semibold text-cream-200 uppercase">
+                <Kicker tone="dark">Noticed</Kicker>
+                <h3 className="mt-2 font-display text-title font-semibold text-cream-50 uppercase">
                   {entry.name}
                 </h3>
                 {entry.detail && (
-                  <p className="mt-1 font-mono text-[11px] tracking-[.08em] text-sage-400">
-                    {entry.detail}
-                  </p>
+                  <p className="mt-1 text-caption text-cream-200/70">{entry.detail}</p>
                 )}
-                <p className="mt-3 text-sm leading-relaxed text-cream-200/85">
-                  {entry.outcome}
-                </p>
+                <p className="mt-3 text-ui text-cream-200">{entry.outcome}</p>
               </div>
             </div>
           ))}
@@ -87,20 +82,20 @@ export function TheWall() {
           {PLACEHOLDERS.slice(ENTRIES.length).map((slot, i) => (
             <div
               key={slot.big}
-              className="relative flex min-h-36 flex-col justify-between overflow-hidden rounded-[12px] bg-pitch-800 p-6"
+              className="relative flex min-h-36 flex-col justify-between overflow-hidden rounded-[10px] bg-pitch-800 p-6"
             >
               <div
                 aria-hidden
                 className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
               />
-              <span className="relative font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500/70 uppercase">
+              <span className="relative text-caption font-semibold tracking-[.16em] text-amber-500/70 uppercase tabular-nums">
                 {String(ENTRIES.length + i + 1).padStart(2, "0")}
               </span>
               <div className="relative">
-                <span className="font-display text-xl leading-tight font-semibold text-cream-200/55 uppercase">
+                <span className="font-display text-title font-semibold text-cream-200/55 uppercase">
                   {slot.big}
                 </span>
-                <span className="mt-1.5 block font-mono text-[11px] font-semibold tracking-[.2em] text-gold-500 uppercase">
+                <span className="mt-1.5 block text-caption font-semibold tracking-[.16em] text-amber-500 uppercase">
                   {slot.small}
                 </span>
               </div>
@@ -108,7 +103,7 @@ export function TheWall() {
           ))}
         </div>
 
-        <p className="mx-auto mt-8 max-w-[64ch] text-center font-mono text-[11px] leading-relaxed tracking-[.06em] text-sage-400">
+        <p className="mx-auto mt-8 max-w-[64ch] text-center text-caption text-cream-200/70">
           Nothing on this wall is ever invented. Every story is a real player,
           shared with their guardian&apos;s permission — first name and initial
           only.

@@ -5,7 +5,7 @@ import { motion } from "motion/react";
 /** Shared card frame so all three step animations sit in matching panels. */
 function AnimationPanel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="relative flex h-64 w-full items-center justify-center overflow-hidden rounded-[10px] border border-cream-400 bg-white">
+    <div className="relative flex h-64 w-full items-center justify-center overflow-hidden rounded-[10px] border border-cream-400 bg-cream-50">
       {children}
     </div>
   );
@@ -20,7 +20,7 @@ export function UploadAnimation() {
           <motion.span
             animate={{ y: [4, -4, 4] }}
             transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
-            className="font-display text-2xl font-bold text-rust-600"
+            className="font-display text-title font-bold text-rust-600"
           >
             ↑
           </motion.span>
@@ -36,10 +36,10 @@ export function UploadAnimation() {
           }}
           className="flex items-center gap-2 rounded-md bg-pitch-900 px-3 py-2"
         >
-          <span className="flex size-5 items-center justify-center rounded-full bg-gold-500 text-[9px] text-pitch-900">
+          <span className="flex size-5 items-center justify-center rounded-full bg-amber-500 text-micro text-ink-900">
             ▶
           </span>
-          <span className="font-mono text-[10px] font-semibold tracking-[.15em] text-cream-200 uppercase">
+          <span className="text-micro font-semibold tracking-[.16em] text-cream-200 uppercase">
             over-14.mp4
           </span>
         </motion.div>
@@ -160,14 +160,14 @@ export function ConnectAnimation() {
           <motion.div
             animate={{ opacity: [1, 1, 0, 0, 1] }}
             transition={{ duration: cycle, times: [0, 0.5, 0.55, 0.95, 1], repeat: Infinity }}
-            className="rounded-md bg-rust-600 py-2 text-center text-xs font-bold text-cream-50"
+            className="rounded-md bg-rust-600 py-2 text-center text-caption font-semibold text-cream-50"
           >
             Connect
           </motion.div>
           <motion.div
             animate={{ opacity: [0, 0, 1, 1, 0] }}
             transition={{ duration: cycle, times: [0, 0.5, 0.55, 0.95, 1], repeat: Infinity }}
-            className="absolute inset-0 rounded-md bg-gold-500 py-2 text-center text-xs font-bold text-pitch-900"
+            className="absolute inset-0 rounded-md bg-gold-500 py-2 text-center text-caption font-semibold text-ink-900"
           >
             Connected ✓
           </motion.div>

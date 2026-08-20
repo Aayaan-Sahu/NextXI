@@ -34,7 +34,7 @@ export function InfoPage({
             <Wordmark tone="dark" />
           </Link>
           <Link
-            className="text-[13.5px] font-semibold text-gold-500 no-underline hover:text-cream-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
+            className="text-ui font-semibold text-cream-200/70 no-underline hover:text-cream-50 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500"
             href="/"
           >
             ← Back to NextXI
@@ -48,16 +48,16 @@ export function InfoPage({
         <div className="flex flex-wrap items-center gap-x-3.5 gap-y-2">
           <Kicker>{eyebrow}</Kicker>
           {status ? (
-            <span className="rounded-full bg-cream-250 px-2.5 py-[3px] text-xs font-semibold text-ink-600">
+            <span className="rounded-full bg-cream-250 px-2.5 py-[3px] text-micro font-semibold text-ink-600">
               {status}
             </span>
           ) : null}
         </div>
-        <h1 className="mt-4 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-[38px]">
+        <h1 className="mt-4 font-display text-display font-bold tracking-[.02em] uppercase">
           {title}
         </h1>
         {intro && (
-          <p className="mt-4 text-base leading-relaxed text-pretty text-ink-800">{intro}</p>
+          <p className="mt-4 text-lead text-pretty text-ink-800">{intro}</p>
         )}
         <div className="mt-8 grid gap-8">{children}</div>
       </main>
@@ -69,10 +69,10 @@ export function InfoPage({
 export function InfoSection({ title, children }: { title: string; children: ReactNode }) {
   return (
     <section>
-      <h2 className="font-display text-[17px] leading-tight font-semibold tracking-[.08em] uppercase">
+      <h2 className="font-display text-body font-semibold tracking-[.08em] uppercase">
         {title}
       </h2>
-      <div className="mt-3 grid gap-3 text-[15px] leading-[1.75] text-pretty text-ink-800">
+      <div className="mt-3 grid gap-3 text-body text-pretty text-ink-800">
         {children}
       </div>
     </section>

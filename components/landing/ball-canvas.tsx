@@ -6,16 +6,37 @@ import { useGLTF } from "@react-three/drei";
 import type { MotionValue } from "motion/react";
 import { Box3, Vector3, type Group } from "three";
 
+/**
+ * Meshopt-compressed. The source model was a 1.89 MB Sketchfab export whose
+ * seam stitching alone was 104k triangles — it landed seconds after the rest
+ * of the hero and popped in. Reproduce with:
+ *
+ *   gltf-transform weld     in.glb welded.glb
+ *   gltf-transform simplify welded.glb s.glb --ratio 0.35 --error 0.0005
+ *   gltf-transform meshopt  s.glb cricket-ball.glb
+ *
+ * 1.89 MB → 528 KB, with 0.6% of rendered pixels differing from the original.
+ * The uncompressed source is in git history if it ever needs redoing.
+ */
 const BALL_MODEL = "/cricket-ball.glb";
+
+// Draco off, meshopt on. drei bundles the meshopt decoder locally but points
+// DRACOLoader at a gstatic CDN, and the file carries no Draco — so leaving it
+// enabled only risks an off-site request for nothing. Must match `preload`.
+const USE_DRACO = false;
+const USE_MESHOPT = true;
 
 type BallProps = {
   progress: MotionValue<number>;
   reduced: boolean;
+  /** Fires once the model has decoded *and* its first frame is on screen, so
+      the hero can fade the ball in rather than letting it appear mid-scene. */
+  onReady?: () => void;
 };
 
-function CricketBall({ progress, reduced }: BallProps) {
+function CricketBall({ progress, reduced, onReady }: BallProps) {
   const group = useRef<Group>(null);
-  const { scene } = useGLTF(BALL_MODEL);
+  const { scene } = useGLTF(BALL_MODEL, USE_DRACO, USE_MESHOPT);
   const invalidate = useThree((state) => state.invalidate);
 
   // Demand-driven frameloop: render only when scroll moves the ball (plus one
@@ -25,6 +46,22 @@ function CricketBall({ progress, reduced }: BallProps) {
     invalidate();
     return progress.on("change", () => invalidate());
   }, [progress, invalidate]);
+
+  // This component only mounts once useGLTF has resolved, so reaching here
+  // means the geometry exists. Two rAFs then guarantee the demand-loop frame
+  // requested above has actually painted — announcing readiness any earlier
+  // fades in a canvas that is still blank.
+  useEffect(() => {
+    if (!onReady) return;
+    let second = 0;
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(onReady);
+    });
+    return () => {
+      cancelAnimationFrame(first);
+      cancelAnimationFrame(second);
+    };
+  }, [onReady]);
 
   // Normalize whatever size/origin the model ships with to a centered,
   // radius-1 ball so the scroll-driven scale below stays predictable.
@@ -55,7 +92,7 @@ function CricketBall({ progress, reduced }: BallProps) {
   );
 }
 
-useGLTF.preload(BALL_MODEL);
+useGLTF.preload(BALL_MODEL, USE_DRACO, USE_MESHOPT);
 
 export default function BallCanvas(props: BallProps) {
   return (

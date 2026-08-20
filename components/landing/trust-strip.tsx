@@ -1,3 +1,4 @@
+import { BandHeading } from "@/components/landing/landing-ui";
 import { Kicker } from "@/components/ui";
 
 const TRUST_ITEMS = [
@@ -21,16 +22,16 @@ export function TrustStrip() {
     <section className="bg-pitch-900">
       <div className="mx-auto w-full max-w-[1280px] px-6 py-16 sm:px-12 sm:py-20">
         <Kicker tone="dark">Built safe for youth cricket</Kicker>
-        <h2 className="mt-3 max-w-[24ch] font-display text-3xl leading-[1.02] font-bold text-cream-50 uppercase sm:text-4xl">
+        <BandHeading tone="dark" className="mt-3 max-w-[24ch]">
           The adults stay in the loop
-        </h2>
+        </BandHeading>
         <div className="mt-10 grid gap-9 sm:grid-cols-3">
           {TRUST_ITEMS.map((item) => (
             <div key={item.title}>
-              <h3 className="font-display text-xl leading-tight font-semibold text-cream-200 uppercase">
+              <h3 className="font-display text-title font-semibold text-cream-50 uppercase">
                 {item.title}
               </h3>
-              <p className="mt-2.5 text-[14.5px] leading-relaxed text-sage-400">{item.body}</p>
+              <p className="mt-2.5 text-ui text-cream-200/80">{item.body}</p>
             </div>
           ))}
         </div>

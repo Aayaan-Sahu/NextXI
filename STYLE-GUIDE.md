@@ -18,10 +18,11 @@ almost always a token that already exists.
 | --- | --- | --- |
 | Colour, type scale, fonts, textures | `app/globals.css` → `@theme` | The only place a colour or a font size is defined. |
 | Shared primitives | `components/ui.tsx` | Buttons, fields, headings, chips, dialogs, shells. Build from these. |
-| Report rendering | `components/report-panel.tsx`, `report-metric.tsx` | The signature surface. |
-| Report data model + honesty rules | `components/measured-metric.tsx` | Shared with the landing page. Types and parsing only — do not draw with its renderers in the product. |
+| Report rendering | `components/report-panel.tsx`, `report-metric.tsx` | The signature surface. `ReportMetricRow` is the **only** metric renderer — `tone` covers dark surfaces, `compact` covers the pinned hero. |
+| Report data model + honesty rules | `components/measured-metric.tsx` | Types, parsing and the reference rules. No JSX — it draws nothing. |
 | Art direction and rationale | `DESIGN.md` | Why the system is shaped this way. |
-| Landing page | `components/landing/*` | **A different register.** Not a reference for product work. |
+| Landing page | `components/landing/*` | Same system, larger scale in the two pinned heroes. See §2. |
+| Landing band type | `components/landing/landing-ui.tsx` | `BandHeading` / `BandIntro` — the only section-head sizes on the landing page. |
 
 Tailwind is configured entirely through `@theme` in `app/globals.css`. There is
 no `tailwind.config.js` and no separate CSS file — Tailwind v4 reads the theme
@@ -29,16 +30,25 @@ from CSS. Style with utility classes only.
 
 ---
 
-## 2. Two registers, and they are not the same design
+## 2. One system, including the landing page
 
-- **Product** — `/dashboard`, `/onboarding`, `/auth`, the info pages. Quiet,
-  dense, information-first. Everything in this guide applies.
-- **Brand** — the landing page. Cinematic: full-bleed tonal bands, scroll-driven
-  scenes, the machine-vision mint, IBM Plex Mono in the analysis HUD. It keeps
-  its own grammar deliberately.
+There used to be two registers here, and the landing page was exempt from this
+guide. It isn't any more. The landing page uses the same nine type roles, the
+same seven colours, the same radii and the same two shadows as the product.
 
-Do not copy landing patterns into the product, and do not "fix" the landing to
-match the product. If you are changing shared code, check both.
+What the landing page still gets is **scale, and only scale**: the two pinned
+heroes (`ball-hero`, `hero-scrub-video`) run display type at full-viewport size
+over video, because a marketing hero is not a page title. Everything below the
+fold — band headings, card headings, body, captions — is the product scale, and
+goes through `BandHeading` / `BandIntro` in `components/landing/landing-ui.tsx`
+so a new band cannot invent a seventh heading size.
+
+What it does **not** get: a second font, a second palette, its own radii, or its
+own shadow. IBM Plex Mono is no longer loaded at all. The phosphor-mint
+`vision-*` family and the pink `sage-400` are gone from the theme.
+
+If you are changing shared code, check both surfaces — they now look alike, so a
+regression on one is a regression on both.
 
 ---
 
@@ -59,9 +69,9 @@ Nine roles. Every piece of text in the product is one of them. There is no
 | `text-figure` | 28 / 1 | a measured number |
 | `text-figure-sm` | 20 / 1 | a measured number inside a row |
 
-**Two faces.** Saira Condensed (`font-display`) names pages and sections.
-Public Sans carries everything else. IBM Plex Mono is loaded for the landing
-HUD and is **not a product face** — aligned figures use `tabular-nums`.
+**Two faces, and only two.** Saira Condensed (`font-display`) names pages and
+sections. Public Sans carries everything else. There is no mono anywhere in the
+codebase and none is loaded — aligned figures use `tabular-nums`.
 
 **Emphasis comes from weight and colour, not another size.** A field label and a
 caption are both 13px; the label is semibold ink, the caption is regular
@@ -109,8 +119,12 @@ secondary buttons, `cream-350` skeletons, `cream-450` benchmark bands,
 `rust-800` copy. `moss-600` is the one green — a positive verdict in a report.
 
 `olive-*` is the video family (clip placeholders, the player well, a player's
-avatar) so a clip never reads as a panel. `pitch-800`, `pitch-700`, `sage-400`
-and `vision-*` belong to the landing page only.
+avatar) so a clip never reads as a panel. `pitch-800` and `pitch-700` are the
+landing page's darker bands.
+
+On a dark ground the muted step is `cream-200` at alpha (`/70`, `/80`), not a
+separate token. `sage-400` and `vision-*` used to fill that job and both read as
+a different palette; they no longer exist.
 
 ### Rules
 
@@ -220,7 +234,9 @@ Then check the work against this list:
 
 - [ ] Every text size is one of the nine roles. Grep your diff for
       `text-[` — the only legitimate hit is a wordmark or the guardian-code hero.
-- [ ] No `font-mono` outside `components/landing/`.
+- [ ] No `font-mono` anywhere — the font is not loaded and `--font-mono` is gone.
+- [ ] No `bg-white`, `text-white` or `stroke-white`. Cream is the lightest value.
+- [ ] Drop shadows are `shadow-float` or nothing. A resting card has none.
 - [ ] No hex codes or `rgb()` in components; colours come from tokens.
 - [ ] Tracked uppercase only via `SectionHeading` or `Kicker`, and no `Kicker`
       sitting above an `h1` that repeats it.
@@ -228,7 +244,8 @@ Then check the work against this list:
 - [ ] New grid tracks use `minmax(0,1fr)`.
 - [ ] Any new card earns its container — spacing alone was not enough.
 - [ ] Any new sentence tells the user something they could not infer.
-- [ ] The landing page still looks the same if you touched shared code.
+- [ ] Section headings on the landing page go through `BandHeading`, and only
+      the two pinned heroes carry display type above `text-display`.
 
 The standard is not "does this look polished". It is **does every decision make
 sense for this information and this product** — and a polished interface is one

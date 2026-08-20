@@ -1,3 +1,4 @@
+import { BandHeading } from "@/components/landing/landing-ui";
 import { Kicker } from "@/components/ui";
 
 // The end-to-end journey, in order: a session becomes a report, a report earns
@@ -35,9 +36,7 @@ export function MoreFeatures() {
       <div className="mx-auto w-full max-w-[1200px]">
         <header className="mb-14 text-center">
           <Kicker>One platform</Kicker>
-          <h2 className="mt-3 font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-5xl">
-            End-to-end provider
-          </h2>
+          <BandHeading className="mt-3">End-to-end provider</BandHeading>
         </header>
 
         <div className="flex flex-col items-stretch gap-4 lg:flex-row">
@@ -47,27 +46,25 @@ export function MoreFeatures() {
               <div key={step.step} className="contents">
                 <div
                   className={`flex-1 rounded-[10px] p-6 ${
-                    destination ? "bg-pitch-900" : "border border-cream-400 bg-white"
+                    destination ? "bg-pitch-900" : "border border-cream-400 bg-cream-50"
                   }`}
                 >
                   <span
-                    className={`font-mono text-[11px] font-semibold tracking-[.2em] ${
-                      destination ? "text-gold-500" : "text-rust-600"
+                    className={`text-caption font-semibold tracking-[.16em] tabular-nums ${
+                      destination ? "text-amber-500" : "text-rust-600"
                     }`}
                   >
                     {step.step}
                   </span>
                   <h3
-                    className={`mt-2 font-display text-lg leading-tight font-semibold uppercase ${
-                      destination ? "text-cream-50" : ""
+                    className={`mt-2 font-display text-title font-semibold uppercase ${
+                      destination ? "text-cream-50" : "text-ink-900"
                     }`}
                   >
                     {step.title}
                   </h3>
                   <p
-                    className={`mt-2 text-sm leading-relaxed ${
-                      destination ? "text-sage-400" : "text-ink-600"
-                    }`}
+                    className={`mt-2 text-ui ${destination ? "text-cream-200" : "text-ink-600"}`}
                   >
                     {step.body}
                   </p>
@@ -75,7 +72,7 @@ export function MoreFeatures() {
                 {i < STEPS.length - 1 && (
                   <span
                     aria-hidden
-                    className="self-center font-mono text-2xl text-rust-600/50 max-lg:rotate-90"
+                    className="self-center text-title text-cream-500 max-lg:rotate-90"
                   >
                     →
                   </span>

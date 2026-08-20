@@ -26,12 +26,12 @@ export function WaitlistForm({
   if (status === "joined") {
     return (
       <div
-        className={`w-full max-w-[460px] rounded-md border border-gold-500/40 bg-pitch-950/40 px-4 py-3.5 text-sm text-cream-200 ${
+        className={`w-full max-w-[460px] border-l-2 border-amber-500 bg-pitch-950/40 px-4 py-3.5 text-ui text-cream-200 ${
           centered ? "mx-auto text-center" : ""
         }`}
         role="status"
       >
-        <span className="font-bold text-gold-500">You&apos;re on the list.</span>{" "}
+        <span className="font-semibold text-cream-50">You&apos;re on the list.</span>{" "}
         We&apos;ll email when there&apos;s news — no spam.
       </div>
     );
@@ -44,7 +44,7 @@ export function WaitlistForm({
           key={invalidEmail ?? "email"}
           aria-label="Email address"
           autoComplete="email"
-          className="min-w-0 flex-1 rounded-md bg-cream-50 px-4 py-3 text-sm text-ink-900 placeholder:text-ink-600 focus:ring-2 focus:ring-gold-500/60 focus:outline-none"
+          className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-base text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/60 focus:outline-none sm:pointer-fine:text-body"
           defaultValue={invalidEmail}
           name="email"
           placeholder="you@email.com"
@@ -52,7 +52,7 @@ export function WaitlistForm({
           type="email"
         />
         <button
-          className="min-w-[9.5rem] cursor-pointer rounded-md bg-pitch-950 px-5 py-3 text-sm font-bold whitespace-nowrap text-gold-500 hover:bg-pitch-900 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-gold-500 disabled:cursor-default disabled:opacity-70"
+          className="min-w-[9.5rem] cursor-pointer rounded-md bg-gold-500 px-5 py-2.5 text-ui font-semibold whitespace-nowrap text-ink-900 hover:bg-gold-600 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-amber-500 disabled:cursor-default disabled:bg-cream-350 disabled:text-ink-400"
           disabled={pending}
           type="submit"
         >
@@ -60,13 +60,13 @@ export function WaitlistForm({
         </button>
       </form>
       <p
-        className={`mt-3 text-[13px] text-sage-400 ${centered ? "text-center" : ""}`}
+        className={`mt-3 text-caption text-cream-200/70 ${centered ? "text-center" : ""}`}
         role="status"
       >
         {pending ? (
           "Adding you to the list…"
         ) : status === "invalid" ? (
-          <span className="font-semibold text-gold-500">
+          <span className="font-semibold text-cream-50">
             That email doesn&apos;t look right. Try again?
           </span>
         ) : (

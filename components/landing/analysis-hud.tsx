@@ -53,9 +53,6 @@ const BALL_T0 = BALL[0][0];
 const BALL_T1 = BALL[BALL.length - 1][0];
 const IMPACT_T = events.find((e) => e.label === "impact")!.t;
 
-const FEED_MPH = (metersBetween(sampleAt(BALL, 6.0), sampleAt(BALL, 6.6)) / 0.6) * MPS_TO_MPH;
-const EXIT_MPH = (metersBetween(sampleAt(BALL, 6.8), sampleAt(BALL, 7.2)) / 0.4) * MPS_TO_MPH;
-
 /** Bat-tip trail geometry in the 160×90 svg space, with cumulative length. */
 const TRAIL = (() => {
   const pts: Array<{ x: number; y: number; t: number; len: number }> = [];
@@ -81,8 +78,19 @@ const LIMBS: Array<[keyof typeof P, keyof typeof P]> = [
 ];
 const JOINTS = Object.keys(P) as Array<keyof typeof P>;
 
-const fmtTime = (t: number) =>
-  `T+00:${String(Math.floor(t)).padStart(2, "0")}.${String(Math.floor((t % 1) * 100)).padStart(2, "0")}`;
+/** One box recipe for every piece of chrome on the frame. There used to be
+    three — some bordered, some blurred, four different paddings — which read as
+    three different overlays sharing a video. Flat ink, no border, no blur. */
+const BOX = "bg-pitch-950/80 px-3 py-2.5";
+
+/** The one tracked-uppercase treatment, matching `Kicker`. Labels only —
+    figures are never tracked, and there is no second spacing value. */
+const LABEL = "text-micro font-semibold tracking-[.16em] text-cream-200/70 uppercase";
+
+/** "6.42s" — the elapsed clock, and nothing else. The frame counter and the
+    "60 fps · 1280×720" line that used to sit here were machine trivia dressed
+    as a readout; the Quiet Facts Rule says they don't compete with the shot. */
+const fmtTime = (t: number) => `${t.toFixed(2)}s`;
 
 /* ── component ─────────────────────────────────────────────────────────── */
 
@@ -92,7 +100,14 @@ const fmtTime = (t: number) =>
  * hand-annotated track: skeleton, bat-path trail, ball tracking, live-
  * computed angles and speeds. Geometry updates are imperative (refs, one
  * rAF) so nothing re-renders at 60 Hz; only the phase label goes through
- * React state. Cold vision-mint on near-white — deliberately not Crease.
+ * React state.
+ *
+ * Drawn in the product's own palette: cream for the tracked skeleton, amber
+ * for anything measured (the readouts, the bat path, the ball, the live
+ * phase). Amber means *measured* everywhere else in the system, so a number
+ * here reads as the same kind of fact the dashboard shows. The overlay used
+ * to be mono type in phosphor-mint on pure white, which was a second design.
+ *
  * On phones the object-contain frame is a short letterboxed strip, so the
  * chrome (status bar, readouts, phase rail) moves into the letterbox bands
  * around it; the tracked geometry stays on the frame at every size. On the
@@ -122,8 +137,6 @@ export function AnalysisHud({
   const elbowRef = useRef<HTMLSpanElement>(null);
   const strideRef = useRef<HTMLSpanElement>(null);
   const tipRef = useRef<HTMLSpanElement>(null);
-  const feedRef = useRef<HTMLSpanElement>(null);
-  const exitRef = useRef<HTMLSpanElement>(null);
   const limbRefs = useRef<Array<SVGLineElement | null>>([]);
   const jointRefs = useRef<Partial<Record<keyof typeof P, SVGGElement | null>>>({});
   const phaseRef = useRef(phase);
@@ -204,7 +217,9 @@ export function AnalysisHud({
       if (trail) {
         const reveal = trailLenAt(t);
         trail.style.strokeDasharray = `${reveal} ${TRAIL.total + 1}`;
-        trail.style.opacity = t > 6.05 ? "0.75" : "0";
+        // Amber carries more weight than the mint it replaced, so the path
+        // traces the swing rather than highlighting over it.
+        trail.style.opacity = t > 6.05 ? "0.6" : "0";
       }
 
       // ball marker + short tail
@@ -244,12 +259,10 @@ export function AnalysisHud({
       const elbowDeg = angleAt(shoulder, elbow, hands);
       const strideM = metersBetween(sampleAt(P.ankleF, t), sampleAt(P.ankleB, t));
       const tipMph = speedMps(P.batTip, t) * MPS_TO_MPH;
-      if (timeRef.current) timeRef.current.textContent = `${fmtTime(t)} · F${String(Math.floor(t * video.fps)).padStart(3, "0")}`;
+      if (timeRef.current) timeRef.current.textContent = fmtTime(t);
       if (elbowRef.current) elbowRef.current.textContent = `${elbowDeg.toFixed(1)}°`;
       if (strideRef.current) strideRef.current.textContent = `${strideM.toFixed(2)} m`;
       if (tipRef.current) tipRef.current.textContent = `${tipMph.toFixed(1)} mph`;
-      if (feedRef.current) feedRef.current.textContent = t >= BALL_T0 ? `${FEED_MPH.toFixed(1)} mph` : "—";
-      if (exitRef.current) exitRef.current.textContent = t >= 6.9 ? `${EXIT_MPH.toFixed(1)} mph` : "—";
 
       // phase (React state, changes rarely)
       let current = events[0].label;
@@ -267,17 +280,9 @@ export function AnalysisHud({
     <motion.div
       aria-hidden
       style={{ opacity: hudOpacity }}
-      className="pointer-events-none absolute inset-0 font-mono"
+      className="pointer-events-none absolute inset-0"
     >
       <div ref={frameBoxRef} className="absolute">
-        {/* corner ticks */}
-        <div className="absolute inset-3 max-sm:inset-2">
-          <span className="absolute top-0 left-0 size-4 border-t border-l border-white/40 max-sm:size-3" />
-          <span className="absolute top-0 right-0 size-4 border-t border-r border-white/40 max-sm:size-3" />
-          <span className="absolute bottom-0 left-0 size-4 border-b border-l border-white/40 max-sm:size-3" />
-          <span className="absolute right-0 bottom-0 size-4 border-r border-b border-white/40 max-sm:size-3" />
-        </div>
-
         {/* tracked geometry */}
         <svg
           ref={svgRef}
@@ -290,33 +295,37 @@ export function AnalysisHud({
             fill="none"
             strokeWidth={0.22}
             strokeDasharray="1.6 1.1"
-            className="stroke-white/45"
+            className="stroke-cream-200/45"
           />
-          <path ref={trailRef} d={TRAIL.d} fill="none" strokeWidth={0.55} strokeLinecap="round" strokeLinejoin="round" className="stroke-vision-500" />
+          <path ref={trailRef} d={TRAIL.d} fill="none" strokeWidth={0.45} strokeLinecap="round" strokeLinejoin="round" className="stroke-amber-500" />
           {LIMBS.map((pair, i) => (
             <line
               key={pair.join("-")}
               ref={(el) => { limbRefs.current[i] = el; }}
               strokeWidth={0.3}
-              className="stroke-white/70"
+              className="stroke-cream-200/70"
             />
           ))}
-          <line ref={batRef} strokeWidth={0.42} className="stroke-white/90" />
+          <line ref={batRef} strokeWidth={0.42} className="stroke-cream-50/90" />
+          {/* Joints are cream, not amber. Nine amber crosses plus an amber bat
+              path plus an amber ball spends the accent on the tracking rig
+              instead of the measurement — amber is reserved for the swing path
+              and the ball, which are what the readouts are about. */}
           {JOINTS.map((key) => (
             <g key={key} ref={(el) => { jointRefs.current[key] = el; }}>
-              <line x1={-0.9} y1={0} x2={0.9} y2={0} strokeWidth={0.26} className="stroke-vision-500" />
-              <line x1={0} y1={-0.9} x2={0} y2={0.9} strokeWidth={0.26} className="stroke-vision-500" />
+              <line x1={-0.9} y1={0} x2={0.9} y2={0} strokeWidth={0.26} className="stroke-cream-50/80" />
+              <line x1={0} y1={-0.9} x2={0} y2={0.9} strokeWidth={0.26} className="stroke-cream-50/80" />
             </g>
           ))}
-          <path ref={ballTailRef} fill="none" strokeWidth={0.35} strokeLinecap="round" className="stroke-vision-300" />
-          <circle ref={ballRef} r={0.9} className="fill-vision-300" />
+          <path ref={ballTailRef} fill="none" strokeWidth={0.35} strokeLinecap="round" className="stroke-amber-500" />
+          <circle ref={ballRef} r={0.9} className="fill-amber-500" />
           <circle
             ref={impactRef}
             cx={69.5 * 1.6}
             cy={84.5 * 0.9}
             fill="none"
             strokeWidth={0.35}
-            className="stroke-vision-300"
+            className="stroke-amber-500"
             style={{ opacity: 0 }}
           />
         </svg>
@@ -324,68 +333,60 @@ export function AnalysisHud({
         {/* subject tag rides the bounding box — the real player, named, for
             credibility (Aryaman is the demo subject, not a benchmark pro). */}
         <div ref={subjectTagRef} className="absolute">
-          <div className="w-fit bg-pitch-950/80 px-2 py-1 max-sm:px-1.5 max-sm:py-0.5">
-            <div className="text-[11px] font-semibold tracking-[.18em] text-white/95 uppercase max-sm:text-[10px]">
-              Aryaman Varma
-            </div>
-            <div className="text-[9px] font-medium tracking-[.14em] text-vision-300 uppercase max-sm:text-[8px]">
+          <div className={`w-fit ${BOX} max-sm:px-2 max-sm:py-1`}>
+            <div className="text-caption font-semibold text-cream-50">Aryaman Varma</div>
+            <div className="text-micro text-cream-200/70">
               Wisden Schools Cricketer &rsquo;25 · England U19
             </div>
           </div>
         </div>
 
-        {/* status bar — rides the upper letterbox band on phones */}
-        <div className="absolute top-5 left-5 max-sm:top-auto max-sm:bottom-full max-sm:left-0 max-sm:mb-2">
-          <span className="flex w-fit items-center gap-2 border border-white/20 bg-pitch-950/80 px-2.5 py-1.5 text-xs font-semibold tracking-[.22em] text-vision-500 uppercase backdrop-blur-sm max-sm:px-2 max-sm:py-1 max-sm:text-[10px]">
-            <motion.span
-              animate={{ opacity: [1, 0.25, 1] }}
-              transition={{ duration: 1.4, repeat: Infinity, ease: "easeInOut" }}
-              className="size-1.5 rounded-full bg-vision-500"
-            />
-            Tracking
-          </span>
-        </div>
-        <div className="absolute top-5 right-5 bg-pitch-950/80 px-2.5 py-1.5 text-right backdrop-blur-sm max-sm:top-auto max-sm:right-0 max-sm:bottom-full max-sm:mb-2 max-sm:px-2 max-sm:py-1">
-          <span ref={timeRef} className="text-xs font-semibold tracking-[.12em] text-white max-sm:text-[10px]" />
-          <div className="text-[11px] tracking-[.18em] text-white/75 uppercase max-sm:text-[9px]">{video.fps} fps · 1280×720</div>
+        {/* Elapsed clock — rides the upper letterbox band on phones. */}
+        <div
+          className={`absolute top-5 right-5 ${BOX} max-sm:top-auto max-sm:right-0 max-sm:bottom-full max-sm:mb-2 max-sm:px-2 max-sm:py-1`}
+        >
+          <span
+            ref={timeRef}
+            className="text-caption font-semibold tabular-nums text-cream-50"
+          />
         </div>
 
-        {/* Readouts + phase rail. On phones both drop into the letterbox band
-            below the frame (the frame itself is only ~220px tall); from sm the
+        {/* Readouts + phase. On phones both drop into the letterbox band below
+            the frame (the frame itself is only ~220px tall); from sm the
             wrapper dissolves (display: contents) and they pin to the frame. */}
         <div className="absolute inset-x-0 top-full mt-2 flex flex-col gap-2 sm:contents">
-          {/* live readouts — a compact label-over-value strip on phones */}
-          <div className="absolute top-[30%] left-5 flex flex-col gap-1.5 border border-white/15 bg-pitch-950/80 px-3.5 py-3 text-[13px] tracking-[.08em] tabular-nums backdrop-blur-sm max-sm:static max-sm:flex-row max-sm:justify-between max-sm:gap-2 max-sm:px-3 max-sm:py-2 max-sm:text-[11px]">
+          {/* The three live measurements. Amber is the measured value, cream
+              names it — the same split the dashboard uses. Feed and exit speed
+              used to sit here too, but both read "—" for most of the scrub. */}
+          <div
+            className={`absolute top-[30%] left-5 flex flex-col gap-2 ${BOX} max-sm:static max-sm:flex-row max-sm:justify-between max-sm:gap-2 max-sm:px-3 max-sm:py-2`}
+          >
             {(
               [
                 ["Elbow", elbowRef],
                 ["Stride", strideRef],
                 ["Bat tip", tipRef],
-                ["Feed", feedRef],
-                ["Exit", exitRef],
               ] as const
             ).map(([label, ref]) => (
-              <div key={label} className="flex w-44 items-baseline justify-between border-b border-white/10 pb-1.5 last:border-b-0 last:pb-0 max-sm:w-auto max-sm:flex-col max-sm:items-center max-sm:gap-0.5 max-sm:border-b-0 max-sm:pb-0">
-                <span className="text-[11px] tracking-[.2em] text-white/75 uppercase max-sm:text-[9px] max-sm:tracking-[.15em]">{label}</span>
-                <span ref={ref} className="font-semibold text-vision-300" />
+              <div
+                key={label}
+                className="flex w-40 items-baseline justify-between gap-4 max-sm:w-auto max-sm:flex-col max-sm:items-center max-sm:gap-0.5"
+              >
+                <span className={LABEL}>{label}</span>
+                <span
+                  ref={ref}
+                  className="text-caption font-semibold tabular-nums text-amber-500"
+                />
               </div>
             ))}
           </div>
 
-          {/* phase + event rail */}
-          <div className="absolute bottom-6 left-5 border border-white/15 bg-pitch-950/80 px-3.5 py-2.5 backdrop-blur-sm max-sm:static max-sm:px-3 max-sm:py-2">
-            <div className="mb-2 flex items-center gap-2 text-xs font-semibold tracking-[.2em] uppercase max-sm:mb-1.5 max-sm:text-[10px]">
-              <span className="text-white/75">Phase</span>
-              <span className="text-vision-500">▸ {phase}</span>
-            </div>
-            <div className="relative h-px w-56 bg-white/25 max-sm:w-full">
-              {events.map((e) => (
-                <span
-                  key={e.label}
-                  style={{ left: `${(e.t / video.durationS) * 100}%` }}
-                  className={`absolute -top-[3px] h-[7px] w-px ${phase === e.label ? "bg-vision-500" : "bg-white/45"}`}
-                />
-              ))}
+          {/* Where in the shot we are. The tick rail that used to sit under
+              this said the same thing a second way. */}
+          <div className={`absolute bottom-6 left-5 ${BOX} max-sm:static max-sm:px-3 max-sm:py-2`}>
+            <div className="flex items-baseline gap-2.5">
+              <span className={LABEL}>Phase</span>
+              <span className="text-caption font-semibold text-amber-500">{phase}</span>
             </div>
           </div>
         </div>

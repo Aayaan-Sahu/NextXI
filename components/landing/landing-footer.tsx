@@ -11,39 +11,37 @@ export function LandingFooter() {
         <div className="flex items-center justify-between gap-4 max-md:flex-col">
           <div className="flex flex-col gap-1 max-md:items-center">
             <Wordmark accent="peach" tone="dark" />
-            <p className="text-[13px] text-cream-200/50">
+            <p className="text-caption text-cream-200/60">
               Cricket talent, seen properly.
             </p>
           </div>
-          <nav className="flex items-center gap-6 text-sm font-semibold text-cream-200/70">
-            <Link href="/auth" className={`hover:text-gold-500 ${focusRing}`}>
+          <nav className="flex items-center gap-6 text-ui font-semibold text-cream-200/70">
+            <Link href="/auth" className={`hover:text-cream-50 ${focusRing}`}>
               Sign in
             </Link>
-            <Link href="/auth?mode=sign-up" className={`hover:text-gold-500 ${focusRing}`}>
+            <Link href="/auth?mode=sign-up" className={`hover:text-cream-50 ${focusRing}`}>
               Create account
             </Link>
-            <span className="font-mono text-[11px] font-normal text-cream-200/40">
-              © 2026 NextXI
-            </span>
+            <span className="text-caption font-normal text-cream-200/50">© 2026 NextXI</span>
           </nav>
         </div>
         {/* The receipts row: safeguarding is the product's differentiator, so it leads. */}
         <div className="mt-8 flex items-center justify-between gap-4 border-t border-cream-200/10 pt-6 max-md:flex-col">
-          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-[13px] font-semibold text-cream-200/60">
-            <Link href="/safeguarding" className={`hover:text-gold-500 ${focusRing}`}>
+          <nav className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 text-caption font-semibold text-cream-200/70">
+            <Link href="/safeguarding" className={`hover:text-cream-50 ${focusRing}`}>
               Safeguarding
             </Link>
-            <Link href="/privacy" className={`hover:text-gold-500 ${focusRing}`}>
+            <Link href="/privacy" className={`hover:text-cream-50 ${focusRing}`}>
               Privacy
             </Link>
-            <Link href="/terms" className={`hover:text-gold-500 ${focusRing}`}>
+            <Link href="/terms" className={`hover:text-cream-50 ${focusRing}`}>
               Terms
             </Link>
-            <Link href="/contact" className={`hover:text-gold-500 ${focusRing}`}>
+            <Link href="/contact" className={`hover:text-cream-50 ${focusRing}`}>
               Contact
             </Link>
           </nav>
-          <p className="text-[12.5px] text-cream-200/40 max-md:text-center">
+          <p className="text-caption text-cream-200/50 max-md:text-center">
             Built for young players, their guardians, and the coaches who find them.
           </p>
         </div>

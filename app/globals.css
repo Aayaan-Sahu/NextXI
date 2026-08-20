@@ -17,7 +17,12 @@
  *
  * Grouping is done with spacing and one hairline — never a nested card.
  * Type is Saira Condensed for the page title and 15px uppercase section
- * heads; Public Sans carries every other role. Mono is not a product face.
+ * heads; Public Sans carries every other role. There is no third face —
+ * aligned figures come from `tabular-nums`, not a monospace swap.
+ *
+ * One system, one landing page. The landing register differs only in scale
+ * (full-bleed bands, oversized display type in the two pinned heroes) — never
+ * in font, colour, radius or shadow.
  */
 @theme {
   /* ── Dark surfaces ────────────────────────────────────────────────── */
@@ -66,22 +71,24 @@
   --color-ink-600: #6b6155; /* muted, labels, captions */
   --color-ink-400: #a2937c; /* disabled */
 
-  /* Faint text on the maroon band (landing). */
-  --color-sage-400: #e0b0b0;
-
   /* The one green: a positive verdict in a report. Not a UI accent. */
   --color-moss-600: #2f6b3e;
 
-  /* vision: cold phosphor-mint reserved for the machine-vision overlay on the
-     landing page — the deliberate counterpoint to the warm Crease palette
-     (see PRODUCT.md, principle 3). Not for product UI chrome. */
-  --color-vision-300: #b5f5dc;
-  --color-vision-500: #7ce8bf;
-  --color-vision-700: #2ea77d;
-
   --font-sans: var(--font-public-sans), system-ui, sans-serif;
   --font-display: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
-  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  /* ── Elevation ────────────────────────────────────────────────────────
+   *
+   * Two values, and depth is otherwise tonal. `shadow-float` is for things
+   * that genuinely float over something else — a dialog, the auth sheet, a
+   * video modal, the report card riding the pinned hero footage. A resting
+   * card never has one. Cast in ink, never black: the darkest material in
+   * the system is pitch, and a black shadow on cream reads grey-blue.
+   *
+   * `text-shadow-display` keeps oversized display type legible over video.
+   */
+  --shadow-float: 0 24px 60px rgb(36 28 21 / 0.35);
+  --text-shadow-display: 0 2px 28px rgb(23 19 16 / 0.85);
 
   /* ── The type scale ───────────────────────────────────────────────────
    *
