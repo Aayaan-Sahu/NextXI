@@ -13,6 +13,7 @@ import { CommentForm, VideoComments } from "@/components/video-comments";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
+import { getDerivedMeasurements } from "@/lib/report-history";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoSize, formatVideoTags } from "@/lib/videos";
 import { getVideoReport } from "@/lib/videos.server";
@@ -119,6 +120,9 @@ export default async function CoachVideoPage({
     getVideoReport(videoId),
   ]);
 
+  // Value + own-range + last-session rows for the report, from prior reports.
+  const derived = await getDerivedMeasurements(video, report);
+
   const uploadedAt = (video.uploadedAt ?? video.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
@@ -156,7 +160,9 @@ export default async function CoachVideoPage({
             form={connected ? <CommentForm error={commentError} videoId={videoId} /> : undefined}
           />
         </div>
-        <ReportPanel report={report} />
+        {/* `derived` is the platform-side measurement rows (payload + the
+            player's report history); the panel renders fine without it. */}
+        <ReportPanel derived={derived} report={report} />
       </div>
     </PageShell>
   );

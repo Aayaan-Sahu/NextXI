@@ -61,11 +61,14 @@ mkdir -p "$HOOKS_DIR"
 cat >"$HOOKS_DIR/commit-msg" <<'EOF'
 #!/bin/bash
 # Strip Co-authored-by / Made-with-Cursor trailers from the commit message.
+# Interior blank lines are preserved — the previous perl -00 pass collapsed
+# the subject/body separator, running every commit message into one
+# paragraph. Only leading and trailing blank runs are trimmed.
 msg="$1"
 tmp="$(mktemp)"
-grep -v -E '^(Co-authored-by:|Made-with: Cursor)' "$msg" | awk 'NF {p=1} p' >"$tmp" || true
-# Trim trailing blank lines
-awk 'NF {p=1} p' "$tmp" | perl -00 -pe 's/\n+\z/\n/' >"$msg" 2>/dev/null || cp "$tmp" "$msg"
+grep -v -E '^(Co-authored-by:|Made-with: Cursor)' "$msg" >"$tmp" || true
+awk 'NF { if (started) for (i = 0; i < b; i++) print ""; b = 0; print; started = 1; next }
+     { b++ }' "$tmp" >"$msg" || cp "$tmp" "$msg"
 rm -f "$tmp"
 exit 0
 EOF

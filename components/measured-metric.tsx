@@ -95,6 +95,27 @@ export type MeasuredMetric = {
    * Falls back to `note` when absent.
    */
   noteShort?: string;
+  /**
+   * The same measurement from the player's most recent previous occasion —
+   * the progress tracker. Derived platform-side from report history
+   * (lib/report-measurements.ts), never sent by the worker.
+   *
+   * Carried on the model but not yet drawn: the row renders correctly without
+   * it, so the history layer could land before the presentation for it does.
+   */
+  previous?: { value: number; label: string };
+  /**
+   * Bold lead word rendered before `note` — only ever a judgement the worker
+   * itself made ("Needs work.") or a neutral fact. Never derived from the
+   * band: descriptive metrics don't get verdicts the pipeline didn't emit.
+   */
+  lead?: string;
+  /**
+   * Change vs the previous occasion, as a small chip beside the value
+   * ("▲ 4 cm"). `dir` is direction of travel, not a verdict — the chip stays
+   * neutral because a longer stride is a fact, not an improvement.
+   */
+  deltaPill?: { text: string; dir: "up" | "down" | "same" };
 };
 
 /** The band, when the reference has one. */

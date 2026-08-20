@@ -7,6 +7,7 @@ import {
 } from "@/components/batting-report";
 import { BowlingReport, parseBowlingReport } from "@/components/bowling-report";
 import {
+  DerivedMeasurements,
   MeasuredReport,
   measuredConsistency,
   parseMeasuredReport,
@@ -14,6 +15,7 @@ import {
 import { ReportAutoRefresh } from "@/components/report-auto-refresh";
 import { Kicker, Meter, SectionHeading } from "@/components/ui";
 import { isFinalReportFailure } from "@/lib/report-errors";
+import type { DerivedReport } from "@/lib/report-measurements";
 import type { VideoReport } from "@/lib/videos.server";
 
 const KNOWN_PAYLOAD_KEYS = ["overall_score", "metrics", "feedback", "annotations"];
@@ -283,7 +285,18 @@ function HeadlineFigure({ caption, value }: { caption: string; value: string }) 
  * Renders the AI coaching report for a video, defensively, in every lifecycle
  * state.
  */
-export function ReportPanel({ report }: { report: VideoReport | null }) {
+export function ReportPanel({
+  report,
+  derived,
+}: {
+  report: VideoReport | null;
+  /**
+   * Measurement rows the platform derived from the payload plus the player's
+   * report history (lib/report-history.ts). Pages that can load history pass
+   * it; the panel renders fine without, so a v3 payload never depends on it.
+   */
+  derived?: DerivedReport | null;
+}) {
   const ready = report?.status === ReportStatus.READY;
   const payload = ready && isRecord(report.payload) ? report.payload : null;
   // Prefer v3 measurements (same data the landing demo draws), then batting /
@@ -367,6 +380,28 @@ export function ReportPanel({ report }: { report: VideoReport | null }) {
         }
       >
         <MeasuredReport parsed={measured} report={report} />
+      </ReportShell>
+    );
+  }
+
+  // A v2 payload the platform could measure server-side reads as the same
+  // object as a v3 one — same rows, same shell — rather than dropping to the
+  // shot-list renderer. Only reached when the worker sent no `measurements`.
+  if (derived && derived.metrics.length > 0 && payload) {
+    return (
+      <ReportShell
+        figure={
+          consistency === null ? undefined : (
+            <HeadlineFigure caption="Consistency" value={`${consistency}%`} />
+          )
+        }
+        headline={`${derived.metrics.length} measurement${derived.metrics.length === 1 ? "" : "s"}`}
+      >
+        <DerivedMeasurements
+          metaParts={[report.modelVersion]}
+          metrics={derived.metrics}
+          payload={report.payload}
+        />
       </ReportShell>
     );
   }

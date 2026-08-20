@@ -12,8 +12,8 @@ import type { VideoReport } from "@/lib/videos.server";
  * v3 measurements path for ReportPanel. Parsing and the honesty rules about
  * references live in measured-metric.tsx alongside the type, so the landing
  * demo and the product report can never disagree about what a measurement
- * means; only the drawing differs (ReportMetricRow here, MeasuredMetricRow on
- * the landing page).
+ * means. There is one renderer for it, ReportMetricRow — the landing demo
+ * and the dashboard draw the same component.
  *
  * See docs/reports-contract.md (schema_version 3).
  */
@@ -238,6 +238,44 @@ export function MeasuredReport({
         {MEASUREMENTS_EXPLAINER}
       </p>
       <RawDetails payload={report.payload} />
+      <ReportMeta parts={metaParts} />
+    </>
+  );
+}
+
+/**
+ * Measurement rows the platform derived from a v2 payload plus the player's
+ * stored report history (lib/report-measurements.ts), rather than rows the
+ * worker sent. Identical presentation to a v3 `measurements` payload — the
+ * only difference is who computed them, and the worker cannot: it sees one
+ * video and no history.
+ */
+export function DerivedMeasurements({
+  metrics,
+  payload,
+  metaParts,
+}: {
+  metrics: MeasuredMetric[];
+  payload: unknown;
+  metaParts: (string | null)[];
+}) {
+  // On a player's first analysis there is no history to compare against, so
+  // every reference is `none` and the standing explainer would be describing a
+  // comparison none of the rows actually make.
+  const firstAnalysis = metrics.every((metric) => metric.reference.kind === "none");
+  return (
+    <>
+      <div className="border-b border-cream-300">
+        {metrics.map((metric) => (
+          <ReportMetricRow key={metric.name} metric={metric} />
+        ))}
+      </div>
+      <p className="mt-4 text-caption leading-relaxed text-ink-600">
+        {firstAnalysis
+          ? "Your first analysis — your range appears from the next session."
+          : MEASUREMENTS_EXPLAINER}
+      </p>
+      <RawDetails payload={payload} />
       <ReportMeta parts={metaParts} />
     </>
   );

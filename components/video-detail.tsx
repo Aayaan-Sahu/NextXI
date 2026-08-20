@@ -6,6 +6,7 @@ import { ReportPanel } from "@/components/report-panel";
 import { Chip, PageShell, PageTitle } from "@/components/ui";
 import { VideoComments } from "@/components/video-comments";
 import { prisma } from "@/lib/prisma";
+import { getDerivedMeasurements } from "@/lib/report-history";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoSize, formatVideoTags } from "@/lib/videos";
 import { getVideoReport } from "@/lib/videos.server";
@@ -33,6 +34,7 @@ export async function VideoDetail({
       createdAt: true,
       handedness: true,
       originalFilename: true,
+      playerId: true,
       sessionId: true,
       sizeBytes: true,
       storageBucket: true,
@@ -73,6 +75,9 @@ export async function VideoDetail({
     }),
     getVideoReport(video.id),
   ]);
+
+  // Value + own-range + last-session rows for the report, from prior reports.
+  const derived = await getDerivedMeasurements(video, report);
 
   const uploadedAt = (video.uploadedAt ?? video.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -124,7 +129,7 @@ export async function VideoDetail({
             footnote="Only connected coaches can leave feedback here."
           />
         </div>
-        <ReportPanel report={report} />
+        <ReportPanel derived={derived} report={report} />
       </div>
     </PageShell>
   );
