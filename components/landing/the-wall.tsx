@@ -65,7 +65,7 @@ export function TheWall() {
 
   return (
     <section className="bg-pitch-900 px-6 py-24 sm:px-12">
-      <div className="mx-auto grid w-full max-w-[1200px] items-center gap-14 lg:grid-cols-[minmax(0,5fr)_minmax(0,6fr)] lg:gap-20">
+      <div className="mx-auto grid w-full max-w-[1200px] items-center gap-14 lg:grid-cols-[minmax(0,4fr)_minmax(0,7fr)] lg:gap-20">
         {/* Left page of the spread: the pitch — copy plus the platform's
             skeleton view of a batter. The board hangs on the right. */}
         <div>
@@ -78,7 +78,7 @@ export function TheWall() {
             can land here — when they and their guardian want that story told.
             Every story is real. There&apos;s room for yours.
           </BandIntro>
-          <WallFigure className="mx-auto mt-10 w-full max-w-[400px] lg:mx-0" />
+          <WallFigure className="mx-auto mt-10 w-full max-w-[360px] lg:mx-0" />
         </div>
 
         <div>
@@ -89,20 +89,23 @@ export function TheWall() {
             />
 
             {featured ? (
-              <article className="relative border-b border-cream-400/25 px-6 py-8 sm:px-8">
+              <article className="relative border-b border-cream-400/25 px-7 py-10 sm:px-10 sm:py-12">
                 <div className="flex items-baseline justify-between gap-4">
                   <Kicker tone="dark">Noticed</Kicker>
-                  <span className="text-caption font-semibold text-amber-500 tabular-nums">
+                  <span className="text-title font-semibold text-amber-500 tabular-nums">
                     {slotNumber(1)}
                   </span>
                 </div>
-                <h3 className="mt-5 font-display text-title font-bold tracking-[.02em] text-cream-50 uppercase">
+                {/* The plate: the one name on the board today carries the
+                    section. Display size, then a step up on wide screens —
+                    this is an honours board, not a list row. */}
+                <h3 className="mt-6 font-display text-display leading-none font-bold tracking-[.02em] text-cream-50 uppercase sm:text-[44px] lg:text-[56px]">
                   {featured.name}
                 </h3>
                 {featured.detail && (
-                  <p className="mt-2 text-caption text-cream-200/70">{featured.detail}</p>
+                  <p className="mt-3 text-ui text-cream-200/70">{featured.detail}</p>
                 )}
-                <p className="mt-3 text-ui text-cream-200">{featured.outcome}</p>
+                <p className="mt-4 text-lead text-cream-200">{featured.outcome}</p>
               </article>
             ) : null}
 
@@ -113,7 +116,7 @@ export function TheWall() {
             {rest.map((entry, i) => (
               <article
                 key={i}
-                className={`relative px-6 py-6 sm:px-8 ${
+                className={`relative px-7 py-7 sm:px-10 ${
                   i === rest.length - 1 && openSlots.length === 0
                     ? ""
                     : "border-b border-cream-400/25"
@@ -136,15 +139,15 @@ export function TheWall() {
               return (
                 <article
                   key={slot.title}
-                  className={`relative px-6 py-7 sm:px-8 ${last ? "" : "border-b border-cream-400/25"}`}
+                  className={`relative px-7 py-8 sm:px-10 ${last ? "" : "border-b border-cream-400/25"}`}
                 >
                   <div className="flex items-baseline justify-between gap-4">
                     <Kicker tone="dark">{slot.note}</Kicker>
-                    <span className="text-caption font-semibold text-amber-500/70 tabular-nums">
+                    <span className="text-title font-semibold text-amber-500/70 tabular-nums">
                       {slotNumber(n)}
                     </span>
                   </div>
-                  <h3 className="mt-4 font-display text-title font-semibold text-cream-200/55 uppercase">
+                  <h3 className="mt-4 font-display text-display font-semibold text-cream-200/55 uppercase">
                     {slot.title}
                   </h3>
                 </article>

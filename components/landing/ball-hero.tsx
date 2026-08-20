@@ -142,9 +142,12 @@ export function BallHero() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,rgba(90,20,18,0.78)_0%,rgba(58,15,15,0.94)_60%,#2c0b0b_100%)]"
         />
 
+        {/* Sits 2rem above the fold at scroll 0. The nav (h-14) is in flow, so
+            this h-dvh box starts 3.5rem down and its bottom 3.5rem are below the
+            viewport until the box sticks — a plain bottom-8 would be cut off. */}
         <div
           aria-hidden
-          className={`pointer-events-none absolute inset-x-0 top-6 flex flex-col items-center gap-1.5 transition-opacity duration-500 ${
+          className={`pointer-events-none absolute inset-x-0 bottom-[calc(2rem+3.5rem)] flex flex-col items-center gap-1.5 transition-opacity duration-500 ${
             cueHidden ? "opacity-0" : "opacity-100"
           }`}
         >
@@ -153,7 +156,7 @@ export function BallHero() {
           </p>
           <motion.span
             animate={scrub && !reduced && !cueHidden ? { y: [0, 6, 0] } : { y: 0 }}
-            className="text-gold-500"
+            className="text-amber-500"
             transition={
               scrub && !reduced && !cueHidden
                 ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" }

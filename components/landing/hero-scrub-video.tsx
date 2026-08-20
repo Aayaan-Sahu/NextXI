@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useLayoutEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -10,10 +10,55 @@ import {
   useTransform,
 } from "motion/react";
 import { AnalysisHud } from "@/components/landing/analysis-hud";
-import { VariantEditorial } from "@/components/landing/report-variants/variant-editorial";
+import { VariantScoreboard } from "@/components/landing/report-variants/variant-scoreboard";
 import { useCanScrub } from "@/components/landing/use-can-scrub";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
+
+// Breathing room the pinned card keeps above and below itself.
+const PIN_MARGIN = 28;
+
+/**
+ * Scales the report card down (never up) so its natural height fits the pinned
+ * viewport with PIN_MARGIN to spare. The scoreboard card is taller than a
+ * pinned viewport on most laptops; shrinking it in place beats dropping rows.
+ * Origin is left-centre so the gutter to the video never widens — the card
+ * gives back space on its outer edge instead.
+ */
+function PinFit({ children }: { children: React.ReactNode }) {
+  const boxRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(1);
+
+  useLayoutEffect(() => {
+    const box = boxRef.current;
+    const card = cardRef.current;
+    if (!box || !card) return;
+    const fit = () => {
+      // offsetHeight ignores the transform, so this is the natural height.
+      const available = box.clientHeight - PIN_MARGIN * 2;
+      const natural = card.offsetHeight;
+      setScale(natural > 0 ? Math.min(1, available / natural) : 1);
+    };
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(box);
+    ro.observe(card);
+    return () => ro.disconnect();
+  }, []);
+
+  return (
+    <div ref={boxRef} className="flex h-full w-full items-center">
+      <div
+        ref={cardRef}
+        className="w-full"
+        style={{ transform: `scale(${scale})`, transformOrigin: "left center" }}
+      >
+        {children}
+      </div>
+    </div>
+  );
+}
 
 // The video scrub completes at this fraction of the pin; the rest of the
 // scroll drives the headline → "video slides left, report reveals" handoff.
@@ -77,8 +122,8 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   const videoTop = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
   const videoBottom = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
   const videoRadius = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0px", "0px", "26px", "26px"]);
-  // The report slides in on the right; its lines then reveal (in VariantEditorial,
-  // driven by scrollYProgress over roughly [0.6, 0.99]).
+  // The report slides in on the right; its blocks then reveal (in
+  // VariantScoreboard, driven by scrollYProgress over roughly [0.62, 0.93]).
   const reportOpacity = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [0, 0, 1, 1]);
   const reportX = useTransform(scrollYProgress, [0, 0.6, 0.68, 1], [48, 48, 0, 0]);
 
@@ -150,11 +195,13 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           </motion.div>
         )}
 
-        {/* report, right side, revealing line by line (scrub only) */}
+        {/* report, right side, revealing block by block (scrub only) */}
         {scrub && (
           <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[46%] max-w-[500px] items-center">
-            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="w-full">
-              <VariantEditorial progress={scrollYProgress} />
+            <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full w-full">
+              <PinFit>
+                <VariantScoreboard progress={scrollYProgress} />
+              </PinFit>
             </motion.div>
           </div>
         )}
@@ -198,7 +245,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             transition={{ duration: 0.6 }}
             className="mx-auto w-full max-w-[460px]"
           >
-            <VariantEditorial />
+            <VariantScoreboard />
           </motion.div>
         </div>
       )}
