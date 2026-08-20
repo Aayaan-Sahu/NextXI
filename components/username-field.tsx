@@ -67,7 +67,7 @@ export function UsernameHandleField({ nameValue }: { nameValue: string }) {
           aria-invalid={bad}
           autoCapitalize="none"
           autoComplete="username"
-          className="min-w-0 flex-1 border-none bg-transparent py-2.5 text-base font-normal text-ink-900 focus:outline-none sm:pointer-fine:text-body"
+          className="min-w-0 flex-1 border-none bg-transparent py-2.5 text-base font-normal text-ink-900 focus:outline-none sm:pointer-fine:text-body [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_var(--color-cream-50)] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-ink-900)]"
           name="username"
           onChange={(event) => {
             setOverride(

@@ -100,7 +100,7 @@ export function WallFigure({ className }: { className?: string }) {
         ))}
       </motion.g>
 
-      {/* measurement annotations, in the report's voice */}
+      {/* measurement annotations, in the report's voice — amber is measured */}
       <motion.g
         initial={reduced ? false : { opacity: 0 }}
         transition={{ duration: 0.5, delay: 1.35 }}
@@ -108,26 +108,26 @@ export function WallFigure({ className }: { className?: string }) {
         whileInView={{ opacity: 1 }}
       >
         <path
-          className="stroke-vision-300/80"
+          className="stroke-amber-500/80"
           d="M222 146 A30 30 0 0 1 234 178"
           strokeDasharray="3 4"
           strokeWidth={1.5}
         />
         <text
-          className="fill-vision-300 font-mono text-[11px] font-semibold tracking-[.14em] uppercase"
+          className="fill-amber-500 font-sans text-micro font-semibold tabular-nums"
           x={252}
           y={162}
         >
           Elbow 128°
         </text>
         <path
-          className="stroke-vision-300/60"
+          className="stroke-amber-500/60"
           d="M96 410 H238 M96 404 V416 M238 404 V416"
           strokeDasharray="3 4"
           strokeWidth={1.5}
         />
         <text
-          className="fill-vision-300 font-mono text-[11px] font-semibold tracking-[.14em] uppercase"
+          className="fill-amber-500 font-sans text-micro font-semibold tabular-nums"
           textAnchor="middle"
           x={167}
           y={427}

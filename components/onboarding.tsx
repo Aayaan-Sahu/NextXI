@@ -123,7 +123,7 @@ function RoleForm({
         <input name="role" type="hidden" value={role} />
         {role === "player" ? (
           <>
-            <div className="grid gap-x-5 gap-y-[18px] sm:grid-cols-2">
+            <div className="grid items-start gap-x-5 gap-y-[18px] sm:grid-cols-2">
               <Field>
                 Name
                 <TextInput
@@ -144,8 +144,10 @@ function RoleForm({
                 Club
                 <TextInput name="club" required type="text" />
               </Field>
-              <CountryField />
-              <PhysicalFields />
+              <div className="sm:col-span-2">
+                <CountryField />
+              </div>
+              <PhysicalFields className="sm:col-span-2" />
             </div>
             <RolesField />
           </>

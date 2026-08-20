@@ -142,13 +142,37 @@ export function BallHero() {
           className="pointer-events-none absolute inset-0 bg-[radial-gradient(120%_120%_at_50%_45%,rgba(90,20,18,0.78)_0%,rgba(58,15,15,0.94)_60%,#2c0b0b_100%)]"
         />
 
-        <p
-          className={`pointer-events-none absolute inset-x-0 bottom-8 text-center text-caption font-semibold tracking-[.16em] text-cream-200/70 uppercase transition-opacity duration-500 ${
+        <div
+          aria-hidden
+          className={`pointer-events-none absolute inset-x-0 top-6 flex flex-col items-center gap-1.5 transition-opacity duration-500 ${
             cueHidden ? "opacity-0" : "opacity-100"
           }`}
         >
-          Scroll
-        </p>
+          <p className="text-caption font-semibold tracking-[.16em] text-cream-200/70 uppercase">
+            Scroll
+          </p>
+          <motion.span
+            animate={scrub && !reduced && !cueHidden ? { y: [0, 6, 0] } : { y: 0 }}
+            className="text-gold-500"
+            transition={
+              scrub && !reduced && !cueHidden
+                ? { duration: 1.8, repeat: Infinity, ease: "easeInOut" }
+                : { duration: 0 }
+            }
+          >
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              viewBox="0 0 24 24"
+            >
+              <path d="M6 9l6 6 6-6" />
+            </svg>
+          </motion.span>
+        </div>
       </motion.div>
     </section>
   );

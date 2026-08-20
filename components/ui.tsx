@@ -393,7 +393,10 @@ export function Form({ className = "", ...props }: ComponentProps<"form">) {
 
 export function Field({ className = "", ...props }: ComponentProps<"label">) {
   return (
-    <label {...props} className={`grid min-w-0 gap-1.5 text-caption font-semibold ${className}`} />
+    <label
+      {...props}
+      className={`grid min-w-0 self-start gap-1.5 text-caption font-semibold ${className}`}
+    />
   );
 }
 
@@ -405,7 +408,10 @@ export function Field({ className = "", ...props }: ComponentProps<"label">) {
  */
 export function FieldGroup({ className = "", ...props }: ComponentProps<"div">) {
   return (
-    <div {...props} className={`grid min-w-0 gap-1.5 text-caption font-semibold ${className}`} />
+    <div
+      {...props}
+      className={`grid min-w-0 self-start gap-1.5 text-caption font-semibold ${className}`}
+    />
   );
 }
 
@@ -434,7 +440,7 @@ export function FieldHint({
    not viewport width. Focus darkens the border to ink, the way the boards
    draw an active control. */
 export const inputStyles =
-  "min-w-0 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-base font-normal text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/30 focus:outline-none sm:pointer-fine:text-body";
+  "min-w-0 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-base font-normal text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/30 focus:outline-none sm:pointer-fine:text-body [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_var(--color-cream-50)] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-ink-900)]";
 
 export function TextInput({ className = "", ...props }: ComponentProps<"input">) {
   return <input {...props} className={`${inputStyles} ${className}`} />;
