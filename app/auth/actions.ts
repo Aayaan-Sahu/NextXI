@@ -11,12 +11,18 @@ import { notifyTeam } from "@/lib/notify";
 import { isCountry, parsePlayerRoles } from "@/lib/players";
 import { POLICY_VERSION } from "@/lib/policy";
 import { authEmailOrigin } from "@/lib/site-url";
+import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { USERNAME_PATTERN } from "@/lib/usernames";
 
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
+}
+
+function secret(formData: FormData, name: string) {
+  const value = formData.get(name);
+  return typeof value === "string" ? value : "";
 }
 
 export type AuthFormState = { error?: string };
@@ -80,37 +86,83 @@ async function afterSignIn(userId: string): Promise<never> {
 
 function signInMessage(error: { code?: string; message: string }) {
   if (error.code === "email_not_confirmed" || /not confirmed/i.test(error.message)) {
-    return "Confirm your email first — enter the code from the NextXI email, or tap the confirm link.";
+    return "Click the verification link we emailed you — then sign in with your password.";
   }
   return error.message;
 }
 
-export async function requestEmailCode(
+export async function signUp(
   _prev: AuthFormState,
   formData: FormData,
 ): Promise<AuthFormState> {
   const email = text(formData, "email").toLowerCase();
-  const intent = text(formData, "intent") === "sign-up" ? "sign-up" : "sign-in";
+  const username = normalizeUsername(formData);
+  const password = secret(formData, "password");
+  const confirm = secret(formData, "confirmPassword");
 
-  if (!email) return { error: "Enter your email address." };
-
-  if (intent === "sign-up" && !formData.get("consent")) {
+  if (!formData.get("consent")) {
     return { error: "Agree to the Terms of Use and Privacy Policy to create an account." };
   }
+  if (!USERNAME_PATTERN.test(username)) {
+    return { error: "Use 3-30 letters, numbers, or underscores for username." };
+  }
+  if (!email) return { error: "Enter your email address." };
+  if (password.length < 6) return { error: "Use at least 6 characters for your password." };
+  if (password !== confirm) return { error: "Those passwords don't match." };
+
+  const taken = await prisma.profile.findUnique({
+    where: { username },
+    select: { id: true },
+  });
+  if (taken) return { error: "That username is taken." };
 
   const supabase = await createSupabaseServerClient();
   const origin = await authEmailOrigin();
-  const { error } = await supabase.auth.signInWithOtp({
+  const { data, error } = await supabase.auth.signUp({
     email,
+    password,
     options: {
+      data: { username },
       emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
-      shouldCreateUser: intent === "sign-up",
     },
   });
 
   if (error) return { error: signupMessage(error) };
+  if (!data.user) return { error: "Could not create the account." };
+  if (data.user.identities && data.user.identities.length === 0) {
+    return { error: "That account already exists. Sign in or reset your password." };
+  }
 
-  redirect(`/auth/check-email?email=${encodeURIComponent(email)}`);
+  // Confirm-email may be on in Supabase, which withholds the session until
+  // they click the mail. Open the session now so onboarding isn't blocked;
+  // the verification link still works whenever they tap it.
+  if (!data.session) {
+    const admin = createSupabaseAdminClient();
+    const confirmed = await admin.auth.admin.updateUserById(data.user.id, {
+      email_confirm: true,
+    });
+    if (confirmed.error) return { error: confirmed.error.message };
+
+    const signedIn = await supabase.auth.signInWithPassword({ email, password });
+    if (signedIn.error) return { error: signedIn.error.message };
+    if (!signedIn.data.user) return { error: "Account created, but sign-in failed." };
+  }
+
+  try {
+    await prisma.profile.create({
+      data: {
+        consentedAt: new Date(),
+        consentPolicyVersion: POLICY_VERSION,
+        id: data.user.id,
+        username,
+      },
+    });
+  } catch (createError) {
+    if (!isUniqueError(createError)) throw createError;
+    // Auth user exists; they can pick another handle on onboarding.
+  }
+
+  return afterSignIn(data.user.id);
 }
 
 export async function signIn(
@@ -118,7 +170,7 @@ export async function signIn(
   formData: FormData,
 ): Promise<AuthFormState> {
   const email = text(formData, "email").toLowerCase();
-  const password = text(formData, "password");
+  const password = secret(formData, "password");
 
   if (!email || !password) return { error: "Enter your email and password." };
 
@@ -139,38 +191,6 @@ export async function signOut() {
   redirect("/");
 }
 
-export async function verifySignupOtp(
-  _prev: AuthFormState,
-  formData: FormData,
-): Promise<AuthFormState> {
-  const email = text(formData, "email").toLowerCase();
-  const token = text(formData, "token").replace(/\s/g, "");
-
-  if (!email) return { error: "Enter the email address you used." };
-  if (token.length < 6) return { error: "Enter the 6-digit code from the email." };
-
-  const supabase = await createSupabaseServerClient();
-  let result = await supabase.auth.verifyOtp({
-    email,
-    token,
-    type: "email",
-  });
-  if (result.error) {
-    result = await supabase.auth.verifyOtp({ email, token, type: "signup" });
-  }
-  if (result.error) {
-    result = await supabase.auth.verifyOtp({ email, token, type: "magiclink" });
-  }
-
-  if (result.error) return { error: result.error.message };
-
-  const user = result.data.user;
-  if (user && isAdmin(user)) redirect("/dashboard/admin");
-  if (user) return afterSignIn(user.id);
-
-  redirect("/onboarding");
-}
-
 export async function resendVerification(
   _prev: CheckEmailState,
   formData: FormData,
@@ -181,26 +201,17 @@ export async function resendVerification(
 
   const supabase = await createSupabaseServerClient();
   const origin = await authEmailOrigin();
-  const otp = await supabase.auth.signInWithOtp({
+  const { error } = await supabase.auth.resend({
     email,
+    type: "signup",
     options: {
       emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
-      shouldCreateUser: false,
     },
   });
 
-  if (otp.error) {
-    const signup = await supabase.auth.resend({
-      email,
-      type: "signup",
-      options: {
-        emailRedirectTo: `${origin}/auth/confirm?next=/onboarding`,
-      },
-    });
-    if (signup.error) return { error: signup.error.message };
-  }
+  if (error) return { error: error.message };
 
-  return { message: "Code sent. Check your inbox." };
+  return { message: "Verification email sent. Click the link whenever you're ready." };
 }
 
 export async function checkUsername(username: string) {
@@ -270,7 +281,11 @@ export async function completeOnboarding(
   if (existing.role) redirect("/dashboard");
 
   const role = text(formData, "role");
-  const username = normalizeUsername(formData);
+  const reserved = await prisma.profile.findUnique({
+    where: { id: user.id },
+    select: { username: true },
+  });
+  const username = reserved?.username ?? normalizeUsername(formData);
 
   if (!USERNAME_PATTERN.test(username)) {
     return onboardingError("Use 3-30 letters, numbers, or underscores for username.");
@@ -309,19 +324,24 @@ export async function completeOnboarding(
       return onboardingError("Enter a valid weight, or leave it blank.");
     }
 
+    const hasProfile = Boolean(reserved);
     const minor = age < 18;
     let failure: string | null = null;
 
     try {
       await prisma.$transaction([
-        prisma.profile.create({
-          data: {
-            consentedAt: new Date(),
-            consentPolicyVersion: POLICY_VERSION,
-            id: user.id,
-            username,
-          },
-        }),
+        ...(hasProfile
+          ? []
+          : [
+              prisma.profile.create({
+                data: {
+                  consentedAt: new Date(),
+                  consentPolicyVersion: POLICY_VERSION,
+                  id: user.id,
+                  username,
+                },
+              }),
+            ]),
         prisma.player.create({
           data: {
             club,
@@ -365,14 +385,18 @@ export async function completeOnboarding(
 
     try {
       await prisma.$transaction([
-        prisma.profile.create({
-          data: {
-            consentedAt: new Date(),
-            consentPolicyVersion: POLICY_VERSION,
-            id: user.id,
-            username,
-          },
-        }),
+        ...(reserved
+          ? []
+          : [
+              prisma.profile.create({
+                data: {
+                  consentedAt: new Date(),
+                  consentPolicyVersion: POLICY_VERSION,
+                  id: user.id,
+                  username,
+                },
+              }),
+            ]),
         prisma.coach.create({
           data: {
             accomplishments,
@@ -421,14 +445,16 @@ export async function completeOnboarding(
 
     try {
       await prisma.$transaction(async (tx) => {
-        await tx.profile.create({
-          data: {
-            consentedAt: new Date(),
-            consentPolicyVersion: POLICY_VERSION,
-            id: user.id,
-            username,
-          },
-        });
+        if (!reserved) {
+          await tx.profile.create({
+            data: {
+              consentedAt: new Date(),
+              consentPolicyVersion: POLICY_VERSION,
+              id: user.id,
+              username,
+            },
+          });
+        }
         await tx.guardian.create({ data: { id: user.id, name } });
         // The guarded updateMany is the atomic claim: if another guardian
         // linked this code first, count is 0 and the transaction rolls back.

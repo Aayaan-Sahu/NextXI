@@ -186,8 +186,8 @@ export function AuthCard({
 /**
  * The compact auth card: a maroon header strip carrying the wordmark and one
  * piece of context (a step label, or the signup stepper), then the form.
- * Sign-in, code entry and password reset all use this; only sign-up earns the
- * full split shell.
+ * Sign-in, password reset and email verification use this; only sign-up
+ * earns the full split shell.
  */
 export function AuthSheet({
   children,

@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { OnboardingPanel } from "@/components/onboarding";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
 
 type SearchParams = Promise<{
@@ -21,7 +22,13 @@ export default async function OnboardingPage({
 
   if (status.role) redirect("/dashboard");
 
-  const params = await searchParams;
+  const [params, profile] = await Promise.all([
+    searchParams,
+    prisma.profile.findUnique({
+      where: { id: user.id },
+      select: { username: true },
+    }),
+  ]);
   const roleParam = firstParam(params.role);
   const role =
     roleParam === "coach" || roleParam === "guardian" ? roleParam : "player";
@@ -31,6 +38,7 @@ export default async function OnboardingPage({
       email={user.email}
       error={firstParam(params.error)}
       role={role}
+      username={profile?.username}
     />
   );
 }

@@ -5,8 +5,14 @@ import { checkUsername } from "@/app/auth/actions";
 import { Field, FieldHint } from "@/components/ui";
 import { USERNAME_PATTERN, usernameFromName } from "@/lib/usernames";
 
-export function UsernameHandleField({ nameValue }: { nameValue: string }) {
-  const suggested = usernameFromName(nameValue);
+export function UsernameHandleField({
+  nameValue = "",
+  suggestFromName = true,
+}: {
+  nameValue?: string;
+  suggestFromName?: boolean;
+}) {
+  const suggested = suggestFromName ? usernameFromName(nameValue) : "";
   const [override, setOverride] = useState<string | null>(null);
   const username = override ?? suggested;
   const [check, setCheck] = useState<{
@@ -47,7 +53,9 @@ export function UsernameHandleField({ nameValue }: { nameValue: string }) {
           ? "3–30 letters, numbers, or underscores."
           : status === "checking"
             ? "Checking…"
-            : "Public on your profile. We'll suggest one from your name.";
+            : suggestFromName
+              ? "Public on your profile. We'll suggest one from your name."
+              : "Public on your profile.";
 
   const bad = status === "taken" || status === "invalid";
 

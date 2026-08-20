@@ -1,13 +1,12 @@
-export type AuthStep = "account" | "confirm" | "profile";
+export type AuthStep = "account" | "profile";
 
 const STEPS: { id: AuthStep; label: string }[] = [
   { id: "account", label: "Account" },
-  { id: "confirm", label: "Confirm" },
   { id: "profile", label: "Profile" },
 ];
 
 /**
- * Three-beat progress for signup: Account → Confirm → Profile.
+ * Two-beat progress for signup: Account → Profile.
  * `tone="dark"` is the variant that rides the maroon header bar.
  */
 export function AuthStepper({
