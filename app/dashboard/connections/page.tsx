@@ -1,13 +1,15 @@
 import { redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
+import { sendConnectionRequest } from "@/app/dashboard/connections/actions";
 import { CoachDirectory } from "@/components/coach-directory";
-import { ConnectionsPanel } from "@/components/connections";
+import { ConnectionsRoster, PendingColumn } from "@/components/connections";
 import {
   DashboardReveal,
   DashboardRevealItem,
 } from "@/components/dashboard-reveal";
 import { PlayerDirectory } from "@/components/player-directory";
-import { Notice, PageShell, StatusBand, StatusBoard } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { BarShell, Notice, SubBar, Tabs, TextInput } from "@/components/ui";
 import { isAdmin, requireUser } from "@/lib/auth";
 import {
   getCoachDirectory,
@@ -25,29 +27,8 @@ type SearchParams = Promise<{
   discipline?: string | string[];
   country?: string | string[];
   searched?: string | string[];
+  tab?: string | string[];
 }>;
-
-/**
- * Role-neutral: this page serves players and coaches alike, so the voice can't
- * assume a player's XI. A coach awaiting approval gets its own line — every
- * send path rejects them with "still under review" (see actions.ts), and
- * neither directory renders for that role, so telling them to find someone
- * would point at UI they never see.
- */
-function connectionNote(
-  incoming: number,
-  connected: number,
-  underReview: boolean,
-) {
-  if (underReview) {
-    return "Your coach account is still under review — connections open once an admin approves it.";
-  }
-  if (incoming > 0) return "Requests are waiting on your answer.";
-  if (connected === 0) {
-    return "Nothing connected yet — send a request by name or @username, or find someone in the directory.";
-  }
-  return "Connections decide who can message you and who sees your work.";
-}
 
 export default async function ConnectionsPage({
   searchParams,
@@ -89,51 +70,100 @@ export default async function ConnectionsPage({
 
   const underReview = Boolean(coach) && !canSearchPlayers;
   const incoming = connectionData.incomingPending.length;
-  const outgoing = connectionData.outgoingPending.length;
   const connected = connectionData.accepted.length;
-  const stats = [
-    `${connected} connected`,
-    `${incoming} incoming`,
-    `${outgoing} outgoing`,
-  ];
+  const coachCount = connectionData.accepted.filter((p) => p.role === "coach").length;
+  const playerCount = connected - coachCount;
+
+  const tab = firstParam(params.tab);
+  const active: "all" | "coaches" | "players" | "pending" =
+    tab === "coaches" || tab === "players" || tab === "pending" ? tab : "all";
+  const href = (next: string) => (next === "all" ? "?" : `?tab=${next}`);
 
   return (
-    <PageShell>
-      <DashboardReveal className="grid gap-9">
-        <DashboardRevealItem index={0}>
-          <StatusBand>
-            <StatusBoard
-              kicker="CONNECTIONS"
-              note={connectionNote(incoming, connected, underReview)}
-              stats={stats}
-              title="Your network."
-            />
-          </StatusBand>
-        </DashboardRevealItem>
-
-        <DashboardRevealItem index={1}>
-          <Notice tone="error">{connectionError}</Notice>
-          <Notice>{connectionMessage}</Notice>
-          <div
-            className={`grid items-start gap-6 ${
-              canSearchPlayers
-                ? "lg:grid-cols-[1fr_1.25fr]"
-                : "lg:grid-cols-[1.25fr_1fr]"
-            }`}
+    <BarShell
+      bar={
+        <SubBar title="Connections">
+          <Tabs
+            items={[
+              { active: active === "all", href: href("all"), label: `All ${connected}` },
+              {
+                active: active === "coaches",
+                href: href("coaches"),
+                label: `Coaches ${coachCount}`,
+              },
+              {
+                active: active === "players",
+                href: href("players"),
+                label: `Players ${playerCount}`,
+              },
+              {
+                active: active === "pending",
+                badge: incoming,
+                href: href("pending"),
+                label: "Pending",
+              },
+            ]}
+          />
+          <form
+            action={sendConnectionRequest}
+            className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2.5"
           >
-            {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
-            <ConnectionsPanel data={connectionData} />
-            {canSearchPlayers ? (
-              <PlayerDirectory
-                country={country}
-                discipline={discipline}
-                players={players ?? []}
-                searched={searched}
-              />
+            <TextInput
+              aria-label="Name or username"
+              className="min-w-0 sm:w-[260px]"
+              name="query"
+              placeholder="Name or @username"
+              required
+              type="text"
+            />
+            <SubmitButton className="shrink-0 !px-4 !py-2 !text-ui">
+              Send request
+            </SubmitButton>
+          </form>
+        </SubBar>
+      }
+    >
+      <DashboardReveal className="grid items-start gap-x-10 gap-y-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <DashboardRevealItem className="grid gap-7" index={0}>
+          <div className="grid gap-2.5 empty:hidden">
+            <Notice tone="error">{connectionError}</Notice>
+            <Notice>{connectionMessage}</Notice>
+            {underReview ? (
+              <Notice tone="error">
+                Your coach account is still under review — connections open once an admin
+                approves it.
+              </Notice>
             ) : null}
           </div>
+
+          {active === "pending" ? (
+            <PendingColumn data={connectionData} />
+          ) : (
+            <ConnectionsRoster data={connectionData} filter={active} />
+          )}
+
+          {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
+          {canSearchPlayers ? (
+            <PlayerDirectory
+              country={country}
+              discipline={discipline}
+              players={players ?? []}
+              searched={searched}
+            />
+          ) : null}
         </DashboardRevealItem>
+
+        {/* The rail is where pending requests live — unless the Pending tab has
+            already moved them into the main column, in which case it goes. */}
+        {active === "pending" ? null : (
+          <DashboardRevealItem
+            className="lg:border-l lg:border-cream-400 lg:pl-6"
+            index={1}
+          >
+            <PendingColumn data={connectionData} />
+          </DashboardRevealItem>
+        )}
       </DashboardReveal>
-    </PageShell>
+    </BarShell>
   );
 }

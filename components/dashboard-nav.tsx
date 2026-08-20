@@ -6,9 +6,6 @@ import { useState } from "react";
 import { signOut } from "@/app/auth/actions";
 import { Wordmark } from "@/components/ui";
 
-const menuItemClasses =
-  "block w-full cursor-pointer px-3 py-2 text-left text-sm text-ink-900 no-underline hover:bg-cream-200";
-
 export function DashboardNav({
   avatarUrl = null,
   homeHref,
@@ -59,17 +56,15 @@ export function DashboardNav({
 
   return (
     // `relative` anchors the mobile disclosure panel to the bar's bottom edge.
-    // Gold stitch line under the rust band keeps brand from ending abruptly.
-    <header className="relative border-b-2 border-gold-500 bg-rust-600">
-      <nav className="mx-auto flex h-16 w-full max-w-[1280px] items-center gap-4 px-6 sm:px-12 md:gap-10">
+    <header className="relative bg-rust-600">
+      <nav className="mx-auto flex h-14 w-full max-w-[1360px] items-stretch gap-4 px-6 sm:px-10 md:gap-8">
         {/* A player's inline link row needs ~592px min-content (wordmark +
-            five links + avatar), which fits the 672px md leaves after sm:px-12
-            (768 - 96), so the row returns at md and only sub-md gets a
-            disclosure menu. */}
+            five links + avatar), which fits the 672px md leaves after sm:px-10,
+            so the row returns at md and only sub-md gets a disclosure menu. */}
         <button
           aria-expanded={navOpen}
           aria-label="Menu"
-          className="relative -ml-3 flex size-11 shrink-0 cursor-pointer items-center justify-center text-cream-200 md:hidden"
+          className="relative -ml-3 flex w-11 shrink-0 cursor-pointer items-center justify-center text-cream-200 md:hidden"
           onClick={() => {
             setNavOpen((open) => !open);
             setAccountOpen(false);
@@ -78,7 +73,7 @@ export function DashboardNav({
         >
           <svg
             aria-hidden="true"
-            className="size-6"
+            className="size-[18px]"
             fill="none"
             stroke="currentColor"
             strokeLinecap="round"
@@ -91,10 +86,9 @@ export function DashboardNav({
               <path d="M4 6h16M4 12h16M4 18h16" />
             )}
           </svg>
+          {/* The unread dot rides the closed hamburger. */}
           {unreadMessages > 0 && !navOpen ? (
-            <span className="absolute top-0.5 right-0 rounded-full bg-gold-500 px-1.5 py-px text-[10px] leading-[14px] font-bold text-rust-700">
-              {badgeCount}
-            </span>
+            <span className="absolute top-3 right-1.5 size-[7px] rounded-full bg-amber-500" />
           ) : null}
         </button>
         {navOpen ? (
@@ -105,13 +99,13 @@ export function DashboardNav({
               onClick={() => setNavOpen(false)}
               type="button"
             />
-            <div className="absolute inset-x-0 top-full z-20 border-b border-cream-400 bg-cream-50 py-2 shadow-md md:hidden">
+            <div className="absolute inset-x-0 top-full z-20 bg-pitch-900 p-2 md:hidden">
               {links.map((link) => (
                 <Link
                   className={
                     link.href === activeHref
-                      ? "block border-l-2 border-gold-500 bg-cream-200 px-6 py-3 text-sm font-semibold text-rust-600 no-underline sm:px-12"
-                      : "block border-l-2 border-transparent px-6 py-3 text-sm font-semibold text-ink-900 no-underline hover:bg-cream-200 sm:px-12"
+                      ? "flex items-center justify-between rounded-md bg-amber-500/[.14] px-3.5 py-2.5 text-ui font-semibold text-cream-50 no-underline shadow-[inset_2px_0_0_var(--color-amber-500)]"
+                      : "flex items-center justify-between rounded-md px-3.5 py-2.5 text-ui text-cream-200/70 no-underline hover:text-cream-50"
                   }
                   href={link.href}
                   key={link.href}
@@ -119,32 +113,51 @@ export function DashboardNav({
                 >
                   {link.label}
                   {showBadge(link.href) ? (
-                    <span className="ml-2 inline-flex rounded-full bg-rust-600 px-2 py-0.5 text-[11px] font-bold text-cream-200">
+                    <span className="rounded-[9px] bg-amber-500 px-1.5 py-px text-micro font-bold text-ink-900">
                       {badgeCount}
                     </span>
                   ) : null}
                 </Link>
               ))}
+              <div className="mt-1.5 border-t border-cream-200/[.14] pt-1.5">
+                {!limited && (
+                  <Link
+                    className="block px-3.5 py-2.5 text-ui text-cream-200/70 no-underline hover:text-cream-50"
+                    href="/dashboard/profile"
+                    onClick={() => setNavOpen(false)}
+                  >
+                    Edit profile
+                  </Link>
+                )}
+                <form action={signOut}>
+                  <button
+                    className="w-full cursor-pointer px-3.5 py-2.5 text-left text-ui font-semibold text-gold-500"
+                    type="submit"
+                  >
+                    Sign out
+                  </button>
+                </form>
+              </div>
             </div>
           </>
         ) : null}
-        <Link className="no-underline" href={homeHref}>
+        <Link className="flex items-center no-underline" href={homeHref}>
           <Wordmark tone="dark" />
         </Link>
-        <div className="hidden flex-1 items-center gap-7 self-stretch text-sm font-semibold md:flex">
+        <div className="hidden flex-1 items-stretch gap-[22px] text-ui md:flex">
           {links.map((link) => (
             <Link
               className={
                 link.href === activeHref
-                  ? "flex items-center gap-1.5 self-stretch border-b-2 border-gold-500 text-cream-200 no-underline"
-                  : "flex items-center gap-1.5 self-stretch border-b-2 border-transparent text-sage-400 no-underline hover:text-cream-200"
+                  ? "flex items-center gap-[7px] font-semibold text-cream-50 no-underline shadow-[inset_0_-2px_0_var(--color-amber-500)]"
+                  : "flex items-center gap-[7px] text-cream-200/[.66] no-underline hover:text-cream-50"
               }
               href={link.href}
               key={link.href}
             >
               {link.label}
               {showBadge(link.href) ? (
-                <span className="rounded-full bg-gold-500 px-1.5 py-px text-[10px] leading-[14px] font-bold text-rust-700">
+                <span className="rounded-[9px] bg-amber-500 px-1.5 py-px text-micro font-bold text-ink-900">
                   {badgeCount}
                 </span>
               ) : null}
@@ -153,11 +166,11 @@ export function DashboardNav({
         </div>
         {/* `ml-auto` keeps the avatar flush right on mobile, where no flex-1
             link row sits between it and the wordmark. */}
-        <div className="relative ml-auto">
+        <div className="relative ml-auto flex items-center">
           <button
             aria-expanded={accountOpen}
             aria-haspopup="menu"
-            className="flex size-[34px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gold-500 text-sm font-bold text-rust-600"
+            className="flex size-[30px] shrink-0 cursor-pointer items-center justify-center overflow-hidden rounded-full bg-gold-500 text-caption font-bold text-ink-900"
             onClick={() => {
               setAccountOpen((open) => !open);
               setNavOpen(false);
@@ -179,10 +192,10 @@ export function DashboardNav({
                 onClick={() => setAccountOpen(false)}
                 type="button"
               />
-              <div className="absolute right-0 z-20 mt-2 w-44 overflow-hidden rounded-md border border-cream-400 bg-cream-50 py-1 shadow-md">
+              <div className="absolute top-full right-0 z-20 mt-2 w-44 overflow-hidden rounded-md bg-pitch-900 py-1.5">
                 {!limited && (
                   <Link
-                    className={menuItemClasses}
+                    className="block px-3.5 py-2 text-ui text-cream-200/70 no-underline hover:text-cream-50"
                     href="/dashboard/profile"
                     onClick={() => setAccountOpen(false)}
                   >
@@ -190,7 +203,10 @@ export function DashboardNav({
                   </Link>
                 )}
                 <form action={signOut}>
-                  <button className={menuItemClasses} type="submit">
+                  <button
+                    className="w-full cursor-pointer px-3.5 py-2 text-left text-ui font-semibold text-gold-500"
+                    type="submit"
+                  >
                     Sign out
                   </button>
                 </form>

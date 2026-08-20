@@ -1,23 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { SecondaryButton } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { ConfirmDialog, DialogActions, GhostButton } from "@/components/ui";
 
-/** Confirm before a trash action on a video card (delete clip or remove from session). */
+/**
+ * Confirm before a destructive action on a video card. The trigger is a word
+ * on the thumbnail, not a glyph — the system has no icon vocabulary.
+ */
 export function ConfirmDeleteButton({
   action,
   description,
   id,
   label,
   name,
+  redirectTo,
   title,
+  variant = "overlay",
 }: {
   action: (formData: FormData) => Promise<void>;
   description: string;
   id: string;
   label: string;
   name: string;
+  /** Where to land afterwards — required when deleting from the item's own page. */
+  redirectTo?: string;
   title: string;
+  /** `overlay` rides a thumbnail; `text` sits in a page header as an action. */
+  variant?: "overlay" | "text";
 }) {
   const [confirming, setConfirming] = useState(false);
 
@@ -25,55 +35,34 @@ export function ConfirmDeleteButton({
     <>
       <button
         aria-label={`${label} ${name}`}
-        className="grid size-8 cursor-pointer place-items-center rounded-md border border-cream-400 bg-white text-ink-600 hover:border-rust-600 hover:text-rust-700"
+        className={
+          variant === "text"
+            ? "cursor-pointer text-ui font-semibold text-rust-600 hover:text-rust-700"
+            : "cursor-pointer rounded bg-pitch-900/[.82] px-[7px] py-[3px] text-micro font-semibold text-cream-200 hover:bg-rust-600"
+        }
         onClick={() => setConfirming(true)}
         type="button"
       >
-        <TrashIcon />
+        {label}
       </button>
       {confirming ? (
-        <div
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-950/60 p-4"
-          role="alertdialog"
+        <ConfirmDialog
+          description={description}
+          onDismiss={() => setConfirming(false)}
+          title={title}
         >
-          <div className="w-full max-w-[380px] rounded-[10px] border border-cream-400 bg-white p-5 shadow-2xl shadow-black/40">
-            <p className="font-semibold">{title}</p>
-            <p className="mt-2 text-sm text-ink-600">{description}</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <SecondaryButton onClick={() => setConfirming(false)} type="button">
-                Cancel
-              </SecondaryButton>
-              <form action={action}>
-                <input name="id" type="hidden" value={id} />
-                <button
-                  className="cursor-pointer rounded-md bg-rust-600 px-4 py-2.5 text-sm font-bold text-cream-50 hover:bg-rust-700"
-                  type="submit"
-                >
-                  {label}
-                </button>
-              </form>
-            </div>
-          </div>
-        </div>
+          <DialogActions>
+            <GhostButton onClick={() => setConfirming(false)} type="button">
+              Cancel
+            </GhostButton>
+            <form action={action}>
+              <input name="id" type="hidden" value={id} />
+              {redirectTo ? <input name="redirectTo" type="hidden" value={redirectTo} /> : null}
+              <SubmitButton variant="danger">{label}</SubmitButton>
+            </form>
+          </DialogActions>
+        </ConfirmDialog>
       ) : null}
     </>
-  );
-}
-
-function TrashIcon() {
-  return (
-    <svg
-      aria-hidden
-      className="h-4 w-4"
-      fill="none"
-      stroke="currentColor"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      strokeWidth={1.5}
-      viewBox="0 0 24 24"
-    >
-      <path d="M3 6h18M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m5 5v6m4-6v6" />
-    </svg>
   );
 }

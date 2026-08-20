@@ -7,12 +7,14 @@ import {
   Visibility,
 } from "@/app/generated/prisma/enums";
 import { requestConnectionToPlayer } from "@/app/dashboard/connections/actions";
+import { PersonAvatar } from "@/components/connections";
 import { SessionList } from "@/components/session-list";
-import { Badge, PageHeader, PageShell } from "@/components/ui";
+import { SubmitButton } from "@/components/submit-button";
+import { Chip, PageShell, SectionHeading, PageTitle } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
-import { PLAYER_ROLE_LABELS } from "@/lib/players";
+import { countryWithFlag, PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { getPlayerSessions } from "@/lib/sessions.server";
 import { getReadyVideoGridItems } from "@/lib/videos.server";
@@ -33,10 +35,27 @@ export default async function CoachPlayerVideosPage({
 
   if (!isUuid(playerId)) notFound();
 
-  const player = await prisma.player.findUnique({
-    where: { id: playerId },
-    select: { name: true, roles: true, visibility: true, status: true },
-  });
+  // Usernames live on Profile, not Player — one handle per account, whatever
+  // role that account holds. Fetched alongside, not after: the database is a
+  // round trip away, so two awaits in a row cost twice as much as one.
+  const [player, profileRow] = await Promise.all([
+    prisma.player.findUnique({
+      where: { id: playerId },
+      select: {
+        club: true,
+        country: true,
+        heightCm: true,
+        name: true,
+        roles: true,
+        status: true,
+        visibility: true,
+      },
+    }),
+    prisma.profile.findUnique({
+      where: { id: playerId },
+      select: { username: true },
+    }),
+  ]);
 
   if (!player) notFound();
 
@@ -53,49 +72,79 @@ export default async function CoachPlayerVideosPage({
     getPlayerSessions(playerId),
   ]);
 
+  const identity = [
+    profileRow?.username ? `@${profileRow.username}` : null,
+    player.club,
+    countryWithFlag(player.country),
+    player.heightCm ? `${player.heightCm} cm` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <PageShell>
       <Link
-        className="mb-4 inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
-        href="/dashboard/coach"
+        className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
+        href={connected ? "/dashboard/coach" : "/dashboard/connections"}
       >
-        ← Dashboard
+        ← {connected ? "Dashboard" : "Player directory"}
       </Link>
-      <PageHeader
-        subtitle="All of this player's videos, including ones you have already reviewed."
-        title={player.name}
-      />
-      {!connected && (
-        <form action={requestConnectionToPlayer} className="mb-6">
-          <input name="playerId" type="hidden" value={playerId} />
-          <button
-            className="cursor-pointer rounded-md bg-gold-500 px-4 py-2 text-[13px] font-bold text-pitch-900 hover:bg-gold-600"
-            type="submit"
-          >
-            Request to connect
-          </button>
-        </form>
-      )}
-      {player.roles.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-1.5">
+
+      <header className="mt-3.5 flex items-center justify-between gap-6 max-md:flex-col max-md:items-start">
+        <div className="flex items-center gap-4">
+          <PersonAvatar name={player.name} role="player" size="lg" />
+          <div className="min-w-0">
+            <PageTitle>{player.name}</PageTitle>
+            {identity ? <p className="mt-1 text-ui text-ink-600">{identity}</p> : null}
+          </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2">
           {player.roles.map((role) => (
-            <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
+            <Chip key={role}>{PLAYER_ROLE_LABELS[role]}</Chip>
           ))}
+          {connected ? null : (
+            <form action={requestConnectionToPlayer}>
+              <input name="playerId" type="hidden" value={playerId} />
+              <SubmitButton className="ml-1 !px-[18px] !py-2 !text-ui">
+                Request to connect
+              </SubmitButton>
+            </form>
+          )}
+        </div>
+      </header>
+
+      {connected ? null : (
+        <div className="mt-5 flex items-center gap-3 rounded-lg border border-cream-400 bg-cream-100 px-4 py-3.5">
+          <span aria-hidden className="text-caption">
+            🔒
+          </span>
+          <p className="text-ui text-ink-800">
+            This player is public, so you can watch their videos and reports. Practice sessions
+            and messaging open once they accept your request.
+          </p>
         </div>
       )}
+
       {sessions.length > 0 && (
-        <section className="mb-9">
-          <h2 className="mb-4 font-display text-xl leading-tight font-semibold uppercase">
-            Practice sessions
-          </h2>
-          <SessionList linkBase="/dashboard/coach/sessions" sessions={sessions} />
+        <section className="mt-9">
+          <SectionHeading>Practice sessions</SectionHeading>
+          <div className="mt-3">
+            <SessionList linkBase="/dashboard/coach/sessions" sessions={sessions} />
+          </div>
         </section>
       )}
-      <VideoGrid
-        emptyMessage="This player has not uploaded any videos yet."
-        linkBase="/dashboard/coach/videos"
-        videos={videos}
-      />
+
+      <section className="mt-9">
+        <SectionHeading>{sessions.length > 0 ? "Standalone videos" : "Videos"}</SectionHeading>
+        <div className="mt-4">
+          <VideoGrid
+            className="grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1"
+            emptyMessage="This player has not uploaded any videos yet."
+            linkBase="/dashboard/coach/videos"
+            videos={videos}
+          />
+        </div>
+      </section>
     </PageShell>
   );
 }

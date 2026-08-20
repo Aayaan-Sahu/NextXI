@@ -1,7 +1,7 @@
 import { SubmitButton } from "@/components/submit-button";
 import { signOut } from "@/app/auth/actions";
 import { CoachStatus, ReportStatus } from "@/app/generated/prisma/enums";
-import { Notice, Panel, Wordmark } from "@/components/ui";
+import { Notice, SectionHeading, Wordmark } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
@@ -12,6 +12,9 @@ type SearchParams = Promise<{
   error?: string | string[];
   message?: string | string[];
 }>;
+
+const QUEUE_COLUMNS =
+  "grid grid-cols-[minmax(0,1fr)_70px_84px_50px] gap-3 max-sm:grid-cols-1 max-sm:gap-1";
 
 /** Compact age for queue rows, e.g. "4m", "2h", "3d". */
 function formatAge(from: Date, now: Date) {
@@ -77,73 +80,95 @@ export default async function AdminDashboardPage({
   const error = firstParam(params.error);
   const message = firstParam(params.message);
 
+  const claimedNote = queuedReports.find((report) => report.claimedAt);
+
   return (
     <>
-      <header className="flex h-16 items-center justify-between bg-pitch-900 px-6 sm:px-10">
-        <Wordmark tone="dark" />
-        <form action={signOut}>
-          <button
-            className="cursor-pointer rounded-md border border-cream-200/30 bg-transparent px-4 py-2 text-[13px] font-semibold text-cream-200 hover:bg-cream-200/10"
-            type="submit"
-          >
-            Sign out
-          </button>
-        </form>
+      <header className="bg-pitch-900">
+        <div className="mx-auto flex h-14 w-full max-w-[1360px] items-center justify-between px-6 sm:px-10">
+          <div className="flex items-center gap-5">
+            <Wordmark tone="dark" />
+            <span aria-hidden className="h-5 w-px bg-cream-200/25" />
+            <span className="text-ui text-cream-200">Admin — coach review</span>
+          </div>
+          <div className="flex items-center gap-4 text-caption text-cream-200/[.66]">
+            <span className="max-sm:hidden">{user.email}</span>
+            <form action={signOut}>
+              <button
+                className="cursor-pointer font-semibold text-gold-500 hover:text-gold-600"
+                type="submit"
+              >
+                Sign out
+              </button>
+            </form>
+          </div>
+        </div>
       </header>
-      <main className="mx-auto w-full max-w-[820px] px-6 py-11 sm:px-8">
-        <h1 className="font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase">
-          Admin — coach review
-        </h1>
-        <p className="mt-2 font-mono text-[12.5px] text-ink-600">{user.email}</p>
-        <Notice tone="error">{error}</Notice>
-        <Notice>{message}</Notice>
+      <main className="mx-auto w-full max-w-[1360px] px-6 pt-7 pb-14 sm:px-10" id="main-content">
+        <h1 className="sr-only">Admin — coach review</h1>
+        <div className="grid gap-2.5 empty:hidden">
+          <Notice tone="error">{error}</Notice>
+          <Notice>{message}</Notice>
+        </div>
 
-        <div className="mt-7">
-          <Panel>
-            <h2 className="font-display text-xl leading-tight font-semibold uppercase">
-              Pending coaches{" "}
-              <span className="font-mono text-[15px] font-medium text-rust-600">
-                ({pendingCoaches.length})
-              </span>
-            </h2>
+        <div className="mt-6 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_480px]">
+          <section>
+            <SectionHeading>Pending coaches · {pendingCoaches.length}</SectionHeading>
+            <p className="mt-1.5 text-caption text-ink-600">
+              Oldest first. Rejection is final in this console.
+            </p>
             {pendingCoaches.length ? (
-              <ul className="mt-4">
+              <ul className="mt-4 border-b border-cream-400">
                 {pendingCoaches.map((coach) => (
                   <li
-                    className="flex justify-between gap-5 border-t border-cream-400 py-5 max-sm:flex-col"
+                    className="flex items-start justify-between gap-5 border-t border-cream-400 py-[18px] max-sm:flex-col"
                     key={coach.id}
                   >
-                    <div>
-                      <p className="text-[15px] font-bold">
+                    <div className="min-w-0 flex-1">
+                      <p className="text-body font-semibold">
                         {coach.name}
                         {usernames.get(coach.id) ? (
-                          <span className="font-mono text-xs font-medium text-ink-600">
+                          <span className="font-normal text-ink-600">
                             {" "}
                             @{usernames.get(coach.id)}
                           </span>
                         ) : null}
                       </p>
+                      <p className="mt-[3px] text-caption text-ink-600">
+                        Submitted{" "}
+                        {coach.createdAt.toLocaleDateString("en-GB", {
+                          day: "numeric",
+                          month: "short",
+                        })}
+                      </p>
                       {coach.accomplishments.length ? (
-                        <ul className="mt-2 list-disc pl-[18px] text-[13.5px] leading-[1.7] text-ink-600">
+                        <ul className="mt-2.5 grid gap-[5px] text-ui text-ink-800">
                           {coach.accomplishments.map((item) => (
-                            <li key={item}>{item}</li>
+                            <li className="flex gap-2.5" key={item}>
+                              <span aria-hidden className="text-ink-600">
+                                ·
+                              </span>
+                              <span>{item}</span>
+                            </li>
                           ))}
                         </ul>
                       ) : (
-                        <p className="mt-2 text-[13.5px] text-sage-400">
+                        <p className="mt-2.5 text-ui text-ink-600">
                           No accomplishments listed.
                         </p>
                       )}
                     </div>
-                    <div className="flex gap-2.5 self-start">
+                    <div className="flex shrink-0 gap-2">
                       <form action={approveCoach}>
                         <input name="coachId" type="hidden" value={coach.id} />
-                        <SubmitButton>Approve</SubmitButton>
+                        <SubmitButton className="!px-5 !py-[9px] !text-ui">
+                          Approve
+                        </SubmitButton>
                       </form>
                       <form action={rejectCoach}>
                         <input name="coachId" type="hidden" value={coach.id} />
                         <button
-                          className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2.5 text-sm font-semibold text-rust-600 hover:bg-cream-100"
+                          className="cursor-pointer rounded-md border border-rust-300 bg-transparent px-5 py-[9px] text-ui font-semibold text-rust-600 hover:bg-rust-50"
                           type="submit"
                         >
                           Reject
@@ -154,66 +179,69 @@ export default async function AdminDashboardPage({
                 ))}
               </ul>
             ) : (
-              <p className="mt-4 text-sm text-ink-600">No coaches awaiting review.</p>
+              <p className="mt-4 text-ui text-ink-600">No coaches awaiting review.</p>
             )}
-          </Panel>
-        </div>
+          </section>
 
-        <div className="mt-7">
-          <Panel>
-            <h2 className="font-display text-xl leading-tight font-semibold uppercase">
-              Report queue{" "}
-              <span className="font-mono text-[15px] font-medium text-rust-600">
-                ({queuedReports.length})
-              </span>
-            </h2>
+          <section>
+            <SectionHeading>Report queue · {queuedReports.length}</SectionHeading>
+            <p className="mt-1.5 text-caption text-ink-600">
+              Pipeline telemetry, display only.
+            </p>
             {queuedReports.length ? (
-              <ul className="mt-4">
-                {queuedReports.map((report) => (
-                  <li
-                    className="flex justify-between gap-5 border-t border-cream-400 py-5 max-sm:flex-col"
-                    key={report.id}
-                  >
-                    <div>
-                      <p className="text-[15px] font-bold">
-                        {report.video.player.name}
-                        {usernames.get(report.video.playerId) ? (
-                          <span className="font-mono text-xs font-medium text-ink-600">
-                            {" "}
-                            @{usernames.get(report.video.playerId)}
-                          </span>
-                        ) : null}
-                      </p>
-                      <p className="mt-2 font-mono text-xs text-ink-600">
-                        {isVideoDiscipline(report.video.category)
-                          ? VIDEO_DISCIPLINES[report.video.category].label
-                          : "Untagged"}{" "}
-                        · uploaded {formatAge(report.video.createdAt, now)} ago
-                      </p>
-                    </div>
-                    <p className="self-start font-mono text-xs text-ink-600 sm:text-right">
+              <div className="mt-4">
+                <div className={`${QUEUE_COLUMNS} pb-2 text-caption text-ink-600 max-sm:hidden`}>
+                  <span>Player · discipline</span>
+                  <span>Age</span>
+                  <span>Status</span>
+                  <span>Tries</span>
+                </div>
+                <ul className="border-b border-cream-400">
+                  {queuedReports.map((report) => (
+                    <li
+                      className={`${QUEUE_COLUMNS} items-baseline border-t border-cream-400 py-3 text-ui`}
+                      key={report.id}
+                    >
+                      <span className="min-w-0 truncate">
+                        <span className="font-semibold">{report.video.player.name}</span>{" "}
+                        <span className="text-ink-600">
+                          {usernames.get(report.video.playerId)
+                            ? `@${usernames.get(report.video.playerId)} · `
+                            : ""}
+                          {isVideoDiscipline(report.video.category)
+                            ? VIDEO_DISCIPLINES[report.video.category].label
+                            : "Untagged"}
+                        </span>
+                      </span>
+                      <span className="text-ink-600 tabular-nums">
+                        {formatAge(report.video.createdAt, now)}
+                      </span>
                       <span
                         className={
                           report.status === ReportStatus.FAILED
                             ? "font-semibold text-rust-600"
-                            : "font-semibold text-ink-900"
+                            : undefined
                         }
                       >
                         {report.status.toLowerCase()}
-                      </span>{" "}
-                      · {report.attempts}{" "}
-                      {report.attempts === 1 ? "attempt" : "attempts"}
-                      {report.claimedAt
-                        ? ` · claimed ${formatAge(report.claimedAt, now)} ago`
-                        : ""}
-                    </p>
-                  </li>
-                ))}
-              </ul>
+                      </span>
+                      <span className="tabular-nums">{report.attempts}</span>
+                    </li>
+                  ))}
+                </ul>
+                {claimedNote?.claimedAt ? (
+                  <p className="mt-3 text-caption text-ink-600">
+                    {claimedNote.video.player.name}&apos;s report was claimed by a worker{" "}
+                    {formatAge(claimedNote.claimedAt, now)} ago.
+                  </p>
+                ) : null}
+              </div>
             ) : (
-              <p className="mt-4 text-sm text-ink-600">No reports waiting on the pipeline.</p>
+              <p className="mt-4 text-ui text-ink-600">
+                No reports waiting on the pipeline.
+              </p>
             )}
-          </Panel>
+          </section>
         </div>
       </main>
     </>

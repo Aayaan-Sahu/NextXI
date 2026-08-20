@@ -1,6 +1,10 @@
-import { Field, Kicker, TextInput } from "@/components/ui";
+import { Field, FieldHint, TextInput } from "@/components/ui";
 
-/** Height (required) and weight (optional), stacked so number spinners never dominate. */
+/**
+ * Height (required) and weight (optional) side by side — height is the
+ * calibration every measurement in a report depends on, so it never hides
+ * inside a longer column.
+ */
 export function PhysicalFields({
   defaultHeight,
   defaultWeight,
@@ -9,10 +13,9 @@ export function PhysicalFields({
   defaultWeight?: number | string | null;
 }) {
   return (
-    <div className="grid gap-4">
-      <Kicker>Physical</Kicker>
+    <div className="grid grid-cols-2 gap-3.5">
       <Field>
-        Height
+        Height cm
         <TextInput
           autoComplete="off"
           defaultValue={defaultHeight ?? ""}
@@ -22,12 +25,10 @@ export function PhysicalFields({
           required
           type="text"
         />
-        <span className="text-xs font-normal text-ink-600">
-          Standing height in centimetres — for example 175.
-        </span>
+        <FieldHint>Standing height.</FieldHint>
       </Field>
       <Field>
-        Weight
+        Weight kg
         <TextInput
           autoComplete="off"
           defaultValue={defaultWeight ?? ""}
@@ -36,9 +37,6 @@ export function PhysicalFields({
           placeholder="Optional"
           type="text"
         />
-        <span className="text-xs font-normal text-ink-600">
-          Optional. Kilograms — for example 72.
-        </span>
       </Field>
     </div>
   );

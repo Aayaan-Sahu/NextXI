@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { EmptyState, Kicker, Panel } from "@/components/ui";
+import { EmptyState, SectionHeading } from "@/components/ui";
 
 export type CoachFeedbackItem = {
   id: string;
@@ -30,32 +30,27 @@ function relativeTime(date: Date) {
   return "just now";
 }
 
-/** The player dashboard's digest of the latest coach comments on their videos. */
+/** The player home's digest of the latest coach comments on their videos. */
 export function CoachFeedback({ items }: { items: CoachFeedbackItem[] }) {
   return (
-    <Panel>
-      <Kicker as="h2">Recent coach feedback</Kicker>
+    <section>
+      <SectionHeading>Coach feedback</SectionHeading>
       {items.length ? (
-        <ul className="mt-4 grid gap-[18px]">
+        <ul className="mt-4">
           {items.map((item) => (
             <li
-              className="border-t border-cream-400 pt-[18px] first:border-t-0 first:pt-0"
+              className="border-t border-cream-400 py-4 first:border-t-0 first:pt-0 last:pb-0"
               key={item.id}
             >
               <div className="flex flex-wrap items-baseline gap-x-2">
-                <span className="text-sm font-bold text-ink-900">{item.authorName}</span>
-                <span className="font-mono text-xs text-ink-600">
-                  @{item.authorUsername}
-                </span>
-                <span className="font-mono text-xs text-sage-400">
-                  {relativeTime(item.createdAt)}
-                </span>
+                <span className="text-ui font-semibold text-ink-900">{item.authorName}</span>
+                <span className="text-caption text-ink-600">{relativeTime(item.createdAt)}</span>
               </div>
-              <p className="mt-1.5 line-clamp-2 text-sm leading-[1.65] text-ink-900">
+              <p className="mt-1 line-clamp-2 text-ui leading-relaxed text-ink-800">
                 {item.body}
               </p>
               <Link
-                className="mt-1.5 inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
+                className="mt-1.5 inline-block text-caption font-semibold text-rust-600 no-underline hover:text-rust-700"
                 href={`/dashboard/player/videos/${item.videoId}`}
               >
                 {item.videoFilename} →
@@ -68,6 +63,6 @@ export function CoachFeedback({ items }: { items: CoachFeedbackItem[] }) {
           <EmptyState>No coach feedback yet. Connect a coach to start.</EmptyState>
         </div>
       )}
-    </Panel>
+    </section>
   );
 }

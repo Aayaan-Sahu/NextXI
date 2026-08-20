@@ -18,45 +18,45 @@ type GridVideo = {
   commentCount?: number;
 };
 
-/** Report chip per status — mono, square-cornered, per the Lower-Third Rule. */
-function ReportChip({ status }: { status: ReportStatus }) {
+/** Report chip per status — a card overlay, top-left. */
+export function ReportChip({ status }: { status: ReportStatus }) {
   const chipStyles =
-    "pointer-events-none absolute top-2.5 left-2.5 inline-flex items-center gap-1.5 rounded-[3px] px-2 py-1 font-mono text-[10px] font-semibold tracking-[.14em] uppercase";
+    "pointer-events-none absolute top-2 left-2 inline-flex items-center gap-1.5 rounded px-[7px] py-[3px] text-micro font-semibold";
 
   if (status === "READY") {
-    return <span className={`${chipStyles} bg-gold-500 text-pitch-900`}>Report ready</span>;
+    return <span className={`${chipStyles} bg-pitch-900/[.82] text-amber-500`}>Report ready</span>;
   }
   if (status === "FAILED") {
     return <span className={`${chipStyles} bg-rust-600 text-cream-50`}>Analysis failed</span>;
   }
   return (
-    <span className={`${chipStyles} bg-pitch-950/85 text-cream-200`}>
-      <span aria-hidden className="size-1.5 rounded-full bg-gold-500 motion-safe:animate-pulse" />
+    <span className={`${chipStyles} bg-pitch-900/60 text-cream-200`}>
+      <span aria-hidden className="size-1.5 rounded-full bg-cream-200 motion-safe:animate-pulse" />
       Analysing
     </span>
   );
 }
 
 function formatDate(date: Date) {
-  return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 export function VideoGrid({
+  className = "grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1",
   videos,
   linkBase = "/dashboard/player/videos",
-  emptyMessage = "No videos yet. Upload your first clip in Footage above.",
-  emptyMedia = false,
+  emptyMessage = "No videos yet. Drop a clip in the box above to get your first coaching report.",
   deleteAction,
   deleteConfirmDescription = "This clip and its coaching report are removed for good.",
   deleteConfirmTitle = "Delete this video?",
   deleteLabel = "Delete",
   stagger = true,
 }: {
+  /** Column count for this surface — the coach queue runs four up. */
+  className?: string;
   videos: GridVideo[];
   linkBase?: string;
   emptyMessage?: string;
-  /** Opt into the scanline play thumb — for library empties, not coach queues. */
-  emptyMedia?: boolean;
   /** When provided, each card gets a trash button that submits the video id. */
   deleteAction?: (formData: FormData) => Promise<void>;
   deleteConfirmDescription?: string;
@@ -67,81 +67,84 @@ export function VideoGrid({
   stagger?: boolean;
 }) {
   if (!videos.length) {
-    return <EmptyState media={emptyMedia}>{emptyMessage}</EmptyState>;
+    return <EmptyState>{emptyMessage}</EmptyState>;
   }
 
   return (
-    <ul className="grid grid-cols-3 gap-5 max-md:grid-cols-2 max-sm:grid-cols-1">
-      {videos.map((video, index) => (
-        <li
-          className={stagger ? "relative animate-crease-rise" : "relative"}
-          key={video.id}
-          style={stagger ? { animationDelay: `${Math.min(index, 8) * 50}ms` } : undefined}
-        >
-          <Link
-            className="group block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
-            href={`${linkBase}/${video.id}`}
+    <ul className={`grid gap-5 ${className}`}>
+      {videos.map((video, index) => {
+        // A coach sees whose clip it is first, then the machine facts; a
+        // player already knows, so their card carries one quiet line.
+        const attribution = video.playerName
+          ? [video.playerName, video.tagLabel].filter(Boolean).join(" · ")
+          : null;
+        const facts = [
+          formatDate(video.uploadedAt ?? video.createdAt),
+          ...(attribution ? [formatVideoSize(video.sizeBytes)] : []),
+          ...(attribution ? [] : video.tagLabel ? [video.tagLabel] : []),
+          ...(video.commentCount
+            ? [`${video.commentCount} note${video.commentCount === 1 ? "" : "s"}`]
+            : attribution
+              ? ["no notes"]
+              : []),
+        ].join(" · ");
+
+        return (
+          <li
+            className={`group/card relative ${stagger ? "animate-crease-rise" : ""}`}
+            key={video.id}
+            style={stagger ? { animationDelay: `${Math.min(index, 8) * 50}ms` } : undefined}
           >
-            <div className="relative overflow-hidden">
-              {video.thumbnailUrl ? (
-                <>
-                  {/* Signed, short-lived storage URL; next/image would need remote host config. */}
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    alt=""
-                    className="aspect-video w-full bg-pitch-800 object-cover transition-transform duration-300 motion-safe:group-hover:scale-[1.03]"
-                    src={video.thumbnailUrl}
-                  />
-                  <div
-                    aria-hidden
-                    className="pointer-events-none absolute inset-0 grid place-items-center bg-pitch-950/35 text-[26px] text-cream-200 opacity-0 transition-opacity duration-200 group-hover:opacity-100"
-                  >
+            <Link className="group/thumb block no-underline" href={`${linkBase}/${video.id}`}>
+              <div className="relative overflow-hidden rounded-md">
+                {video.thumbnailUrl ? (
+                  <>
+                    {/* Signed, short-lived storage URL; next/image would need remote host config. */}
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      alt=""
+                      className="aspect-video w-full bg-olive-800 object-cover transition-transform duration-300 motion-safe:group-hover/thumb:scale-[1.03]"
+                      src={video.thumbnailUrl}
+                    />
+                    <div
+                      aria-hidden
+                      className="pointer-events-none absolute inset-0 grid place-items-center bg-olive-950/35 text-figure text-cream-200 opacity-0 transition-opacity duration-200 group-hover/thumb:opacity-100"
+                    >
+                      ▶
+                    </div>
+                  </>
+                ) : (
+                  <div className="grid aspect-video place-items-center bg-clip-scanlines text-figure text-cream-200/70">
                     ▶
                   </div>
-                </>
-              ) : (
-                <div className="grid aspect-video place-items-center bg-thumb-scanlines text-[26px] text-gold-500">
-                  ▶
-                </div>
-              )}
-              {video.reportStatus ? <ReportChip status={video.reportStatus} /> : null}
-            </div>
-            <div className="px-4 pt-3.5 pb-3">
-              <div className="truncate text-sm font-semibold text-ink-900">
+                )}
+                {video.reportStatus ? <ReportChip status={video.reportStatus} /> : null}
+              </div>
+              <div className="mt-2 truncate text-ui font-semibold text-ink-900">
                 {video.originalFilename}
               </div>
-              <div className="mt-1 font-mono text-[11.5px] text-ink-600">
-                {formatDate(video.uploadedAt ?? video.createdAt)} · {formatVideoSize(video.sizeBytes)}
-                {video.commentCount ? ` · ${video.commentCount} note${video.commentCount === 1 ? "" : "s"}` : null}
+              {attribution ? (
+                <div className="mt-0.5 truncate text-caption text-ink-600">{attribution}</div>
+              ) : null}
+              <div className="mt-0.5 truncate text-caption text-ink-600">{facts}</div>
+            </Link>
+            {/* The action reveals on hover or keyboard focus: the resting grid
+                is footage, not a row of buttons. */}
+            {deleteAction && (
+              <div className="absolute top-2 right-2 opacity-0 transition-opacity group-hover/card:opacity-100 focus-within:opacity-100">
+                <ConfirmDeleteButton
+                  action={deleteAction}
+                  description={deleteConfirmDescription}
+                  id={video.id}
+                  label={deleteLabel}
+                  name={video.originalFilename}
+                  title={deleteConfirmTitle}
+                />
               </div>
-              {video.tagLabel && (
-                <div
-                  className={`mt-2 truncate text-xs font-semibold text-rust-600 ${
-                    deleteAction ? "pr-7" : ""
-                  }`}
-                >
-                  {video.tagLabel}
-                </div>
-              )}
-              {video.playerName && (
-                <div className="mt-1 truncate text-xs text-ink-600">{video.playerName}</div>
-              )}
-            </div>
-          </Link>
-          {deleteAction && (
-            <div className="absolute right-2.5 bottom-2.5">
-              <ConfirmDeleteButton
-                action={deleteAction}
-                description={deleteConfirmDescription}
-                id={video.id}
-                label={deleteLabel}
-                name={video.originalFilename}
-                title={deleteConfirmTitle}
-              />
-            </div>
-          )}
-        </li>
-      ))}
+            )}
+          </li>
+        );
+      })}
     </ul>
   );
 }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { requireUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
@@ -34,4 +35,9 @@ export async function deleteVideo(formData: FormData) {
   }
 
   revalidatePath("/dashboard/player");
+
+  // Deleting from the clip's own page leaves the caller on a dead URL, so that
+  // caller says where to land. Only in-app paths are honoured.
+  const target = formData.get("redirectTo");
+  if (typeof target === "string" && target.startsWith("/")) redirect(target);
 }

@@ -14,15 +14,11 @@ import {
   DashboardRevealItem,
 } from "@/components/dashboard-reveal";
 import {
-  Badge,
+  Chip,
   GatePanel,
-  Kicker,
   PageShell,
-  Panel,
-  StatusBand,
-  StatusBoard,
-  TextLink,
-} from "@/components/ui";
+  SectionHead,
+  TextLink, PageTitle } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -31,11 +27,7 @@ import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { formatVideoTags } from "@/lib/videos";
-import {
-  getPlayerVideoPulse,
-  getReadyVideoGridItems,
-  londonDayNumber,
-} from "@/lib/videos.server";
+import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
 
 function formatShortDate(date: Date) {
   return date.toLocaleDateString("en-US", {
@@ -59,18 +51,6 @@ function timeOfDayGreeting() {
   return "Evening";
 }
 
-/**
- * One human sentence on upload recency. Numeral-free on purpose — exact
- * machine facts live in the mono stats line, per the Lower-Third Rule.
- */
-function uploadNudge(latest: Date | null) {
-  if (!latest) return "No uploads yet — your first clip gets your first coaching report.";
-  const days = londonDayNumber(new Date()) - londonDayNumber(latest);
-  if (days <= 1) return "Fresh footage just in — nice work keeping it regular.";
-  if (days <= 7) return "Fresh footage this week — nice work keeping the rhythm.";
-  return "It's been a while since your last upload — the next report is one clip away.";
-}
-
 export default async function PlayerDashboardPage() {
   const user = await requireUser();
   const profile = await getProfile(user.id);
@@ -80,33 +60,38 @@ export default async function PlayerDashboardPage() {
 
   if (profile.player.status === PlayerStatus.PENDING_GUARDIAN) {
     return (
-      <PageShell>
-        <StatusBand className="mb-2">
-          <GatePanel
-            code={formatGuardianCode(profile.player.guardianCode ?? "")}
-            description={
-              <p>
-                Because you&apos;re under 18, a parent or guardian needs to
-                approve your account before you can use the platform. Ask them
-                to create an account, then open{" "}
-                <span className="font-semibold text-ink-900">
-                  Parent or guardian? Link a child&apos;s account
-                </span>{" "}
-                on the profile screen and enter this code.
-              </p>
-            }
-            kicker="AWAITING GUARDIAN"
-            title={`Welcome ${profile.player.name}`}
-          >
-            {profile.player.guardianCode ? (
-              <GuardianHandoff
-                code={formatGuardianCode(profile.player.guardianCode)}
-                playerName={profile.player.name}
-              />
-            ) : null}
-          </GatePanel>
-        </StatusBand>
-      </PageShell>
+      <main className="mx-auto w-full max-w-[1360px] px-6 pt-16 pb-20 sm:px-10" id="main-content">
+        <GatePanel
+          code={formatGuardianCode(profile.player.guardianCode ?? "")}
+          description="A parent or guardian has to approve your account before you can upload. Give them this code."
+          kicker="Awaiting guardian"
+          title={`Welcome, ${profile.player.name.split(" ")[0] || profile.player.name}`}
+        >
+          {profile.player.guardianCode ? (
+            <GuardianHandoff
+              code={formatGuardianCode(profile.player.guardianCode)}
+              playerName={profile.player.name}
+            />
+          ) : null}
+          <ol className="mt-8 grid gap-2.5 border-t border-cream-400 pt-6 text-left text-ui leading-relaxed text-ink-800">
+            <li className="flex gap-3">
+              <span className="font-semibold text-ink-600">1</span>
+              <span>Your parent signs up at nextxi.pro/auth with their own email.</span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-semibold text-ink-600">2</span>
+              <span>
+                On the profile step they choose{" "}
+                <span className="font-semibold">I&apos;m a parent or guardian</span>.
+              </span>
+            </li>
+            <li className="flex gap-3">
+              <span className="font-semibold text-ink-600">3</span>
+              <span>They enter the code above. Your account opens straight away.</span>
+            </li>
+          </ol>
+        </GatePanel>
+      </main>
     );
   }
 
@@ -141,7 +126,13 @@ export default async function PlayerDashboardPage() {
         payload: true,
         updatedAt: true,
         video: {
-          select: { id: true, category: true, variation: true, handedness: true },
+          select: {
+            id: true,
+            category: true,
+            handedness: true,
+            originalFilename: true,
+            variation: true,
+          },
         },
       },
     }),
@@ -169,25 +160,21 @@ export default async function PlayerDashboardPage() {
   return (
     <PageShell>
       {pulse.analysing ? <ReportAutoRefresh /> : null}
-      <DashboardReveal className="grid gap-9">
+      <DashboardReveal className="grid gap-6">
         <DashboardRevealItem index={0}>
-          <StatusBand>
-            <StatusBoard
-              actions={
-                profile.player.roles.length > 0 ? (
-                  <div className="flex flex-wrap gap-2">
-                    {profile.player.roles.map((role) => (
-                      <Badge key={role}>{PLAYER_ROLE_LABELS[role]}</Badge>
-                    ))}
-                  </div>
-                ) : undefined
-              }
-              kicker="PLAYER HOME"
-              note={uploadNudge(pulse.latestUploadAt)}
-              stats={stats}
-              title={`${timeOfDayGreeting()}, ${firstName}.`}
-            />
-          </StatusBand>
+          <div className="flex flex-wrap items-baseline justify-between gap-4">
+            <div>
+              <PageTitle>{timeOfDayGreeting()}, {firstName}</PageTitle>
+              <p className="mt-1.5 text-ui text-ink-600">{stats.join(" · ")}</p>
+            </div>
+            {profile.player.roles.length > 0 ? (
+              <div className="flex flex-wrap gap-2">
+                {profile.player.roles.map((role) => (
+                  <Chip key={role}>{PLAYER_ROLE_LABELS[role]}</Chip>
+                ))}
+              </div>
+            ) : null}
+          </div>
         </DashboardRevealItem>
 
         {latestReport ? (
@@ -200,17 +187,35 @@ export default async function PlayerDashboardPage() {
                 latestReport.video.variation,
                 latestReport.video.handedness,
               )}
+              title={latestReport.video.originalFilename}
               updatedAt={latestReport.updatedAt}
             />
           </DashboardRevealItem>
         ) : null}
 
-        <DashboardRevealItem className="grid gap-3" index={revealBase}>
-          <Kicker as="h2">Footage</Kicker>
+        <DashboardRevealItem index={revealBase}>
           <VideoUpload />
         </DashboardRevealItem>
 
-        <DashboardRevealItem index={revealBase + 1}>
+        <DashboardRevealItem
+          className="mt-4 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_320px]"
+          index={revealBase + 1}
+        >
+          <section>
+            <SectionHead
+              aside={
+                <TextLink className="text-ui" href="/dashboard/player/sessions">
+                  All {pulse.totalVideos} →
+                </TextLink>
+              }
+            >
+              Your clips
+            </SectionHead>
+            <div className="mt-4">
+              <VideoGrid deleteAction={deleteVideo} stagger={false} videos={videos} />
+            </div>
+          </section>
+
           <CoachFeedback
             items={feedback.map((comment) => ({
               id: comment.id,
@@ -224,30 +229,15 @@ export default async function PlayerDashboardPage() {
           />
         </DashboardRevealItem>
 
-        <DashboardRevealItem className="grid gap-3" index={revealBase + 2}>
-          <Kicker as="h2">Library</Kicker>
-          <VideoGrid deleteAction={deleteVideo} emptyMedia stagger={false} videos={videos} />
-        </DashboardRevealItem>
-
-        <DashboardRevealItem index={revealBase + 3}>
-          <Panel>
-            <Kicker as="h2">Profile visibility</Kicker>
-            <div className="mt-4 grid gap-1.5 text-sm">
-              <p className="text-ink-900">
-                {profile.player.visibility === Visibility.PUBLIC
-                  ? "Public — any approved coach can find you in the player directory and view your profile, videos, and coaching reports without connecting."
-                  : "Private — only coaches you've connected with can see your profile."}
-              </p>
-              <p className="text-ink-600">
-                {guardianName
-                  ? `Guardian linked: ${guardianName}.`
-                  : "No guardian linked to this account."}
-              </p>
-            </div>
-            <div className="mt-4">
-              <TextLink href="/dashboard/profile">Manage visibility</TextLink>
-            </div>
-          </Panel>
+        <DashboardRevealItem className="mt-2" index={revealBase + 2}>
+          <p className="text-caption text-ink-600">
+            Profile is{" "}
+            {profile.player.visibility === Visibility.PUBLIC ? "public" : "private"}
+            {guardianName ? ` · guardian ${guardianName}` : ""} ·{" "}
+            <TextLink className="text-caption" href="/dashboard/profile">
+              Edit profile
+            </TextLink>
+          </p>
         </DashboardRevealItem>
       </DashboardReveal>
     </PageShell>

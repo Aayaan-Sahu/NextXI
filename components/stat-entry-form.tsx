@@ -1,13 +1,13 @@
 import { SubmitButton } from "@/components/submit-button";
 import { addStatEntry, deleteStatEntry } from "@/app/dashboard/progress/actions";
-import { Field, Form, Panel, TextInput } from "@/components/ui";
+import { Field, Form, SectionHead, SectionHeading, TextInput } from "@/components/ui";
 import type { StatEntryItem } from "@/lib/progress";
 
+/** "5 Jul" — the log is read as a season, so the year is only noise. */
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
-    year: "numeric",
     timeZone: "UTC",
   });
 }
@@ -19,17 +19,18 @@ function formatOvers(overs: number) {
 
 export function StatEntryForm() {
   return (
-    <Panel>
-      <div className="flex items-baseline justify-between gap-4 max-md:flex-col">
-        <h2 className="font-display text-xl leading-tight font-semibold uppercase">
-          Log a match
-        </h2>
-        <p className="text-[12.5px] text-ink-600">
-          Fill in the batting or bowling details (or both) for the match.
-        </p>
-      </div>
-      <Form action={addStatEntry} className="mt-[18px]">
-        <div className="grid gap-4 sm:grid-cols-[1fr_2fr]">
+    <section id="log-a-match">
+      <SectionHead
+        aside={
+          <span className="text-caption text-ink-600">
+            Batting or bowling details, or both.
+          </span>
+        }
+      >
+        Log a match
+      </SectionHead>
+      <Form action={addStatEntry} className="mt-4">
+        <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_2fr]">
           <Field>
             Match date
             <TextInput name="matchDate" required type="date" />
@@ -112,80 +113,72 @@ export function StatEntryForm() {
           <SubmitButton>Save match</SubmitButton>
         </div>
       </Form>
-    </Panel>
+    </section>
   );
 }
 
-function BattingLine({ entry }: { entry: StatEntryItem }) {
-  if (entry.runs === null && entry.ballsFaced === null && !entry.dismissal) {
-    return null;
-  }
-
-  return (
-    <p className="mt-[5px] text-[13px] text-ink-600">
-      <span>Batting: </span>
-      <span>{entry.runs ?? "–"}</span>
-      {entry.ballsFaced !== null ? <span> ({entry.ballsFaced} balls)</span> : null}
-      {entry.dismissal ? <span> · {entry.dismissal}</span> : null}
-    </p>
-  );
+/** "18 (24)" — runs off balls, or a dash where nothing was recorded. */
+function battingFigure(entry: StatEntryItem) {
+  if (entry.runs === null && entry.ballsFaced === null && !entry.dismissal) return "—";
+  const runs = entry.runs ?? "–";
+  return entry.ballsFaced === null ? `${runs}` : `${runs} (${entry.ballsFaced})`;
 }
 
-function BowlingLine({ entry }: { entry: StatEntryItem }) {
+/** "2–31" — wickets for runs, with the overs bowled beside it. */
+function bowlingFigure(entry: StatEntryItem) {
   if (entry.oversBowled === null && entry.wickets === null && entry.runsConceded === null) {
-    return null;
+    return "—";
   }
-
-  return (
-    <p className="mt-0.5 text-[13px] text-ink-600">
-      <span>Bowling: </span>
-      <span>
-        {entry.wickets ?? "–"}/{entry.runsConceded ?? "–"}
-      </span>
-      {entry.oversBowled !== null ? (
-        <span> ({formatOvers(entry.oversBowled)} ov)</span>
-      ) : null}
-    </p>
-  );
+  const figures = `${entry.wickets ?? "–"}–${entry.runsConceded ?? "–"}`;
+  return entry.oversBowled === null
+    ? figures
+    : `${figures} (${formatOvers(entry.oversBowled)} ov)`;
 }
+
+const LOG_COLUMNS =
+  "grid grid-cols-[72px_1fr_100px_120px_56px] gap-4 max-sm:grid-cols-1 max-sm:gap-1";
 
 export function MatchLog({ entries }: { entries: StatEntryItem[] }) {
   return (
-    <Panel title="Match log">
+    <section>
+      <SectionHeading>Match log</SectionHeading>
       {entries.length ? (
-        <ul>
-          {entries.map((entry) => (
-            <li
-              className="flex items-start justify-between gap-4 border-t border-cream-400 py-4"
-              key={entry.id}
-            >
-              <div>
-                <p className="text-sm font-bold">
-                  {formatDate(entry.matchDate)}
-                  {entry.opponent ? (
-                    <span className="font-medium text-ink-600"> vs {entry.opponent}</span>
-                  ) : null}
-                </p>
-                <BattingLine entry={entry} />
-                <BowlingLine entry={entry} />
-              </div>
-              <form action={deleteStatEntry}>
-                <input name="id" type="hidden" value={entry.id} />
-                <button
-                  className="cursor-pointer text-[12.5px] font-semibold text-rust-600 hover:text-rust-700"
-                  type="submit"
-                >
-                  Delete
-                </button>
-              </form>
-            </li>
-          ))}
-        </ul>
+        <div className="mt-3">
+          <div className={`${LOG_COLUMNS} pb-2 text-caption text-ink-600 max-sm:hidden`}>
+            <span>Date</span>
+            <span>Opponent</span>
+            <span>Batting</span>
+            <span>Bowling</span>
+            <span />
+          </div>
+          <ul className="border-b border-cream-400">
+            {entries.map((entry) => (
+              <li
+                className={`${LOG_COLUMNS} items-baseline border-t border-cream-400 py-3 text-ui`}
+                key={entry.id}
+              >
+                <span className="text-ink-600">{formatDate(entry.matchDate)}</span>
+                <span className="truncate">{entry.opponent ?? "—"}</span>
+                <span className="tabular-nums">{battingFigure(entry)}</span>
+                <span className="tabular-nums">{bowlingFigure(entry)}</span>
+                <form action={deleteStatEntry} className="sm:text-right">
+                  <input name="id" type="hidden" value={entry.id} />
+                  <button
+                    className="cursor-pointer text-caption font-semibold text-ink-600 hover:text-rust-600"
+                    type="submit"
+                  >
+                    Delete
+                  </button>
+                </form>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : (
-        <p className="text-sm text-ink-600">
+        <p className="mt-3.5 text-ui text-ink-600">
           No matches logged yet. Add your first match above to start tracking.
         </p>
       )}
-    </Panel>
+    </section>
   );
 }

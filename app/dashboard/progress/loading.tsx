@@ -1,17 +1,23 @@
 import { PageShell, SkeletonBlock } from "@/components/ui";
 
-/** Skeleton for progress: status band, chart panel, two list panels. */
+/** Skeleton for progress: title, season figures, the chart, then the sidebar. */
 export default function ProgressLoading() {
   return (
     <PageShell>
-      <div aria-label="Loading" className="grid gap-9" role="status">
-        <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
-          <SkeletonBlock className="h-[7.5rem] rounded-[10px]" />
+      <div aria-label="Loading" role="status">
+        <SkeletonBlock className="h-[26px] w-[180px] rounded-[5px]" />
+        <SkeletonBlock className="mt-2 h-[13px] w-[240px] rounded" />
+        <div className="mt-7 flex flex-wrap gap-14">
+          {Array.from({ length: 4 }, (_, index) => (
+            <div key={index}>
+              <SkeletonBlock className="h-7 w-16 rounded" />
+              <SkeletonBlock className="mt-2 h-3 w-24 rounded" />
+            </div>
+          ))}
         </div>
-        <SkeletonBlock className="h-64 rounded-[10px]" />
-        <div className="grid gap-5 sm:grid-cols-2">
-          <SkeletonBlock className="h-48 rounded-[10px]" />
-          <SkeletonBlock className="h-48 rounded-[10px]" />
+        <div className="mt-8 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <SkeletonBlock className="h-[220px] rounded-lg" />
+          <SkeletonBlock className="h-48 rounded-lg" />
         </div>
       </div>
     </PageShell>

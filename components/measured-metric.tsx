@@ -347,19 +347,19 @@ export function MeasuredMetricRow({
       <div className="flex items-baseline justify-between gap-3">
         <span
           className={`font-display font-semibold tracking-[.06em] uppercase ${
-            compact ? "text-[13px]" : "text-[15px]"
+            compact ? "text-[13px]" : "text-body"
           } ${dark ? "text-cream-100" : "text-ink-900"}`}
         >
           {metric.name}
         </span>
         <span
-          className={`font-mono font-semibold tabular-nums ${compact ? "text-[15px]" : "text-xl"} ${
+          className={`font-mono font-semibold tabular-nums ${compact ? "text-body" : "text-xl"} ${
             off ? (dark ? "text-rust-500" : "text-rust-600") : dark ? "text-gold-500" : "text-ink-900"
           }`}
         >
           {fmt(metric.value, metric.decimals)}
           <span
-            className={`ml-1 text-[11px] font-medium ${dark ? "text-sage-400" : "text-ink-600"}`}
+            className={`ml-1 text-micro font-medium ${dark ? "text-sage-400" : "text-ink-600"}`}
           >
             {metric.unit}
           </span>
@@ -428,7 +428,7 @@ export function MeasuredMetricRow({
       {(compact ? (metric.noteShort ?? metric.note) : metric.note) && (
         <p
           className={`${
-            compact ? "mt-1 line-clamp-2 text-[11px] leading-[1.45]" : "mt-1.5 text-[12.5px] leading-[1.5]"
+            compact ? "mt-1 line-clamp-2 text-micro leading-[1.45]" : "mt-1.5 text-caption leading-[1.5]"
           } ${dark ? "text-cream-200" : "text-ink-900"}`}
         >
           {compact ? (metric.noteShort ?? metric.note) : metric.note}

@@ -16,22 +16,22 @@ export function GuardianChildSwitcher({
   if (players.length < 2) return null;
 
   return (
-    <nav aria-label="Select child" className="mb-6 flex flex-wrap gap-2">
+    <nav aria-label="Select child" className="flex flex-wrap gap-2">
       {players.map((player) => {
         const selected = player.id === selectedId;
 
         return (
           <Link
             aria-current={selected ? "page" : undefined}
-            className={`rounded-full border px-4 py-[7px] text-[13px] font-semibold no-underline ${
+            className={`rounded-full px-4 py-2 text-ui no-underline ${
               selected
-                ? "border-pitch-900 bg-pitch-900 text-cream-200"
-                : "border-cream-500 text-ink-900 hover:bg-cream-100"
+                ? "bg-pitch-900 font-semibold text-cream-200"
+                : "border border-cream-400 bg-cream-50 text-ink-800 hover:border-ink-900"
             }`}
             href={`${basePath}?child=${player.id}`}
             key={player.id}
           >
-            {player.name}
+            {player.name.split(" ")[0] || player.name}
           </Link>
         );
       })}

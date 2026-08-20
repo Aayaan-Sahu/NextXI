@@ -8,13 +8,13 @@ import {
   Visibility,
 } from "@/app/generated/prisma/enums";
 import { ReportPanel } from "@/components/report-panel";
-import { PageShell } from "@/components/ui";
+import { Chip, PageShell, PageTitle } from "@/components/ui";
 import { CommentForm, VideoComments } from "@/components/video-comments";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
-import { formatVideoSize } from "@/lib/videos";
+import { formatVideoSize, formatVideoTags } from "@/lib/videos";
 import { getVideoReport } from "@/lib/videos.server";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
@@ -43,7 +43,9 @@ export default async function CoachVideoPage({
       status: PlayerVideoStatus.READY,
     },
     select: {
+      category: true,
       createdAt: true,
+      handedness: true,
       originalFilename: true,
       playerId: true,
       sessionId: true,
@@ -51,6 +53,7 @@ export default async function CoachVideoPage({
       storageBucket: true,
       storagePath: true,
       uploadedAt: true,
+      variation: true,
       player: { select: { name: true, status: true, visibility: true } },
     },
   });
@@ -125,34 +128,35 @@ export default async function CoachVideoPage({
   return (
     <PageShell>
       <Link
-        className="inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
+        className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
         href={backHref}
       >
         ← {backLabel}
       </Link>
-      <h1 className="mt-[18px] font-display text-[28px] leading-tight font-bold tracking-[.02em] uppercase">
-        {video.originalFilename}
-      </h1>
-      <p className="mt-1.5 font-mono text-xs text-ink-600">
-        {video.player.name} · Uploaded {uploadedAt} · {formatVideoSize(video.sizeBytes)}
-      </p>
-      <div className="mt-[22px] grid items-start gap-7 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
-        <div className="grid gap-6">
+      <header className="mt-3.5 mb-6 flex items-start justify-between gap-6 max-md:flex-col">
+        <div className="min-w-0">
+          <PageTitle>{video.originalFilename}</PageTitle>
+          <p className="mt-1.5 text-ui text-ink-600">
+            {video.player.name} · Uploaded {uploadedAt} · {formatVideoSize(video.sizeBytes)}
+          </p>
+        </div>
+        <Chip>{formatVideoTags(video.category, video.variation, video.handedness)}</Chip>
+      </header>
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid gap-8">
           <video
-            className="aspect-video w-full rounded-[10px] bg-pitch-950"
+            className="aspect-video w-full rounded-lg bg-olive-950"
             controls
             preload="metadata"
             src={data.signedUrl}
           />
-          <ReportPanel report={report} />
+          {/* Feedback stays connection-gated (the action re-checks server-side). */}
+          <VideoComments
+            comments={comments}
+            form={connected ? <CommentForm error={commentError} videoId={videoId} /> : undefined}
+          />
         </div>
-        {/* Feedback stays connection-gated (the action re-checks server-side). */}
-        <VideoComments
-          comments={comments}
-          form={
-            connected ? <CommentForm error={commentError} videoId={videoId} /> : undefined
-          }
-        />
+        <ReportPanel report={report} />
       </div>
     </PageShell>
   );

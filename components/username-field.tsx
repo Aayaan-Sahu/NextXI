@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { checkUsername } from "@/app/auth/actions";
-import { Field, TextInput } from "@/components/ui";
+import { Field, FieldHint } from "@/components/ui";
 import { USERNAME_PATTERN, usernameFromName } from "@/lib/usernames";
 
 export function UsernameHandleField({ nameValue }: { nameValue: string }) {
@@ -49,40 +49,44 @@ export function UsernameHandleField({ nameValue }: { nameValue: string }) {
             ? "Checking…"
             : "Public on your profile. We'll suggest one from your name.";
 
+  const bad = status === "taken" || status === "invalid";
+
   return (
     <Field>
       Username
-      <TextInput
-        aria-describedby="username-status"
-        aria-invalid={status === "taken" || status === "invalid"}
-        autoCapitalize="none"
-        autoComplete="username"
-        name="username"
-        onChange={(event) => {
-          setOverride(
-            event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30),
-          );
-        }}
-        pattern="[a-z0-9_]{3,30}"
-        required
-        spellCheck={false}
-        title="Use 3-30 letters, numbers, or underscores."
-        type="text"
-        value={username}
-      />
+      {/* The @ is chrome, not content — it sits inside the control so the
+          value a player types is exactly the handle they get. */}
       <span
-        aria-live="polite"
-        className={
-          status === "taken" || status === "invalid"
-            ? "text-xs font-normal text-rust-700"
-            : status === "free"
-              ? "text-xs font-normal text-vision-700"
-              : "text-xs font-normal text-ink-600"
-        }
-        id="username-status"
+        className={`flex items-center gap-1 rounded-md border bg-cream-50 px-3 focus-within:ring-2 focus-within:ring-amber-500/30 ${
+          bad ? "border-rust-300 bg-rust-100 focus-within:border-rust-600" : "border-cream-400 focus-within:border-ink-900"
+        }`}
       >
-        {hint}
+        <span className="text-body text-ink-600">@</span>
+        <input
+          aria-describedby="username-status"
+          aria-invalid={bad}
+          autoCapitalize="none"
+          autoComplete="username"
+          className="min-w-0 flex-1 border-none bg-transparent py-2.5 text-base font-normal text-ink-900 focus:outline-none sm:pointer-fine:text-body"
+          name="username"
+          onChange={(event) => {
+            setOverride(
+              event.target.value.toLowerCase().replace(/[^a-z0-9_]/g, "").slice(0, 30),
+            );
+          }}
+          pattern="[a-z0-9_]{3,30}"
+          required
+          spellCheck={false}
+          title="Use 3-30 letters, numbers, or underscores."
+          type="text"
+          value={username}
+        />
       </span>
+      <FieldHint tone={bad ? "error" : status === "free" ? "ok" : "muted"}>
+        <span aria-live="polite" id="username-status">
+          {hint}
+        </span>
+      </FieldHint>
     </Field>
   );
 }

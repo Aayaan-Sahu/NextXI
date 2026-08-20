@@ -21,12 +21,10 @@ const contactLink = (
 export default function PrivacyPage() {
   return (
     <InfoPage
+      status={`Draft — under review · v${POLICY_VERSION}`}
       title="Privacy Policy"
       intro="This policy says in plain language what NextXI collects, who can see it, how long we keep it, and the rights you have over it. It is written to be readable by the young players it protects, and by their parents."
     >
-      <p className="font-mono text-[11px] font-semibold tracking-[.14em] text-ink-600 uppercase">
-        Draft — under review · Version {POLICY_VERSION}
-      </p>
       <InfoSection title="Who we are">
         <p>
           NextXI is a cricket talent platform for young players: you upload technique videos,

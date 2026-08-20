@@ -5,11 +5,11 @@ import {
   DashboardRevealItem,
 } from "@/components/dashboard-reveal";
 import { GoalsReminders } from "@/components/goals-reminders";
-import { ProgressCharts } from "@/components/progress-charts";
+import { deriveSeason, ProgressCharts, SeasonStats } from "@/components/progress-charts";
 import { MatchLog, StatEntryForm } from "@/components/stat-entry-form";
 import { StatsLink } from "@/components/stats-link";
 import { TechniqueTrends } from "@/components/technique-trends";
-import { Notice, PageShell, StatusBand, StatusBoard } from "@/components/ui";
+import { Notice, PageHeader, PageShell } from "@/components/ui";
 import { getProfile, isAdmin, requireUser } from "@/lib/auth";
 import { getTechniqueTrends } from "@/lib/metric-trends";
 import { getProgressData } from "@/lib/progress";
@@ -19,16 +19,6 @@ type SearchParams = Promise<{
   error?: string | string[];
   message?: string | string[];
 }>;
-
-function progressNote(entryCount: number, goalCount: number) {
-  if (entryCount === 0) {
-    return "Log your first match and the scoreboard starts writing itself.";
-  }
-  if (goalCount === 0) {
-    return "The numbers are in — set a goal so the next session has a target.";
-  }
-  return "Keep logging matches and watching the trends — that's how form sticks.";
-}
 
 export default async function ProgressPage({
   searchParams,
@@ -56,40 +46,62 @@ export default async function ProgressPage({
   const error = firstParam(params.error);
   const message = firstParam(params.message);
 
-  const trendCount = trends.batting.length + trends.bowling.length;
+  const season = deriveSeason(entries);
+  const latestEntry = entries[0]?.matchDate ?? null;
   const stats = [
     `${entries.length} match${entries.length === 1 ? "" : "es"} logged`,
     `${goals.length} goal${goals.length === 1 ? "" : "s"}`,
-    `${reminders.length} reminder${reminders.length === 1 ? "" : "s"}`,
-    `${trendCount} technique trend${trendCount === 1 ? "" : "s"}`,
+    latestEntry
+      ? `last entry ${latestEntry.toLocaleDateString("en-GB", {
+          day: "numeric",
+          month: "short",
+          timeZone: "UTC",
+        })}`
+      : "no entries yet",
   ];
 
   return (
     <PageShell>
-      <DashboardReveal className="grid gap-9">
+      <DashboardReveal className="grid gap-7">
         <DashboardRevealItem index={0}>
-          <StatusBand>
-            <StatusBoard
-              kicker="PROGRESS"
-              note={progressNote(entries.length, goals.length)}
-              stats={stats}
-              title="Form & goals."
-            />
-          </StatusBand>
+          <PageHeader
+            action={
+              <a
+                className="inline-flex cursor-pointer items-center rounded-md bg-gold-500 px-5 py-2.5 text-ui font-semibold text-ink-900 no-underline hover:bg-gold-600"
+                href="#log-a-match"
+              >
+                Log a match
+              </a>
+            }
+            subtitle={stats.join(" · ")}
+            title="Progress"
+          />
         </DashboardRevealItem>
 
-        <DashboardRevealItem index={1}>
-          <Notice tone="error">{error}</Notice>
-          <Notice>{message}</Notice>
-          <div className="grid gap-6">
+        {error || message ? (
+          <DashboardRevealItem className="grid gap-2.5" index={1}>
+            <Notice tone="error">{error}</Notice>
+            <Notice>{message}</Notice>
+          </DashboardRevealItem>
+        ) : null}
+
+        <DashboardRevealItem index={2}>
+          <SeasonStats season={season} />
+        </DashboardRevealItem>
+
+        <DashboardRevealItem
+          className="mt-3 grid items-start gap-10 lg:grid-cols-[minmax(0,1fr)_340px]"
+          index={3}
+        >
+          <div className="grid gap-10">
             <ProgressCharts entries={entries} />
+            <MatchLog entries={entries} />
+            <StatEntryForm />
+          </div>
+          <div className="grid gap-9">
+            <GoalsReminders goals={goals} reminders={reminders} />
             <TechniqueTrends trends={trends} />
             <StatsLink statsUrl={profile.player.statsUrl} />
-            <StatEntryForm />
-            <div className="grid items-start gap-5 lg:grid-cols-[1.3fr_1fr]">
-              <MatchLog entries={entries} />
-              <GoalsReminders goals={goals} reminders={reminders} />
-            </div>
           </div>
         </DashboardRevealItem>
       </DashboardReveal>

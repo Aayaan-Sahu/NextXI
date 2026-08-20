@@ -10,7 +10,7 @@ export function LandingNav() {
   return (
     <header className="border-b-2 border-pitch-950/30 bg-rust-700">
       <nav className="mx-auto flex h-16 w-full max-w-[1280px] items-center justify-between gap-6 px-6 sm:px-12">
-        <Wordmark tone="dark" />
+        <Wordmark accent="peach" tone="dark" />
         <div className="flex items-center gap-6">
           <Link
             className="text-sm font-semibold text-sage-400 no-underline hover:text-cream-200"

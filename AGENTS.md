@@ -37,11 +37,28 @@ the permanent override.
   `prisma/schema.prisma` edit**)
 - `bun run db:migrate` — create/apply a dev migration
 
+## Styling — read `STYLE-GUIDE.md` first
+
+**Before writing or changing any UI, read `STYLE-GUIDE.md`.** It is the working
+rulebook: the nine type roles, the seven colours, the primitives to build from,
+and the checklist to run before you call a change done. `DESIGN.md` carries the
+art direction behind those rules.
+
+The two things that break the system every time: inventing a text size instead
+of using a role (`text-[13.5px]` is always wrong), and inventing a colour
+instead of using a token. Both are defined in `@theme` in `app/globals.css` —
+there is no `tailwind.config.js`.
+
+The landing page (`components/landing/*`) is a deliberately different register.
+Do not use it as a reference for product work, and check both when you change
+shared code.
+
 ## Where things go
 
 - **Reusable UI → `components/`.** Keep distinct UI in its own component —
   including auth screens (sign in / sign up), video widgets, messaging, etc.
-  Style with **Tailwind only**; no ad-hoc CSS files.
+  Style with **Tailwind only**; no ad-hoc CSS files. Shared primitives live in
+  `components/ui.tsx` — extend that file rather than restyling locally.
 - **Server/data logic → `lib/`** (`auth`, `prisma`, `supabase/*`, `videos`,
   `connections`, `messages`, `players`, `progress`).
 - **Routes → `app/`.** Server Actions live in `actions.ts` files next to their

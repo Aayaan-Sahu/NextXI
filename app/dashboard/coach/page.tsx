@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { CoachPlayers } from "@/components/coach-players";
-import { GatePanel, Kicker, PageShell, StatusBand, StatusBoard, TextLink } from "@/components/ui";
+import { GatePanel, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
 import { VideoFilterBar } from "@/components/video-filter-bar";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -25,27 +25,32 @@ export default async function CoachDashboardPage({
     const rejected = profile.coach.status === CoachStatus.REJECTED;
 
     return (
-      <PageShell>
-        <StatusBand className="mb-2">
-          <GatePanel
-            description={
-              <p>
-                {rejected
-                  ? "Your coach account was not approved. If you believe this is a mistake, email us from the contact page and we will look again."
-                  : "Thanks for signing up. To keep the platform safe for young athletes, an administrator reviews every coach before activation. You'll gain full access once you're approved."}
-              </p>
-            }
-            kicker={rejected ? "NOT APPROVED" : "UNDER REVIEW"}
-            title={`Welcome ${profile.coach.name}`}
-          >
-            {rejected ? (
-              <p className="mt-4">
-                <TextLink href="/contact">Email NextXI</TextLink>
-              </p>
-            ) : null}
-          </GatePanel>
-        </StatusBand>
-      </PageShell>
+      <main className="mx-auto w-full max-w-[1360px] px-6 pt-14 pb-16 sm:px-10" id="main-content">
+        <GatePanel
+          description={
+            rejected
+              ? "We couldn't verify your coaching background from what was submitted. If you think that's wrong, write to us with your club, role and certifications and we'll take another look."
+              : "An administrator reviews every coach account to keep the platform safe for young athletes. We'll email you the moment yours is approved — usually within a day or two."
+          }
+          kicker={rejected ? undefined : "Under review"}
+          title={
+            rejected
+              ? "This account wasn't approved"
+              : `Welcome, ${profile.coach.name.split(" ")[0] || profile.coach.name}`
+          }
+        >
+          {rejected ? (
+            <p className="mt-6 text-ui">
+              <TextLink href="/contact">Email NextXI →</TextLink>
+            </p>
+          ) : (
+            <div className="mt-7 flex items-center gap-3 rounded-lg border border-cream-400 bg-cream-100 px-4 py-3.5">
+              <span aria-hidden className="size-2 shrink-0 rounded-full bg-amber-500" />
+              <p className="text-ui text-ink-800">Nothing else for you to do.</p>
+            </div>
+          )}
+        </GatePanel>
+      </main>
     );
   }
 
@@ -105,38 +110,35 @@ export default async function CoachDashboardPage({
 
   return (
     <PageShell>
-      <div className="grid gap-8">
-        <StatusBand>
-          <StatusBoard
-            kicker="COACH HOME"
-            stats={stats}
-            title={profile.coach.name}
-          />
-        </StatusBand>
-        <div className="grid gap-3">
-          <Kicker as="h2">Review queue</Kicker>
-          <p className="text-[14.5px] text-ink-600">
-            New videos from players you are connected with. Open a video to mark it as
-            reviewed.
-          </p>
-        </div>
-        <div className="grid gap-5">
-          <CoachPlayers players={players} />
-          <VideoFilterBar />
-          <VideoGrid
-            emptyMessage="No unviewed videos. Visit a player from the Players panel to rewatch their videos."
-            linkBase="/dashboard/coach/videos"
-            videos={videos.map(({ _count, report, ...video }) => ({
-              ...video,
-              commentCount: _count.comments,
-              playerName: video.player.name,
-              reportStatus: effectiveReportStatus(report),
-              tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
-              thumbnailUrl: video.thumbnailPath
-                ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
-                : null,
-            }))}
-          />
+      <PageHeader
+        action={
+          <p className="text-ui text-ink-600">Opening a video marks it reviewed.</p>
+        }
+        subtitle={stats.join(" · ")}
+        title={profile.coach.name}
+      />
+      <div className="mt-8 grid gap-7">
+        <CoachPlayers players={players} />
+        <VideoFilterBar unviewedCount={videos.length} />
+        <div>
+          <SectionHeading>Review queue</SectionHeading>
+          <div className="mt-4">
+            <VideoGrid
+              className="grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1"
+              emptyMessage="No unviewed videos. Visit a player from Your players above to rewatch their videos."
+              linkBase="/dashboard/coach/videos"
+              videos={videos.map(({ _count, report, ...video }) => ({
+                ...video,
+                commentCount: _count.comments,
+                playerName: video.player.name,
+                reportStatus: effectiveReportStatus(report),
+                tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
+                thumbnailUrl: video.thumbnailPath
+                  ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
+                  : null,
+              }))}
+            />
+          </div>
         </div>
       </div>
     </PageShell>

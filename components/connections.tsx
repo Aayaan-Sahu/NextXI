@@ -5,32 +5,44 @@ import { useState } from "react";
 import {
   respondToConnectionRequest,
   revokeConnection,
-  sendConnectionRequest,
 } from "@/app/dashboard/connections/actions";
 import type { ConnectionPanelData, ConnectionPerson } from "@/lib/connections";
 import {
+  ConfirmDialog,
+  DialogActions,
   EmptyState,
-  Kicker,
-  Panel,
-  SecondaryButton,
-  TextInput,
+  GhostButton,
+  SectionHeading,
 } from "@/components/ui";
 
-const smallGoldButton =
-  "cursor-pointer rounded-md bg-gold-500 px-3.5 py-[7px] text-[12.5px] font-bold text-pitch-900 hover:bg-gold-600";
-const smallOutlineButton =
-  "cursor-pointer rounded-md border border-cream-500 bg-transparent px-3.5 py-[7px] text-[12.5px] font-semibold text-ink-900 hover:bg-cream-200";
+const AVATAR_TONES: Record<string, string> = {
+  player: "bg-olive-700 text-cream-200",
+  self: "bg-gold-500 text-ink-900",
+};
 
-function Username({ username }: { username: string | null }) {
-  if (!username) return null;
-  return <span className="font-mono text-xs font-medium text-ink-600"> @{username}</span>;
-}
+/**
+ * A roster avatar. Coaches sit on ink, players on olive and you on peach, so a
+ * list mixing all three reads its populations without a second label.
+ */
+export function PersonAvatar({
+  name,
+  role,
+  size = "md",
+}: {
+  name: string;
+  role?: string | null;
+  size?: "sm" | "md" | "lg";
+}) {
+  const sizes = {
+    sm: "size-[34px] text-caption",
+    md: "size-[38px] text-ui",
+    lg: "size-[52px] text-title",
+  };
 
-function PersonAvatar({ name, active = false }: { name: string; active?: boolean }) {
   return (
     <span
-      className={`flex size-[38px] shrink-0 items-center justify-center rounded-full text-[15px] font-bold ${
-        active ? "bg-pitch-900 text-gold-500" : "bg-pitch-800 text-cream-200"
+      className={`flex shrink-0 items-center justify-center rounded-full font-bold ${sizes[size]} ${
+        (role && AVATAR_TONES[role]) ?? "bg-pitch-900 text-gold-500"
       }`}
     >
       {name.charAt(0).toUpperCase()}
@@ -38,97 +50,35 @@ function PersonAvatar({ name, active = false }: { name: string; active?: boolean
   );
 }
 
-function PersonMeta({
-  name,
-  username,
+function RosterRow({
+  actions,
   detail,
+  name,
+  role,
+  username,
 }: {
-  name: string;
-  username: string | null;
+  actions?: React.ReactNode;
   detail?: string | null;
+  name: string;
+  role?: string | null;
+  username: string | null;
 }) {
   return (
-    <div className="min-w-0">
-      <p className="truncate text-sm font-bold text-ink-900">
-        {name}
-        <Username username={username} />
-      </p>
-      {detail ? (
-        <p className="mt-0.5 truncate font-mono text-[11.5px] text-ink-600 capitalize">
-          {detail}
-        </p>
-      ) : null}
-    </div>
-  );
-}
-
-function PendingList({ people }: { people: ConnectionPerson[] }) {
-  if (!people.length) {
-    return (
-      <p className="mt-3 text-sm text-ink-600">No outgoing requests right now.</p>
-    );
-  }
-
-  return (
-    <ul className="mt-3 grid gap-2.5">
-      {people.map((person) => (
-        <li
-          className="flex items-center gap-3 rounded-md border border-cream-400 bg-cream-50/60 px-3 py-2.5"
-          key={person.connectionId}
-        >
-          <PersonAvatar name={person.name} />
-          <PersonMeta
-            detail="Pending"
-            name={person.name}
-            username={person.username}
-          />
-        </li>
-      ))}
-    </ul>
-  );
-}
-
-function IncomingList({ people }: { people: ConnectionPerson[] }) {
-  if (!people.length) {
-    return (
-      <p className="mt-3 text-sm text-ink-600">No incoming requests right now.</p>
-    );
-  }
-
-  return (
-    <ul className="mt-3 grid gap-2.5">
-      {people.map((person) => (
-        <li
-          className="flex items-center justify-between gap-3 rounded-md border border-cream-400 bg-cream-50/60 px-3 py-2.5"
-          key={person.connectionId}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <PersonAvatar active name={person.name} />
-            <PersonMeta
-              detail={person.role}
-              name={person.name}
-              username={person.username}
-            />
-          </div>
-          <div className="flex shrink-0 gap-2">
-            <form action={respondToConnectionRequest}>
-              <input name="connectionId" type="hidden" value={person.connectionId} />
-              <input name="response" type="hidden" value="accept" />
-              <button className={smallGoldButton} type="submit">
-                Accept
-              </button>
-            </form>
-            <form action={respondToConnectionRequest}>
-              <input name="connectionId" type="hidden" value={person.connectionId} />
-              <input name="response" type="hidden" value="decline" />
-              <button className={smallOutlineButton} type="submit">
-                Decline
-              </button>
-            </form>
-          </div>
-        </li>
-      ))}
-    </ul>
+    <li className="flex items-center gap-3.5 rounded-lg p-3 hover:bg-cream-50">
+      <PersonAvatar name={name} role={role} />
+      <div className="min-w-0 flex-1">
+        <div className="flex flex-wrap items-baseline gap-x-2">
+          <span className="text-body font-semibold text-ink-900">{name}</span>
+          {username ? <span className="text-caption text-ink-600">@{username}</span> : null}
+        </div>
+        {detail ? (
+          <p className="mt-0.5 line-clamp-1 text-caption text-ink-600 first-letter:uppercase">
+            {detail}
+          </p>
+        ) : null}
+      </div>
+      {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
+    </li>
   );
 }
 
@@ -138,116 +88,174 @@ function RevokeButton({ person }: { person: ConnectionPerson }) {
 
   const warning =
     person.role === "coach"
-      ? "This coach will lose access to your videos."
+      ? "This coach will lose access to your videos. Your conversation disappears from Messages straight away."
       : "You will lose access to this person's videos and messages.";
 
   return (
     <>
       <button
-        className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-3.5 py-[7px] text-[12.5px] font-semibold text-rust-600 hover:bg-cream-200"
+        className="cursor-pointer rounded-md bg-cream-300 px-3.5 py-[7px] text-caption font-semibold text-rust-600 hover:bg-cream-350"
         onClick={() => setConfirming(true)}
         type="button"
       >
         Revoke
       </button>
       {confirming ? (
-        <div
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-950/60 p-4"
-          role="alertdialog"
+        <ConfirmDialog
+          description={warning}
+          onDismiss={() => setConfirming(false)}
+          title="Revoke this connection?"
         >
-          <div className="w-full max-w-[380px] rounded-[10px] border border-cream-400 bg-white p-5 shadow-2xl shadow-black/40">
-            <p className="font-semibold">Revoke this connection?</p>
-            <p className="mt-2 text-sm text-ink-600">{warning}</p>
-            <div className="mt-4 flex justify-end gap-2">
-              <SecondaryButton onClick={() => setConfirming(false)} type="button">
-                Cancel
-              </SecondaryButton>
-              <form action={revokeConnection}>
-                <input name="connectionId" type="hidden" value={person.connectionId} />
-                <SubmitButton>Revoke</SubmitButton>
-              </form>
-            </div>
-          </div>
-        </div>
+          <DialogActions>
+            <GhostButton onClick={() => setConfirming(false)} type="button">
+              Cancel
+            </GhostButton>
+            <form action={revokeConnection}>
+              <input name="connectionId" type="hidden" value={person.connectionId} />
+              <SubmitButton variant="danger">Revoke</SubmitButton>
+            </form>
+          </DialogActions>
+        </ConfirmDialog>
       ) : null}
     </>
   );
 }
 
-function AcceptedList({ people }: { people: ConnectionPerson[] }) {
-  if (!people.length) {
+/** One roster group — "Coaches — 3" — with its rows under a quiet label. */
+function RosterGroup({
+  label,
+  people,
+}: {
+  label: string;
+  people: ConnectionPerson[];
+}) {
+  if (!people.length) return null;
+
+  return (
+    <div>
+      <p className="text-caption text-ink-600">
+        {label} — {people.length}
+      </p>
+      <ul className="mt-2 -ml-3">
+        {people.map((person) => (
+          <RosterRow
+            actions={<RevokeButton person={person} />}
+            detail={person.role}
+            key={person.connectionId}
+            name={person.name}
+            role={person.role}
+            username={person.username}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+/**
+ * The roster: everyone you are connected with, grouped by what they are.
+ * `filter` follows the sub-bar tabs.
+ */
+export function ConnectionsRoster({
+  data,
+  filter = "all",
+}: {
+  data: ConnectionPanelData;
+  filter?: "all" | "coaches" | "players";
+}) {
+  const coaches = data.accepted.filter((person) => person.role === "coach");
+  const players = data.accepted.filter((person) => person.role !== "coach");
+
+  if (!data.accepted.length) {
     return (
-      <div className="mt-3">
-        <EmptyState>
-          No connections yet. Send a request above, or find someone in the directory.
-        </EmptyState>
-      </div>
+      <EmptyState>
+        No connections yet. Send a request from the bar above, or find someone in the directory.
+      </EmptyState>
     );
   }
 
   return (
-    <ul className="mt-3 grid gap-2.5">
-      {people.map((person) => (
-        <li
-          className="flex items-center justify-between gap-3 rounded-md border border-cream-400 bg-cream-50/60 px-3 py-2.5"
-          key={person.connectionId}
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <PersonAvatar name={person.name} />
-            <PersonMeta
-              detail={person.role}
-              name={person.name}
-              username={person.username}
-            />
-          </div>
-          <RevokeButton person={person} />
-        </li>
-      ))}
-    </ul>
+    <div className="grid gap-7">
+      {filter === "players" ? null : <RosterGroup label="Coaches" people={coaches} />}
+      {filter === "coaches" ? null : <RosterGroup label="Players" people={players} />}
+    </div>
   );
 }
 
-export function ConnectionsPanel({ data }: { data: ConnectionPanelData }) {
+/**
+ * The pending column: requests waiting on you, then the ones you are waiting
+ * on. Ignoring is as easy as accepting — neither is a destructive act.
+ */
+export function PendingColumn({ data }: { data: ConnectionPanelData }) {
   return (
-    <div className="grid content-start gap-5">
-      <Panel>
-        <Kicker as="h2">Send a request</Kicker>
-        <form action={sendConnectionRequest} className="mt-4 flex gap-2.5">
-          <div className="grid min-w-0 flex-1">
-            <TextInput
-              aria-label="Name or username"
-              name="query"
-              placeholder="Name or @username"
-              required
-              type="text"
-            />
-          </div>
-          <button
-            className="shrink-0 cursor-pointer rounded-md bg-gold-500 px-4 py-2 text-[13px] font-bold whitespace-nowrap text-pitch-900 hover:bg-gold-600"
-            type="submit"
-          >
-            Send request
-          </button>
-        </form>
-      </Panel>
+    <div className="grid gap-8">
+      <section>
+        <SectionHeading>Pending</SectionHeading>
+        {data.incomingPending.length ? (
+          <ul className="mt-4 grid gap-[18px]">
+            {data.incomingPending.map((person) => (
+              <li
+                className="border-t border-cream-400 pt-[18px] first:border-t-0 first:pt-0"
+                key={person.connectionId}
+              >
+                <div className="flex items-center gap-3">
+                  <PersonAvatar name={person.name} role={person.role} size="sm" />
+                  <div className="min-w-0">
+                    <p className="truncate text-ui font-semibold text-ink-900">{person.name}</p>
+                    <p className="truncate text-caption text-ink-600 first-letter:uppercase">
+                      {person.role}
+                      {person.username ? ` · @${person.username}` : ""}
+                    </p>
+                  </div>
+                </div>
+                <div className="mt-2.5 flex gap-2">
+                  <form action={respondToConnectionRequest} className="flex-1">
+                    <input name="connectionId" type="hidden" value={person.connectionId} />
+                    <input name="response" type="hidden" value="accept" />
+                    <SubmitButton className="w-full !py-[7px] !text-caption">Accept</SubmitButton>
+                  </form>
+                  <form action={respondToConnectionRequest} className="flex-1">
+                    <input name="connectionId" type="hidden" value={person.connectionId} />
+                    <input name="response" type="hidden" value="decline" />
+                    <button
+                      className="w-full cursor-pointer rounded-md border border-cream-400 py-[7px] text-caption font-semibold text-ink-600 hover:bg-cream-100"
+                      type="submit"
+                    >
+                      Ignore
+                    </button>
+                  </form>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3.5 text-ui text-ink-600">No requests waiting on you.</p>
+        )}
+      </section>
 
-      <Panel>
-        <section>
-          <Kicker as="h2">Incoming requests</Kicker>
-          <IncomingList people={data.incomingPending} />
-        </section>
-
-        <section className="mt-5 border-t border-cream-400 pt-5">
-          <Kicker as="h2">Outgoing requests</Kicker>
-          <PendingList people={data.outgoingPending} />
-        </section>
-
-        <section className="mt-5 border-t border-cream-400 pt-5">
-          <Kicker as="h2">Connected</Kicker>
-          <AcceptedList people={data.accepted} />
-        </section>
-      </Panel>
+      <section>
+        <SectionHeading>Requests you sent</SectionHeading>
+        {data.outgoingPending.length ? (
+          <ul className="mt-3">
+            {data.outgoingPending.map((person) => (
+              <li
+                className="flex items-center gap-3 border-t border-cream-400 py-3 first:border-t-0 first:pt-0"
+                key={person.connectionId}
+              >
+                <PersonAvatar name={person.name} role={person.role} size="sm" />
+                <div className="min-w-0">
+                  <p className="truncate text-ui font-semibold text-ink-900">{person.name}</p>
+                  <p className="truncate text-caption text-ink-600">
+                    Pending{person.username ? ` · @${person.username}` : ""}
+                  </p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="mt-3.5 text-ui text-ink-600">No outgoing requests right now.</p>
+        )}
+      </section>
     </div>
   );
 }

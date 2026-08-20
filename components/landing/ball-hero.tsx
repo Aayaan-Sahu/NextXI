@@ -91,7 +91,7 @@ export function BallHero() {
             style={{ opacity: wordmarkOpacity }}
             className="absolute inset-0 flex items-center justify-center px-6"
           >
-            <Wordmark size="2xl" tone="dark" />
+            <Wordmark accent="peach" size="2xl" tone="dark" />
           </motion.span>
           <motion.span
             style={{ opacity: taglineOpacity, y: taglineY }}

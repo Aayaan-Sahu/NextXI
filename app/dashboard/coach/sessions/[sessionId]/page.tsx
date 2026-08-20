@@ -3,7 +3,7 @@ import { notFound, redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
 import { isUuid } from "@/app/api/videos/utils";
 import { SessionConsistencyPanel } from "@/components/session-consistency-panel";
-import { Badge, PageShell } from "@/components/ui";
+import { Chip, PageShell, SectionHeading, PageTitle } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
@@ -34,31 +34,35 @@ export default async function CoachSessionPage({
   return (
     <PageShell>
       <Link
-        className="inline-block text-[13px] font-semibold text-rust-600 hover:text-rust-700"
+        className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
         href={`/dashboard/coach/players/${session.playerId}`}
       >
         ← {session.playerName}
       </Link>
 
-      <header className="mt-[18px] mb-[22px]">
-        <div className="flex items-center gap-3">
-          <h1 className="font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase">
-            {session.name}
-          </h1>
-          <Badge>{VIDEO_DISCIPLINES[session.category].label}</Badge>
+      <header className="mt-3.5 mb-6">
+        <div className="flex flex-wrap items-center gap-3">
+          <PageTitle>{session.name}</PageTitle>
+          <Chip>{VIDEO_DISCIPLINES[session.category].label}</Chip>
         </div>
-        <p className="mt-1.5 font-mono text-xs text-ink-600">
+        <p className="mt-1.5 text-ui text-ink-600">
           {session.playerName} · {session.videos.length}{" "}
-          {session.videos.length === 1 ? "video" : "videos"}
+          {session.videos.length === 1 ? "video" : "videos"} · {session.readyPayloads.length}{" "}
+          report{session.readyPayloads.length === 1 ? "" : "s"} ready
         </p>
       </header>
 
-      <div className="grid grid-cols-[1.55fr_1fr] items-start gap-7 max-lg:grid-cols-1">
-        <VideoGrid
-          emptyMessage="No videos in this session yet."
-          linkBase="/dashboard/coach/videos"
-          videos={session.videos}
-        />
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div>
+          <SectionHeading>Videos in this session</SectionHeading>
+          <div className="mt-4">
+            <VideoGrid
+              emptyMessage="No videos in this session yet."
+              linkBase="/dashboard/coach/videos"
+              videos={session.videos}
+            />
+          </div>
+        </div>
         <SessionConsistencyPanel
           items={consistency}
           minVideos={MIN_VIDEOS_FOR_SESSION_STATS}

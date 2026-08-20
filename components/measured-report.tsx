@@ -1,17 +1,19 @@
 import {
-  MeasuredMetricRow,
-  MeasurementsIntro,
+  MEASUREMENTS_EXPLAINER,
   type Direction,
   type MeasuredMetric,
   type MetricReference,
-  type Tone,
 } from "@/components/measured-metric";
+import { RawDetails, ReportMeta } from "@/components/report-panel";
+import { formatMeasurement, ReportMetricRow } from "@/components/report-metric";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
- * v3 measurements path for ReportPanel. When the payload carries a
- * `measurements` array, the product report uses the same MeasuredMetricRow
- * renderer as the landing demo — so marketing and dashboard cannot drift.
+ * v3 measurements path for ReportPanel. Parsing and the honesty rules about
+ * references live in measured-metric.tsx alongside the type, so the landing
+ * demo and the product report can never disagree about what a measurement
+ * means; only the drawing differs (ReportMetricRow here, MeasuredMetricRow on
+ * the landing page).
  *
  * See docs/reports-contract.md (schema_version 3).
  */
@@ -200,49 +202,44 @@ export function measuredConsistency(parsed: ParsedMeasuredReport): number | null
 export function MeasuredReport({
   parsed,
   report,
-  tone,
 }: {
   parsed: ParsedMeasuredReport;
   report: VideoReport;
-  tone: Tone;
 }) {
-  const dark = tone === "dark";
   const metaParts = [
     parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
     parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
     report.modelVersion,
-  ].filter(Boolean);
+  ];
 
   if (!parsed.scored || parsed.metrics.length === 0) {
     return (
-      <div className={dark ? "" : "pt-4"}>
-        <p className={`pt-4 text-sm ${dark ? "text-sage-400" : "text-ink-600"}`}>
-          Not enough of the action was clearly visible to measure honestly — try a
-          clearer angle or a longer clip of the shot.
+      <>
+        <p className="text-body leading-relaxed text-ink-800">
+          Not enough of the action was clearly visible to measure honestly — try a clearer angle
+          or a longer clip of the shot.
         </p>
-        {metaParts.length > 0 && (
-          <p className={`mt-3 font-mono text-[10.5px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
-            {metaParts.join(" · ")}
-          </p>
-        )}
-      </div>
+        <p className="mt-4 border-t border-cream-300 pt-3.5 text-ui leading-relaxed text-ink-600">
+          Film square-on from about 8 metres, with the whole body in frame for the full action.
+        </p>
+        <ReportMeta parts={metaParts} />
+      </>
     );
   }
 
   return (
-    <div className={dark ? "" : "pt-4"}>
-      <MeasurementsIntro tone={tone} />
-      <div className="mt-1">
+    <>
+      <div className="border-b border-cream-300">
         {parsed.metrics.map((metric) => (
-          <MeasuredMetricRow key={metric.name} metric={metric} tone={tone} />
+          <ReportMetricRow key={metric.name} metric={metric} />
         ))}
       </div>
-      {metaParts.length > 0 && (
-        <p className={`mt-3 font-mono text-[10.5px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
-          {metaParts.join(" · ")}
-        </p>
-      )}
-    </div>
+      <p className="mt-4 text-caption leading-relaxed text-ink-600">
+        {MEASUREMENTS_EXPLAINER}
+      </p>
+      <RawDetails payload={report.payload} />
+      <ReportMeta parts={metaParts} />
+    </>
   );
 }
 
@@ -265,7 +262,7 @@ export function measuredCardStats(parsed: ParsedMeasuredReport): {
       ...(consistency === null ? [] : [{ label: "Consistency", value: `${consistency}%` }]),
       ...parsed.metrics.slice(0, 2).map((metric) => ({
         label: metric.short,
-        value: `${metric.value.toFixed(metric.decimals)} ${metric.unit}`,
+        value: formatMeasurement(metric.value.toFixed(metric.decimals), metric.unit),
       })),
     ],
   };

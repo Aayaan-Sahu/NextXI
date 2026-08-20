@@ -1,18 +1,24 @@
-import { PageShell, SkeletonBlock } from "@/components/ui";
+import { SkeletonBlock, SubBar } from "@/components/ui";
 
-/** Skeleton for connections: status band + two panel columns. */
+/** Skeleton for connections: the sub-bar, a roster column, a pending column. */
 export default function ConnectionsLoading() {
   return (
-    <PageShell>
-      <div aria-label="Loading" className="grid gap-9" role="status">
-        <div className="-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12">
-          <SkeletonBlock className="h-[7.5rem] rounded-[10px]" />
+    <main id="main-content">
+      <SubBar title="Connections">
+        <SkeletonBlock className="h-4 w-56 rounded" />
+      </SubBar>
+      <div
+        aria-label="Loading"
+        className="mx-auto grid w-full max-w-[1360px] items-start gap-10 px-6 pt-6 pb-14 sm:px-10 lg:grid-cols-[minmax(0,1fr)_320px]"
+        role="status"
+      >
+        <div className="grid gap-2">
+          {Array.from({ length: 5 }, (_, index) => (
+            <SkeletonBlock className="h-[62px] rounded-lg" key={index} />
+          ))}
         </div>
-        <div className="grid gap-6 lg:grid-cols-2">
-          <SkeletonBlock className="h-64 rounded-[10px]" />
-          <SkeletonBlock className="h-80 rounded-[10px]" />
-        </div>
+        <SkeletonBlock className="h-56 rounded-lg" />
       </div>
-    </PageShell>
+    </main>
   );
 }

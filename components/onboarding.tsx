@@ -8,15 +8,15 @@ import { AuthStepper } from "@/components/auth-stepper";
 import { PhysicalFields } from "@/components/physical-fields";
 import { UsernameHandleField } from "@/components/username-field";
 import {
+  AuthSheet,
   CheckboxChip,
   Field,
   FieldGroup,
+  FieldHint,
   Form,
-  Kicker,
   Notice,
   TextArea,
   TextInput,
-  Wordmark,
 } from "@/components/ui";
 import { CountrySelect } from "@/components/country-select";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
@@ -39,25 +39,23 @@ function dobBounds() {
 
 const COPY: Record<
   OnboardingRole,
-  { description: string; kicker: string; submit: string; title: string }
+  { description: string; submit: string; title: string }
 > = {
   player: {
-    description: "A few details for your player card. You can change these later.",
-    kicker: "PLAYER",
-    submit: "Create player profile",
-    title: "You're in",
+    description:
+      "Height is required — every measurement in your reports is calibrated against it.",
+    submit: "Create my profile",
+    title: "Your player profile",
   },
   coach: {
-    description: "Tell us who you are so we can review your coach account.",
-    kicker: "COACH",
-    submit: "Create coach profile",
-    title: "Set up your coach profile",
+    description: "An administrator reviews every coach account before it opens.",
+    submit: "Submit for review",
+    title: "Coach profile",
   },
   guardian: {
-    description: "Use the code on your child's dashboard to link their account.",
-    kicker: "GUARDIAN",
-    submit: "Link child's account",
-    title: "Link your child’s account",
+    description: "Your child's code appears on their dashboard right after they sign up.",
+    submit: "Link my child",
+    title: "Guardian profile",
   },
 };
 
@@ -70,63 +68,74 @@ export function OnboardingPanel({
   error?: string;
   role?: OnboardingRole;
 }) {
+  const copy = COPY[role];
+  const isPlayer = role === "player";
+
   return (
-    <main
-      className="relative flex min-h-dvh flex-col items-center bg-cream-200 px-6 pt-24 pb-8 text-ink-900"
-      id="main-content"
+    <AuthSheet
+      context={isPlayer ? <AuthStepper current="profile" tone="dark" /> : undefined}
+      description={copy.description}
+      footer={
+        <span className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1.5">
+          <RoleSwitchLinks role={role} />
+          {email ? (
+            <span>
+              {email} ·{" "}
+              <form action={signOut} className="inline">
+                <button
+                  className="cursor-pointer font-semibold text-rust-600 hover:text-rust-700"
+                  type="submit"
+                >
+                  Sign out
+                </button>
+              </form>
+            </span>
+          ) : null}
+        </span>
+      }
+      title={copy.title}
+      width={isPlayer ? "lg" : "sm"}
     >
-      <div className="absolute top-8 left-6 sm:left-12">
-        <Wordmark tone="light" />
-      </div>
-      <div className="flex w-full flex-1 flex-col items-center justify-center py-8">
-        <RoleForm error={error} key={role} role={role} />
-      </div>
-      <div className="mt-4 text-center text-[12.5px] text-ink-600">
-        Signed in as {email} ·{" "}
-        <form action={signOut} className="inline">
-          <button
-            className="cursor-pointer font-bold text-rust-600 hover:text-rust-700"
-            type="submit"
-          >
-            Sign out
-          </button>
-        </form>
-      </div>
-    </main>
+      <RoleForm error={error} key={role} role={role} submit={copy.submit} />
+    </AuthSheet>
   );
 }
 
-function RoleForm({ error, role }: { error?: string; role: OnboardingRole }) {
+function RoleForm({
+  error,
+  role,
+  submit,
+}: {
+  error?: string;
+  role: OnboardingRole;
+  submit: string;
+}) {
   const [state, action] = useActionState(completeOnboarding, emptyOnboarding);
   const [name, setName] = useState("");
-  const copy = COPY[role];
   const dob = dobBounds();
 
   return (
-    <section className="w-full max-w-[560px] rounded-xl border border-cream-400 bg-white p-9">
-      <AuthStepper current="profile" />
-      <Kicker>{copy.kicker}</Kicker>
-      <h1 className="mt-2.5 font-display text-[26px] leading-tight font-bold uppercase">
-        {copy.title}
-      </h1>
-      <p className="mt-2 text-sm text-ink-600">{copy.description}</p>
+    <>
+      <Notice className="mt-5" tone="error">
+        {state.error ?? error}
+      </Notice>
       <Form action={action} className="mt-6">
         <input name="role" type="hidden" value={role} />
-        <Field>
-          Name
-          <TextInput
-            autoComplete="name"
-            name="name"
-            onChange={(event) => setName(event.target.value)}
-            required
-            type="text"
-            value={name}
-          />
-        </Field>
-        <UsernameHandleField nameValue={name} />
-        {role === "player" && (
+        {role === "player" ? (
           <>
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid gap-x-5 gap-y-[18px] sm:grid-cols-2">
+              <Field>
+                Name
+                <TextInput
+                  autoComplete="name"
+                  name="name"
+                  onChange={(event) => setName(event.target.value)}
+                  required
+                  type="text"
+                  value={name}
+                />
+              </Field>
+              <UsernameHandleField nameValue={name} />
               <Field>
                 Date of birth
                 <TextInput max={dob.max} min={dob.min} name="dateOfBirth" required type="date" />
@@ -135,58 +144,68 @@ function RoleForm({ error, role }: { error?: string; role: OnboardingRole }) {
                 Club
                 <TextInput name="club" required type="text" />
               </Field>
+              <CountryField />
+              <PhysicalFields />
             </div>
-            <PhysicalFields />
-            <CountryField />
             <RolesField />
           </>
+        ) : (
+          <>
+            <Field>
+              Name
+              <TextInput
+                autoComplete="name"
+                name="name"
+                onChange={(event) => setName(event.target.value)}
+                required
+                type="text"
+                value={name}
+              />
+            </Field>
+            <UsernameHandleField nameValue={name} />
+            {role === "coach" ? <CoachFields /> : <GuardianFields />}
+          </>
         )}
-        {role === "coach" && <CoachFields />}
-        {role === "guardian" && <GuardianFields />}
-        <SubmitButton>{copy.submit}</SubmitButton>
+        <SubmitButton className="mt-2 w-full">{submit}</SubmitButton>
       </Form>
-      <Notice tone="error">{state.error ?? error}</Notice>
-      <RoleSwitchLinks role={role} />
-    </section>
+    </>
   );
 }
 
-function RoleSwitchLinks({ role }: { role: OnboardingRole }) {
-  const linkClass =
-    "font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline";
+const roleLinkClass = "font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline";
 
+function RoleSwitchLinks({ role }: { role: OnboardingRole }) {
   if (role === "player") {
     return (
-      <p className="mt-6 text-[13px] leading-relaxed text-ink-600">
-        Signing up as a coach?{" "}
-        <Link className={linkClass} href="/onboarding?role=coach">
-          Set up a coach profile
+      <span>
+        Not a player?{" "}
+        <Link className={roleLinkClass} href="/onboarding?role=coach">
+          I&apos;m a coach
         </Link>
-        <br />
-        Parent or guardian?{" "}
-        <Link className={linkClass} href="/onboarding?role=guardian">
-          Link a child&apos;s account
+        {" · "}
+        <Link className={roleLinkClass} href="/onboarding?role=guardian">
+          I&apos;m a parent or guardian
         </Link>
-      </p>
+      </span>
     );
   }
 
   return (
-    <p className="mt-6 text-[13px] leading-relaxed text-ink-600">
-      <Link className={linkClass} href="/onboarding">
+    <span>
+      <Link className={roleLinkClass} href="/onboarding">
         I&apos;m a player
       </Link>
       {" · "}
       {role === "coach" ? (
-        <Link className={linkClass} href="/onboarding?role=guardian">
+        <Link className={roleLinkClass} href="/onboarding?role=guardian">
           I&apos;m a parent or guardian
         </Link>
       ) : (
-        <Link className={linkClass} href="/onboarding?role=coach">
+        <Link className={roleLinkClass} href="/onboarding?role=coach">
           I&apos;m a coach
         </Link>
       )}
-    </p>
+    </span>
   );
 }
 
@@ -195,16 +214,18 @@ function CountryField() {
     <FieldGroup>
       Country
       <CountrySelect name="country" />
+      <FieldHint>19 options, England by default.</FieldHint>
     </FieldGroup>
   );
 }
 
 function RolesField() {
   return (
-    <FieldGroup>
-      Playing roles
-      <span className="text-xs font-normal text-ink-600">Optional. Select any that apply.</span>
-      <div className="mt-1 flex flex-wrap gap-2">
+    <FieldGroup className="mt-2">
+      <span>
+        Playing roles <span className="font-normal text-ink-600">optional</span>
+      </span>
+      <div className="mt-1.5 flex flex-wrap gap-2">
         {PLAYER_ROLE_OPTIONS.map((role) => (
           <CheckboxChip key={role.value} name="roles" value={role.value}>
             {role.label}
@@ -220,12 +241,16 @@ function GuardianFields() {
     <>
       <Field>
         Child&apos;s approval code
-        <TextInput name="childCode" placeholder="e.g. ABCD-2345" required type="text" />
-        <span className="text-xs font-normal text-ink-600">
-          Shown on your child&apos;s dashboard after they sign up.
-        </span>
+        <TextInput
+          className="font-semibold tracking-[.14em]"
+          name="childCode"
+          placeholder="e.g. ABCD-2345"
+          required
+          type="text"
+        />
+        <FieldHint>Spaces, hyphens and case don&apos;t matter.</FieldHint>
       </Field>
-      <label className="flex items-start gap-2.5 text-[13px] leading-relaxed font-normal select-none">
+      <label className="flex items-start gap-2.5 text-ui leading-relaxed font-normal select-none">
         <input
           className="mt-0.5 size-4 shrink-0 accent-pitch-900"
           name="guardianConsent"
@@ -233,8 +258,7 @@ function GuardianFields() {
           type="checkbox"
         />
         <span>
-          I am this player&apos;s parent or legal guardian and consent to their use of
-          NextXI.
+          I am this player&apos;s parent or legal guardian and consent to their use of NextXI.
         </span>
       </label>
     </>
@@ -244,12 +268,10 @@ function GuardianFields() {
 function CoachFields() {
   return (
     <Field>
-      Accomplishments
-      <TextArea
-        name="accomplishments"
-        placeholder="One accomplishment per line"
-        rows={6}
-      />
+      <span>
+        Accomplishments <span className="font-normal text-ink-600">one per line, optional</span>
+      </span>
+      <TextArea name="accomplishments" placeholder="e.g. ECB Level 3, batting" rows={4} />
     </Field>
   );
 }

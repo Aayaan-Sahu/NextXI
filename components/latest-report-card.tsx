@@ -91,54 +91,57 @@ function formatShortDate(date: Date) {
 }
 
 /**
- * The player home's compact scoreboard readout of the newest READY report,
- * linking through to the full report on the video page.
+ * The player home's one primary conclusion: the newest READY report read as a
+ * scoreboard. Clip name on the left, the measurements that matter across the
+ * middle, the way through on the right.
  */
 export function LatestReportCard({
   href,
   payload,
   tagLabel,
+  title,
   updatedAt,
 }: {
   href: string;
   payload: unknown;
   tagLabel: string;
+  title: string;
   updatedAt: Date;
 }) {
   const card = deriveCard(payload);
 
   return (
-    <section className="relative overflow-hidden rounded-[12px] bg-pitch-800 px-6 py-6 text-cream-200">
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
-      />
-      <div className="relative">
-        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
-          <Kicker tone="dark">Latest report</Kicker>
-          <p className="font-mono text-[11px] text-sage-400">
-            {tagLabel} · {formatShortDate(updatedAt)}
+    <section className="rounded-[10px] bg-pitch-900 px-7 py-6 text-cream-200">
+      <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-5">
+        <div className="min-w-0">
+          <Kicker as="h2" tone="dark">
+            Latest report
+          </Kicker>
+          <p className="mt-2 truncate font-display text-figure font-semibold tracking-[.02em] text-cream-200 uppercase">
+            {title}
+          </p>
+          <p className="mt-1 text-ui text-cream-200/60">
+            {formatShortDate(updatedAt)} · {tagLabel}
           </p>
         </div>
-        <h2 className="mt-3 font-display text-[22px] leading-tight font-bold tracking-[.02em] uppercase">
-          {card.headline}
-        </h2>
         {card.stats.length > 0 ? (
-          <dl className="mt-4 flex flex-wrap gap-x-9 gap-y-3">
+          <dl className="flex flex-wrap gap-x-11 gap-y-4">
             {card.stats.map((stat) => (
               <div key={stat.label}>
-                <dt className="font-display text-[11px] font-semibold tracking-[.22em] uppercase text-sage-400">
-                  {stat.label}
-                </dt>
-                <dd className="mt-0.5 font-mono text-[22px] font-semibold text-gold-500">
+                <dd className="text-figure leading-none font-semibold tabular-nums">
                   {stat.value}
                 </dd>
+                <dt className="mt-1.5 text-caption text-cream-200/60">{stat.label}</dt>
               </div>
             ))}
           </dl>
-        ) : null}
+        ) : (
+          <p className="max-w-sm text-body leading-relaxed text-cream-200/85">
+            {card.headline}
+          </p>
+        )}
         <Link
-          className="mt-5 inline-block text-[13px] font-semibold text-gold-500 no-underline hover:text-gold-600"
+          className="shrink-0 text-ui font-semibold text-gold-500 no-underline hover:text-gold-600"
           href={href}
         >
           View full report →

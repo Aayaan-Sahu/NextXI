@@ -6,31 +6,44 @@ const STEPS: { id: AuthStep; label: string }[] = [
   { id: "profile", label: "Profile" },
 ];
 
-/** Three-beat progress for signup: Account → Confirm → Profile. */
-export function AuthStepper({ current }: { current: AuthStep }) {
+/**
+ * Three-beat progress for signup: Account → Confirm → Profile.
+ * `tone="dark"` is the variant that rides the maroon header bar.
+ */
+export function AuthStepper({
+  current,
+  tone = "light",
+}: {
+  current: AuthStep;
+  tone?: "light" | "dark";
+}) {
   const currentIndex = STEPS.findIndex((step) => step.id === current);
+  const dark = tone === "dark";
 
   return (
-    <ol className="mb-6 flex items-center gap-0 font-mono text-[10px] font-semibold tracking-[.16em] uppercase sm:text-[11px]">
+    <ol
+      className={`flex items-center gap-2.5 ${
+        dark ? "text-micro text-cream-200/60" : "mb-5 text-caption text-ink-600"
+      }`}
+    >
       {STEPS.map((step, index) => {
-        const done = index < currentIndex;
         const active = index === currentIndex;
 
         return (
-          <li className="flex min-w-0 flex-1 items-center" key={step.id}>
+          <li className="flex items-center gap-2.5" key={step.id}>
             {index > 0 && (
               <span
                 aria-hidden
-                className={`mx-1.5 h-px flex-1 ${done || active ? "bg-gold-500" : "bg-cream-400"}`}
+                className={`h-px w-[18px] ${dark ? "bg-cream-200/35" : "bg-cream-500"}`}
               />
             )}
             <span
               className={
                 active
-                  ? "text-rust-600"
-                  : done
-                    ? "text-ink-900"
-                    : "text-ink-600"
+                  ? dark
+                    ? "font-semibold text-cream-50"
+                    : "font-semibold text-ink-900"
+                  : undefined
               }
             >
               <span className="tabular-nums">{index + 1}</span>

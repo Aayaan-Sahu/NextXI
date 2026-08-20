@@ -61,3 +61,11 @@ export const DEFAULT_COUNTRY = COUNTRY_OPTIONS[0].label;
 export function isCountry(value: unknown): value is string {
   return typeof value === "string" && COUNTRY_VALUES.has(value);
 }
+
+const COUNTRY_FLAGS = new Map(COUNTRY_OPTIONS.map((option) => [option.label, option.flag]));
+
+/** "🏴󠁧󠁢󠁥󠁮󠁧󠁿 England" — the label alone when we hold no flag for it. */
+export function countryWithFlag(country: string) {
+  const flag = COUNTRY_FLAGS.get(country);
+  return flag ? `${flag} ${country}` : country;
+}

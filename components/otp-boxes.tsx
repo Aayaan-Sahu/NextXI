@@ -1,19 +1,21 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { inputStyles } from "@/components/ui";
 
 /**
  * Six single-digit boxes for email OTP. Hidden `name="token"` submits the
  * concatenated code. Pasting a 6-digit string fills every box; completing
- * the last digit submits the parent form.
+ * the last digit submits the parent form. `invalid` turns the whole row over
+ * to the error surface — a rejected code is about the code, not one digit.
  */
 export function OtpBoxes({
   autoSubmit = true,
+  invalid = false,
   length = 6,
   name = "token",
 }: {
   autoSubmit?: boolean;
+  invalid?: boolean;
   length?: number;
   name?: string;
 }) {
@@ -42,16 +44,22 @@ export function OtpBoxes({
   }
 
   return (
-    <fieldset className="grid gap-1.5">
-      <legend className="text-xs font-bold">Confirmation code</legend>
+    <fieldset className="grid gap-2.5">
+      <legend className="sr-only">Confirmation code</legend>
       <input name={name} type="hidden" value={token} />
-      <div className="flex gap-2">
+      <div className="flex gap-2 sm:gap-2.5">
         {digits.map((digit, index) => (
           <input
             aria-label={`Digit ${index + 1} of ${length}`}
             autoComplete={index === 0 ? "one-time-code" : "off"}
             autoFocus={index === 0}
-            className={`${inputStyles} w-full min-w-0 px-0 text-center font-mono text-lg font-semibold tracking-widest`}
+            className={`h-[60px] w-full min-w-0 rounded-md border px-0 text-center text-figure font-semibold tabular-nums focus:border-2 focus:border-amber-500 focus:outline-none ${
+              invalid
+                ? "border-rust-300 bg-rust-100 text-rust-600"
+                : digit
+                  ? "border-ink-900 bg-cream-50 text-ink-900"
+                  : "border-cream-400 bg-cream-50 text-ink-900"
+            }`}
             inputMode="numeric"
             key={index}
             maxLength={1}

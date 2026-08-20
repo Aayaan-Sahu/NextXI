@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import * as tus from "tus-js-client";
 import { RecordingGuideButton } from "@/components/recording-guide";
-import { Field, PrimaryButton, Select } from "@/components/ui";
+import { Field, FieldHint, Notice, PrimaryButton, Select } from "@/components/ui";
 import {
   ALLOWED_VIDEO_TYPES,
   formatVideoSize,
@@ -267,8 +267,8 @@ export function VideoUpload({
     // navigates the tab to the file: mid-upload drops are inert (stashFile
     // guards), and a drop over a staged file replaces it.
     <section
-      className={`relative rounded-[10px] border border-dashed p-6 ${
-        dragActive ? "border-gold-500 bg-cream-50" : "border-cream-500 bg-white"
+      className={`rounded-lg border border-dashed px-5 py-4 ${
+        dragActive ? "border-ink-900 bg-cream-50" : "border-cream-500 bg-cream-100"
       }`}
       onDragLeave={() => setDragActive(false)}
       onDragOver={(event) => {
@@ -281,7 +281,6 @@ export function VideoUpload({
         stashFile(event.dataTransfer.files[0]);
       }}
     >
-      <RecordingGuideButton />
       <input
         accept={acceptedTypes}
         className="hidden"
@@ -291,34 +290,40 @@ export function VideoUpload({
       />
 
       {uploading ? (
-        <div className="flex flex-col items-center gap-2.5 px-6 py-10 text-center">
-          <p className="w-full max-w-[420px] truncate font-mono text-xs text-ink-600">
-            {pendingFile?.name}
-          </p>
-          <div className="grid w-full max-w-[420px] gap-2">
-            <div className="h-1.5 overflow-hidden rounded-sm bg-cream-300">
-              <div className="h-full bg-gold-500" style={{ width: `${progress}%` }} />
-            </div>
-            <p className="font-mono text-xs text-ink-600">{progress}% uploaded</p>
+        <div className="grid gap-2.5">
+          <p className="truncate text-ui font-semibold text-ink-900">{pendingFile?.name}</p>
+          <div className="h-1 overflow-hidden rounded-sm bg-cream-250">
+            <div className="h-full bg-amber-500" style={{ width: `${progress}%` }} />
           </div>
+          <p className="text-caption text-ink-600 tabular-nums">{progress}% uploaded</p>
         </div>
       ) : pendingFile ? (
         <div className="grid animate-crease-rise gap-4">
-          <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1 pr-10">
-            <p className="min-w-0 truncate font-mono text-[12.5px] text-ink-900">
-              {pendingFile.name}
-              <span className="text-ink-600"> · {formatVideoSize(pendingFile.size)}</span>
-            </p>
-            <button
-              className="cursor-pointer text-[13px] font-semibold text-rust-600 hover:text-rust-700"
-              onClick={clearPending}
-              type="button"
-            >
-              Choose a different file
-            </button>
+          <div className="flex flex-wrap items-center justify-between gap-x-5 gap-y-3">
+            <div className="min-w-0">
+              <p className="text-ui font-semibold text-ink-900">
+                {session ? "Upload into this session" : "Ready to upload"}
+              </p>
+              <p className="mt-0.5 truncate text-caption text-ink-600">
+                {pendingFile.name} · {formatVideoSize(pendingFile.size)} ·{" "}
+                <button
+                  className="cursor-pointer font-semibold text-rust-600 hover:text-rust-700"
+                  onClick={clearPending}
+                  type="button"
+                >
+                  Discard
+                </button>
+              </p>
+            </div>
+            <div className="flex shrink-0 items-center gap-2.5">
+              <RecordingGuideButton />
+              <PrimaryButton disabled={!tagsComplete} onClick={startUpload} type="button">
+                Start upload
+              </PrimaryButton>
+            </div>
           </div>
-          <div className="grid grid-cols-3 gap-4 max-sm:grid-cols-1">
-            <Field>
+          <div className="grid grid-cols-3 gap-3.5 max-sm:grid-cols-1">
+            <Field className="text-caption">
               Discipline
               <Select
                 disabled={Boolean(session)}
@@ -335,8 +340,9 @@ export function VideoUpload({
                   </option>
                 ))}
               </Select>
+              {session ? <FieldHint>Set by the session.</FieldHint> : null}
             </Field>
-            <Field>
+            <Field className="text-caption">
               {discipline === "BATTING" ? "Shot" : "Variation"}
               <Select
                 disabled={!discipline}
@@ -352,7 +358,7 @@ export function VideoUpload({
                   ))}
               </Select>
             </Field>
-            <Field>
+            <Field className="text-caption">
               Handedness
               <Select
                 onChange={(event) => setHandedness(event.target.value as HandednessOption | "")}
@@ -367,21 +373,19 @@ export function VideoUpload({
               </Select>
             </Field>
           </div>
-          <div>
-            <PrimaryButton disabled={!tagsComplete} onClick={startUpload} type="button">
-              Start upload
-            </PrimaryButton>
-          </div>
         </div>
       ) : (
-        <div className="flex flex-col items-center gap-2 px-6 py-[38px] text-center">
-          <p className="font-display text-[19px] font-semibold tracking-[.03em] uppercase">
-            Drag and drop a video to upload
-          </p>
-          <p className="text-[13px] text-ink-600">
-            MP4, MOV, or WebM, up to 500 MB. You&apos;ll tag it before it uploads.
-          </p>
-          <div className="mt-2.5">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
+          <div>
+            <p className="text-ui font-semibold text-ink-900">
+              {session ? "Drop a clip here to add it to this session" : "Drop a clip here to upload"}
+            </p>
+            <p className="mt-0.5 text-caption text-ink-600">
+              MP4, MOV or WebM up to 500 MB. You tag discipline and variation before it uploads.
+            </p>
+          </div>
+          <div className="flex shrink-0 items-center gap-2.5">
+            <RecordingGuideButton />
             <PrimaryButton onClick={() => inputRef.current?.click()} type="button">
               Browse files
             </PrimaryButton>
@@ -389,7 +393,11 @@ export function VideoUpload({
         </div>
       )}
 
-      {error ? <p className="mt-3 text-center text-sm text-rust-700">{error}</p> : null}
+      {error ? (
+        <Notice className="mt-3" tone="error">
+          {error}
+        </Notice>
+      ) : null}
     </section>
   );
 }

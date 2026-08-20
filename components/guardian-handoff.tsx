@@ -61,7 +61,7 @@ export function GuardianHandoff({
   }
 
   const buttonClass =
-    "cursor-pointer rounded-md border border-cream-500 bg-transparent px-3.5 py-2 text-[13px] font-semibold text-ink-900 hover:bg-cream-100";
+    "cursor-pointer rounded-md border border-cream-500 bg-transparent px-3.5 py-2 text-caption font-semibold text-ink-900 hover:bg-cream-100";
 
   return (
     <div className="mt-5 flex flex-wrap gap-2">

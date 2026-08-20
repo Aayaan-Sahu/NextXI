@@ -8,7 +8,7 @@ export function DashboardReveal({
   children: ReactNode;
   className?: string;
 }) {
-  return <div className={className}>{children}</div>;
+  return <div className={`min-w-0 ${className}`}>{children}</div>;
 }
 
 export function DashboardRevealItem({
@@ -23,7 +23,7 @@ export function DashboardRevealItem({
 }) {
   return (
     <div
-      className={`animate-crease-rise ${className}`}
+      className={`min-w-0 animate-crease-rise ${className}`}
       style={{ animationDelay: `${index * 80}ms` }}
     >
       {children}

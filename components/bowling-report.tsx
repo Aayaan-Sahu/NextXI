@@ -1,4 +1,5 @@
-import { Kicker } from "@/components/ui";
+import { RawDetails, ReportMeta } from "@/components/report-panel";
+import { SectionHeading } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -9,7 +10,6 @@ import type { VideoReport } from "@/lib/videos.server";
  * See docs/reports-contract.md (schema_version 3).
  */
 
-type Tone = "light" | "dark";
 type BraceLabel = "braced" | "soft/absorbing" | "collapsing";
 
 type Stat = { key: string; label: string; value: string };
@@ -110,59 +110,26 @@ function formatTimestamp(seconds: number) {
   return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
 }
 
-function braceColor(label: BraceLabel, dark: boolean) {
-  if (label === "braced") return dark ? "text-gold-500" : "text-gold-600";
-  if (label === "collapsing") return dark ? "text-rust-500" : "text-rust-600";
-  return dark ? "text-sage-400" : "text-ink-600"; // soft/absorbing
-}
-
-function RawDetails({ payload, tone }: { payload: unknown; tone: Tone }) {
-  const dark = tone === "dark";
-  return (
-    <details
-      className={`rounded-md border ${
-        dark ? "border-cream-200/15 bg-black/20" : "border-cream-400 bg-cream-50"
-      }`}
-    >
-      <summary
-        className={`cursor-pointer px-3 py-2 text-sm font-medium ${
-          dark ? "text-sage-400" : "text-ink-600"
-        }`}
-      >
-        Raw report data
-      </summary>
-      <pre
-        className={`overflow-x-auto border-t px-3 py-2 text-xs leading-relaxed ${
-          dark ? "border-cream-200/15 text-cream-200" : "border-cream-400 text-ink-600"
-        }`}
-      >
-        {JSON.stringify(payload, null, 2)}
-      </pre>
-    </details>
-  );
+function braceColor(label: BraceLabel) {
+  if (label === "braced") return "text-moss-600";
+  if (label === "collapsing") return "text-rust-600";
+  return "text-ink-600"; // soft/absorbing
 }
 
 /** Renders the parsed bowling delivery inside ReportPanel's card. */
 export function BowlingReport({
   parsed,
   report,
-  tone,
 }: {
   parsed: ParsedBowlingReport;
   report: VideoReport;
-  tone: Tone;
 }) {
-  const dark = tone === "dark";
-  const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
-  const bodyText = dark ? "text-cream-200" : "text-ink-900";
-  const mutedText = dark ? "text-sage-400" : "text-ink-600";
-
   const { brace } = parsed;
   const angleLine =
     brace.landingAngle !== null && brace.releaseAngle !== null
-      ? `Landing ${brace.landingAngle.toFixed(0)}° → release ${brace.releaseAngle.toFixed(0)}°${
+      ? `Landing ${brace.landingAngle.toFixed(0)}\u00b0 \u2192 release ${brace.releaseAngle.toFixed(0)}\u00b0${
           brace.angleChange !== null
-            ? ` (${brace.angleChange > 0 ? "+" : ""}${brace.angleChange.toFixed(0)}°)`
+            ? ` (${brace.angleChange > 0 ? "+" : ""}${brace.angleChange.toFixed(0)}\u00b0)`
             : ""
         }`
       : null;
@@ -174,70 +141,68 @@ export function BowlingReport({
     parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
     parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
     report.modelVersion,
-  ].filter(Boolean);
+  ];
 
-  return (
-    <div className={dark ? "" : "pt-4"}>
-      {!hasContent ? (
-        <p className={`pt-4 text-sm ${mutedText}`}>
+  if (!hasContent) {
+    return (
+      <>
+        <p className="text-body leading-relaxed text-ink-800">
           The analysis ran but couldn&apos;t measure this delivery clearly.
         </p>
-      ) : (
-        <>
-          {hasBrace && (
-            <div className={`border-b py-3.5 ${rowBorder}`}>
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-display text-sm tracking-[.08em] uppercase">
-                  Front-knee brace
-                </span>
-                {brace.label && (
-                  <span className={`text-[12.5px] font-medium ${braceColor(brace.label, dark)}`}>
-                    {brace.label}
-                  </span>
-                )}
-              </div>
-              {angleLine && <p className={`mt-2 font-mono text-[11px] ${mutedText}`}>{angleLine}</p>}
-            </div>
-          )}
+        <RawDetails payload={report.payload} />
+        <ReportMeta parts={metaParts} />
+      </>
+    );
+  }
 
-          {parsed.stats.length > 0 && (
-            <div className={`grid gap-1 border-b py-3.5 ${rowBorder}`}>
-              {parsed.stats.map((stat) => (
-                <div
-                  className="flex items-baseline justify-between gap-3 text-[12.5px]"
-                  key={stat.key}
-                >
-                  <span className={bodyText}>{stat.label}</span>
-                  <span className={`font-mono ${bodyText}`}>{stat.value}</span>
-                </div>
-              ))}
-            </div>
+  return (
+    <>
+      {hasBrace && (
+        <div>
+          <p className="text-caption text-ink-600">Front-knee brace</p>
+          {brace.label && (
+            <p
+              className={`mt-1 font-display text-figure font-semibold tracking-[.02em] uppercase ${braceColor(brace.label)}`}
+            >
+              {brace.label}
+            </p>
           )}
-
-          {parsed.events.length > 0 && (
-            <div className="flex flex-col gap-[9px] py-4">
-              <Kicker tone={tone}>Key moments</Kicker>
-              {parsed.events.map((event) => (
-                <div className="flex items-baseline gap-2.5" key={event.label}>
-                  <span
-                    className={`shrink-0 font-mono text-[11px] ${dark ? "text-gold-500" : "text-rust-600"}`}
-                  >
-                    {formatTimestamp(event.timeSec)}
-                  </span>
-                  <span className={`text-[12.5px] ${bodyText}`}>{event.label}</span>
-                </div>
-              ))}
-            </div>
-          )}
-        </>
+          {angleLine && <p className="mt-1.5 text-ui text-ink-800">{angleLine}</p>}
+        </div>
       )}
 
-      <div className="flex flex-col gap-2 py-4">
-        <RawDetails payload={report.payload} tone={tone} />
-        {metaParts.length > 0 && (
-          <p className={`font-mono text-[10.5px] ${mutedText}`}>{metaParts.join(" · ")}</p>
-        )}
-      </div>
-    </div>
+      {parsed.stats.length > 0 && (
+        <div className="mt-5 border-t border-cream-300">
+          {parsed.stats.map((stat) => (
+            <div
+              className="flex justify-between border-b border-cream-300 py-3 text-ui"
+              key={stat.key}
+            >
+              <span className="text-ink-800">{stat.label}</span>
+              <span className="font-semibold tabular-nums">{stat.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {parsed.events.length > 0 && (
+        <div className="mt-6">
+          <SectionHeading as="h3">Key moments</SectionHeading>
+          <div className="mt-3 grid gap-2.5 text-ui">
+            {parsed.events.map((event) => (
+              <div className="flex items-center gap-3" key={event.label}>
+                <span className="shrink-0 text-caption font-semibold text-rust-600 tabular-nums">
+                  {formatTimestamp(event.timeSec)}
+                </span>
+                <span>{event.label}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <RawDetails payload={report.payload} />
+      <ReportMeta parts={metaParts} />
+    </>
   );
 }

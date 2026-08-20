@@ -3,19 +3,22 @@
 import { useEffect, useMemo, useRef, useState, useTransition, type FormEvent } from "react";
 import { markThreadRead, sendMessage } from "@/app/dashboard/messages/actions";
 import type { ThreadMessage } from "@/lib/messages";
+import { PersonAvatar } from "@/components/connections";
 import { useMessageChanges, type MessageChange } from "@/components/messages-realtime";
 import { PrimaryButton } from "@/components/ui";
 
 /** Gap between messages after which a timestamp divider is shown. */
 const TIME_DIVIDER_GAP_MS = 15 * 60 * 1000;
+/** Gap after which a run of messages from one person starts a new group. */
+const GROUP_GAP_MS = 5 * 60 * 1000;
 
 function formatDivider(iso: string) {
-  return new Date(iso).toLocaleString([], {
-    hour: "2-digit",
-    minute: "2-digit",
-    month: "short",
-    day: "numeric",
-  });
+  const date = new Date(iso);
+  const today = new Date().toDateString() === date.toDateString();
+  const day = today
+    ? "Today"
+    : date.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+  return `${day} · ${date.toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true })}`;
 }
 
 function formatClock(iso: string) {
@@ -44,12 +47,18 @@ function receiptFor(message: ThreadMessage, isPending: boolean) {
 
 export function MessageThread({
   connectionId,
+  counterpartName,
+  counterpartRole,
   currentUserId,
   initialMessages,
+  selfName,
 }: {
   connectionId: string;
+  counterpartName: string;
+  counterpartRole: string | null;
   currentUserId: string;
   initialMessages: ThreadMessage[];
+  selfName: string;
 }) {
   // Server-rendered messages plus everything that arrived over the websocket
   // or was sent locally; `live` entries win over stale server props.
@@ -143,74 +152,88 @@ export function MessageThread({
 
   return (
     <>
-      <div className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto bg-cream-50 p-4 md:p-6">
+      <div className="flex min-h-0 flex-1 flex-col gap-[18px] overflow-y-auto bg-cream-50 px-4 py-5 md:px-6">
         {messages.length ? (
           messages.map((message, index) => {
             const previous = messages[index - 1];
-            const showDivider =
-              !previous ||
-              new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime() >
-                TIME_DIVIDER_GAP_MS;
+            const gap = previous
+              ? new Date(message.createdAt).getTime() - new Date(previous.createdAt).getTime()
+              : Infinity;
+            const showDivider = gap > TIME_DIVIDER_GAP_MS;
+            // A run from one person reads as one utterance: the avatar and
+            // name appear once, then the lines stack under them.
+            const startsGroup =
+              showDivider || !previous || previous.fromMe !== message.fromMe || gap > GROUP_GAP_MS;
             const isPending = message.id.startsWith("pending-");
 
             return (
-              <div className="flex flex-col gap-3" key={message.id}>
+              <div className="flex flex-col gap-[18px]" key={message.id}>
                 {showDivider ? (
-                  <p className="my-1 text-center font-mono text-[11px] text-sage-400">
-                    {formatDivider(message.createdAt)}
-                  </p>
-                ) : null}
-                <div
-                  className={
-                    message.fromMe
-                      ? "max-w-[85%] self-end text-right md:max-w-[60%]"
-                      : "max-w-[85%] self-start md:max-w-[60%]"
-                  }
-                >
-                  <div
-                    className={
-                      message.fromMe
-                        ? "inline-block rounded-[14px] rounded-br-[4px] bg-rust-600 px-3.5 py-2.5 text-left text-sm leading-[1.55] text-cream-200"
-                        : "inline-block rounded-[14px] rounded-bl-[4px] border border-cream-400 bg-white px-3.5 py-2.5 text-left text-sm leading-[1.55] text-ink-900"
-                    }
-                    title={formatDivider(message.createdAt)}
-                  >
-                    <p className="m-0 whitespace-pre-wrap break-words">{message.body}</p>
+                  <div aria-hidden className="flex items-center gap-3">
+                    <span className="h-px flex-1 bg-cream-400" />
+                    <span className="text-caption text-ink-600">
+                      {formatDivider(message.createdAt)}
+                    </span>
+                    <span className="h-px flex-1 bg-cream-400" />
                   </div>
-                  {message.id === lastOwnId ? (
-                    <p className="mt-1 font-mono text-[10.5px] text-sage-400">
-                      {receiptFor(message, isPending)}
+                ) : null}
+                <div className={startsGroup ? "flex gap-3" : "flex gap-3 -mt-[18px]"}>
+                  {startsGroup ? (
+                    <PersonAvatar
+                      name={message.fromMe ? selfName : counterpartName}
+                      role={message.fromMe ? "self" : counterpartRole}
+                      size="sm"
+                    />
+                  ) : (
+                    <span aria-hidden className="w-[34px] shrink-0" />
+                  )}
+                  <div className="min-w-0 flex-1">
+                    {startsGroup ? (
+                      <p className="text-ui font-semibold text-ink-900">
+                        {message.fromMe ? selfName : counterpartName}
+                      </p>
+                    ) : null}
+                    <p
+                      className="mt-0.5 text-body leading-relaxed break-words whitespace-pre-wrap text-ink-900"
+                      title={formatDivider(message.createdAt)}
+                    >
+                      {message.body}
                     </p>
-                  ) : null}
+                    {message.id === lastOwnId ? (
+                      <p className="mt-1 text-caption text-ink-600">
+                        {receiptFor(message, isPending)}
+                      </p>
+                    ) : null}
+                  </div>
                 </div>
               </div>
             );
           })
         ) : (
-          <div className="m-auto max-w-xs rounded-[10px] border border-dashed border-cream-500 bg-cream-100/60 px-5 py-8 text-center">
-            <p className="text-sm text-ink-600">No messages yet. Say hello.</p>
+          <div className="m-auto max-w-xs rounded-lg border border-dashed border-cream-500 bg-cream-100 px-5 py-6 text-center">
+            <p className="text-ui text-ink-800">No messages yet. Say hello.</p>
           </div>
         )}
         <div ref={bottomRef} />
       </div>
 
       {error ? (
-        <p className="border-t border-rust-600/30 bg-rust-600/10 px-4 py-2 text-sm text-rust-700 md:px-6">
+        <p className="border-t border-l-[3px] border-t-cream-400 border-l-rust-600 bg-rust-50 px-4 py-2.5 text-ui text-rust-800 md:px-6">
           {error}
         </p>
       ) : null}
 
       <form
         onSubmit={handleSubmit}
-        className="flex items-center gap-3 border-t border-cream-400 bg-white px-4 py-3 md:px-6 md:py-4"
+        className="flex items-center gap-3 border-t border-cream-400 bg-cream-100 px-4 py-3.5 md:px-6"
       >
         <input
           autoComplete="off"
-          className="min-w-0 flex-1 rounded-md border border-cream-500 bg-cream-50 px-3.5 py-2.5 text-base text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none md:text-sm"
+          className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3.5 py-2.5 text-base text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/30 focus:outline-none md:text-body"
           maxLength={4000}
           name="body"
           onChange={(event) => setDraft(event.target.value)}
-          placeholder="Message..."
+          placeholder={`Message ${counterpartName}`}
           required
           type="text"
           value={draft}

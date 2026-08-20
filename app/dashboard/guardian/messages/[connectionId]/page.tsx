@@ -4,13 +4,7 @@ import {
   DashboardRevealItem,
 } from "@/components/dashboard-reveal";
 import { GuardianMessageThread } from "@/components/guardian-message-thread";
-import {
-  Kicker,
-  PageShell,
-  StatusBand,
-  StatusBoard,
-  TextLink,
-} from "@/components/ui";
+import { PageShell, TextLink } from "@/components/ui";
 import { getProfile, requireUser } from "@/lib/auth";
 import { getChildThread, getGuardianChildren, selectChild } from "@/lib/guardian";
 import { firstParam } from "@/lib/search-params";
@@ -48,29 +42,28 @@ export default async function GuardianThreadPage({
     .filter(Boolean)
     .join(" · ");
 
+  const firstName = child.name.split(" ")[0] || child.name;
+
   return (
     <PageShell>
-      <DashboardReveal className="grid gap-9">
+      <DashboardReveal className="max-w-[860px]">
         <DashboardRevealItem index={0}>
-          <div className="mb-3">
-            <TextLink href={`/dashboard/guardian/messages?child=${child.id}`}>
-              ← All conversations
-            </TextLink>
-          </div>
-          <StatusBand>
-            <StatusBoard
-              kicker="GUARDIAN THREAD"
-              note={`Read-only — only ${child.name} can send messages here.`}
-              stats={subtitle ? [subtitle, "Read only"] : ["Read only"]}
-              title={`${child.name} & ${thread.counterpart.name}`}
-            />
-          </StatusBand>
+          <TextLink
+            className="text-ui"
+            href={`/dashboard/guardian/messages?child=${child.id}`}
+          >
+            ← All conversations
+          </TextLink>
+          <h1 className="mt-3.5 text-body font-semibold text-ink-900">
+            {firstName} &amp; {thread.counterpart.name}
+          </h1>
+          <p className="mt-[3px] text-caption text-ink-600">
+            Read-only — only {firstName} can send messages here.
+            {subtitle ? ` · ${subtitle}` : ""}
+          </p>
         </DashboardRevealItem>
 
-        <DashboardRevealItem index={1}>
-          <div className="mb-3">
-            <Kicker>Conversation</Kicker>
-          </div>
+        <DashboardRevealItem className="mt-5" index={1}>
           <GuardianMessageThread childName={child.name} thread={thread} />
         </DashboardRevealItem>
       </DashboardReveal>

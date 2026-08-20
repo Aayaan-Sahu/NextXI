@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Select } from "@/components/ui";
+import { Field, Select } from "@/components/ui";
 import {
   HANDEDNESS_LABELS,
   isVideoDiscipline,
@@ -9,7 +9,7 @@ import {
 } from "@/lib/videos";
 
 /** URL-driven tag filters; the page filters server-side from searchParams. */
-export function VideoFilterBar() {
+export function VideoFilterBar({ unviewedCount }: { unviewedCount: number }) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -28,51 +28,71 @@ export function VideoFilterBar() {
     router.replace(query ? `${pathname}?${query}` : pathname);
   }
 
+  const active = Boolean(discipline || variation || handedness);
+
   return (
-    <div className="flex flex-wrap items-center gap-3">
-      <span className="font-mono text-[11px] font-semibold tracking-[.2em] text-ink-600 uppercase">
-        Filter
-      </span>
-      <Select
-        aria-label="Discipline"
-        onChange={(event) =>
-          applyFilters({ discipline: event.target.value, variation: "" })
-        }
-        value={discipline}
-      >
-        <option value="">All disciplines</option>
-        {Object.entries(VIDEO_DISCIPLINES).map(([key, { label }]) => (
-          <option key={key} value={key}>
-            {label}
-          </option>
-        ))}
-      </Select>
-      <Select
-        aria-label="Variation or shot"
-        disabled={!isVideoDiscipline(discipline)}
-        onChange={(event) => applyFilters({ variation: event.target.value })}
-        value={variation}
-      >
-        <option value="">All variations</option>
-        {isVideoDiscipline(discipline) &&
-          VIDEO_DISCIPLINES[discipline].variations.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
-      </Select>
-      <Select
-        aria-label="Handedness"
-        onChange={(event) => applyFilters({ handedness: event.target.value })}
-        value={handedness}
-      >
-        <option value="">Any hand</option>
-        {Object.entries(HANDEDNESS_LABELS).map(([key, label]) => (
-          <option key={key} value={key}>
-            {label} handed
-          </option>
-        ))}
-      </Select>
+    <div className="flex flex-wrap items-end justify-between gap-x-6 gap-y-4 border-b border-cream-400 pb-5">
+      <div className="flex flex-wrap items-end gap-3.5">
+        <Field className="text-caption">
+          Discipline
+          <Select
+            className="sm:w-[180px]"
+            onChange={(event) => applyFilters({ discipline: event.target.value, variation: "" })}
+            value={discipline}
+          >
+            <option value="">All disciplines</option>
+            {Object.entries(VIDEO_DISCIPLINES).map(([key, { label }]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+        <Field className="text-caption">
+          {discipline === "BATTING" ? "Shot" : "Variation"}
+          <Select
+            className="sm:w-[180px]"
+            disabled={!isVideoDiscipline(discipline)}
+            onChange={(event) => applyFilters({ variation: event.target.value })}
+            value={variation}
+          >
+            <option value="">All variations</option>
+            {isVideoDiscipline(discipline) &&
+              VIDEO_DISCIPLINES[discipline].variations.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+          </Select>
+        </Field>
+        <Field className="text-caption">
+          Handedness
+          <Select
+            className="sm:w-[150px]"
+            onChange={(event) => applyFilters({ handedness: event.target.value })}
+            value={handedness}
+          >
+            <option value="">Any</option>
+            {Object.entries(HANDEDNESS_LABELS).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label} handed
+              </option>
+            ))}
+          </Select>
+        </Field>
+        {active ? (
+          <button
+            className="cursor-pointer pb-2.5 text-ui font-semibold text-rust-600 hover:text-rust-700"
+            onClick={() => applyFilters({ discipline: "", variation: "", handedness: "" })}
+            type="button"
+          >
+            Clear
+          </button>
+        ) : null}
+      </div>
+      <p className="pb-2.5 text-ui text-ink-600">
+        {unviewedCount} unviewed video{unviewedCount === 1 ? "" : "s"}
+      </p>
     </div>
   );
 }

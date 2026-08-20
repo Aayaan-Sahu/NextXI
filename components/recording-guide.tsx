@@ -19,7 +19,7 @@ export function RecordingGuideButton() {
     <>
       <button
         aria-label="How to record your video"
-        className="absolute top-3 right-3 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 border-ink-600 text-sm font-semibold text-ink-600 hover:border-gold-600 hover:text-gold-600"
+        className="grid size-[18px] shrink-0 cursor-pointer place-items-center rounded-full border border-cream-500 text-micro font-semibold text-ink-600 hover:border-ink-900 hover:text-ink-900"
         onClick={() => setOpen(true)}
         title="How to record your video"
         type="button"
@@ -29,14 +29,14 @@ export function RecordingGuideButton() {
       {open ? (
         <div
           aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-950/60 p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-900/60 p-4"
           onClick={() => setOpen(false)}
           role="dialog"
         >
           {/* muted: the guide has no audio track, and browsers only autoplay muted video */}
           <video
             autoPlay
-            className="w-full max-w-[960px] rounded-[10px] border border-cream-400 bg-white shadow-2xl shadow-black/40"
+            className="w-full max-w-[960px] rounded-lg bg-olive-950 shadow-[0_24px_60px_rgba(0,0,0,.4)]"
             controls
             muted
             onClick={(event) => event.stopPropagation()}

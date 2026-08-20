@@ -30,15 +30,19 @@ function validateFile(file: File) {
  * Profile photo picker for the edit-profile form. Uploads directly to
  * Supabase storage on file selection and tracks the resulting storage path
  * in a hidden `avatarPath` field, so the new photo is only persisted to the
- * Player/Coach row when the surrounding form is submitted.
+ * Player/Coach row when the surrounding form is submitted. `form` associates
+ * that hidden field with a form it does not sit inside — the photo lives in
+ * the profile sidebar, the details form in the main column.
  */
 export function AvatarField({
   avatarPath: initialAvatarPath,
   avatarUrl,
+  form,
   initial,
 }: {
   avatarPath: string | null;
   avatarUrl: string | null;
+  form?: string;
   initial: string;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -117,37 +121,37 @@ export function AvatarField({
   const displayUrl = previewUrl ?? currentAvatarUrl;
 
   return (
-    <div className="flex items-center gap-4">
-      <input name="avatarPath" type="hidden" value={avatarPath} />
-      <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-full bg-gold-500 text-lg font-bold text-pitch-900">
-        {displayUrl ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img alt="Profile photo" className="size-full object-cover" src={displayUrl} />
-        ) : (
-          initial
-        )}
-      </div>
-      <div>
-        <input
-          accept={Object.keys(ALLOWED_AVATAR_TYPES).join(",")}
-          className="hidden"
-          disabled={uploading}
-          onChange={(event) => handleFile(event.target.files?.[0])}
-          ref={inputRef}
-          type="file"
-        />
-        <div className="flex gap-2">
+    <div>
+      <input form={form} name="avatarPath" type="hidden" value={avatarPath} />
+      <div className="flex items-center gap-4">
+        <div className="flex size-[72px] shrink-0 items-center justify-center overflow-hidden rounded-full bg-gold-500 text-figure font-bold text-ink-900">
+          {displayUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img alt="Profile photo" className="size-full object-cover" src={displayUrl} />
+          ) : (
+            initial
+          )}
+        </div>
+        <div className="flex flex-col items-start gap-2">
+          <input
+            accept={Object.keys(ALLOWED_AVATAR_TYPES).join(",")}
+            className="hidden"
+            disabled={uploading}
+            onChange={(event) => handleFile(event.target.files?.[0])}
+            ref={inputRef}
+            type="file"
+          />
           <button
-            className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2 text-sm font-semibold text-ink-900 hover:bg-cream-100 disabled:cursor-default disabled:opacity-60"
+            className="cursor-pointer rounded-md bg-cream-300 px-4 py-2 text-caption font-semibold text-ink-900 hover:bg-cream-350 disabled:cursor-default disabled:opacity-60"
             disabled={uploading}
             onClick={() => inputRef.current?.click()}
             type="button"
           >
-            {uploading ? "Uploading…" : "Change photo"}
+            {uploading ? "Uploading…" : "Upload photo"}
           </button>
           {displayUrl ? (
             <button
-              className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2 text-sm font-semibold text-rust-600 hover:bg-cream-100 disabled:cursor-default disabled:opacity-60"
+              className="cursor-pointer text-caption font-semibold text-rust-600 hover:text-rust-700 disabled:cursor-default disabled:opacity-60"
               disabled={removing}
               onClick={handleRemove}
               type="button"
@@ -156,8 +160,9 @@ export function AvatarField({
             </button>
           ) : null}
         </div>
-        {error ? <p className="mt-1.5 text-xs text-rust-700">{error}</p> : null}
       </div>
+      <p className="mt-2.5 text-caption text-ink-600">JPEG, PNG or WebP up to 5 MB.</p>
+      {error ? <p className="mt-1.5 text-caption text-rust-600">{error}</p> : null}
     </div>
   );
 }

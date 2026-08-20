@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { VideoCategory } from "@/app/generated/prisma/enums";
-import { Badge } from "@/components/ui";
+import { EmptyState } from "@/components/ui";
 import { VIDEO_DISCIPLINES } from "@/lib/videos";
 
 type SessionCard = {
@@ -16,6 +16,10 @@ function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
 }
 
+/**
+ * Sessions as list rows, not a card grid — a session is a filing decision, and
+ * a row reads its date, size and discipline in one line.
+ */
 export function SessionList({
   sessions,
   linkBase = "/dashboard/player/sessions",
@@ -25,42 +29,39 @@ export function SessionList({
 }) {
   if (!sessions.length) {
     return (
-      <p className="text-sm text-ink-600">
+      <EmptyState>
         No sessions yet. Create one to group videos and track consistency across a practice.
-      </p>
+      </EmptyState>
     );
   }
 
   return (
-    <ul className="grid grid-cols-3 gap-5 max-md:grid-cols-2 max-sm:grid-cols-1">
+    <ul className="border-b border-cream-400">
       {sessions.map((session) => (
         <li key={session.id}>
           <Link
-            className="block overflow-hidden rounded-[10px] border border-cream-400 bg-white no-underline hover:border-gold-500"
+            className="flex items-center gap-5 border-t border-cream-400 py-4 no-underline"
             href={`${linkBase}/${session.id}`}
           >
             {session.coverUrl ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img
                 alt=""
-                className="aspect-video w-full bg-pitch-800 object-cover"
+                className="h-[60px] w-[104px] shrink-0 rounded-md bg-olive-800 object-cover"
                 src={session.coverUrl}
               />
             ) : (
-              <div className="grid aspect-video place-items-center bg-thumb-scanlines text-[26px] text-gold-500">
-                ▦
-              </div>
+              <div className="h-[60px] w-[104px] shrink-0 rounded-md bg-clip-scanlines" />
             )}
-            <div className="px-4 pt-3.5 pb-3">
-              <div className="truncate text-sm font-semibold text-ink-900">{session.name}</div>
-              <div className="mt-1 font-mono text-[11.5px] text-ink-600">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-body font-semibold text-ink-900">{session.name}</div>
+              <div className="mt-[3px] text-caption text-ink-600">
                 {formatDate(session.createdAt)} · {session.videoCount}{" "}
-                {session.videoCount === 1 ? "video" : "videos"}
-              </div>
-              <div className="mt-2">
-                <Badge>{VIDEO_DISCIPLINES[session.category].label}</Badge>
+                {session.videoCount === 1 ? "clip" : "clips"} ·{" "}
+                {VIDEO_DISCIPLINES[session.category].label}
               </div>
             </div>
+            <span className="shrink-0 text-ui font-semibold text-rust-600">Open →</span>
           </Link>
         </li>
       ))}

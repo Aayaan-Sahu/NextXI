@@ -1,5 +1,12 @@
-import { ConsistencyList, type ConsistencyItem } from "@/components/consistency";
-import { Kicker } from "@/components/ui";
+import type { ConsistencyItem } from "@/components/consistency";
+import {
+  ConsistencyRow,
+  RawDetails,
+  ReportMeta,
+  ShotStat,
+  VerdictRow,
+} from "@/components/report-panel";
+import { SectionHeading } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -9,7 +16,6 @@ import type { VideoReport } from "@/lib/videos.server";
  * simply omits it. See docs/reports-contract.md (schema_version 2).
  */
 
-type Tone = "light" | "dark";
 type Label = "good" | "ok" | "needs work";
 
 // Each shot exposes these labelled judgements; we render them as rows.
@@ -154,93 +160,43 @@ function formatTimestamp(seconds: number) {
   return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
 }
 
-function labelColor(value: Label, dark: boolean) {
-  if (value === "good") return dark ? "text-gold-500" : "text-gold-600";
-  if (value === "needs work") return dark ? "text-rust-500" : "text-rust-600";
-  return dark ? "text-sage-400" : "text-ink-600";
-}
-
 /**
  * One analysed shot. The measurements lead, in the units the analyser emits,
  * because "Stride 62 cm" tells a player what to change and a score does not.
  * The qualitative judgements still render, but as words rather than converted
  * into a percentage they cannot support.
  */
-function ShotRow({ shot, index, tone }: { shot: Shot; index: number; tone: Tone }) {
-  const dark = tone === "dark";
-  const rowBorder = dark ? "border-cream-200/15" : "border-cream-400";
-
+function ShotRow({ shot, index, variation }: { shot: Shot; index: number; variation?: string }) {
   return (
-    <div className={`border-b py-3.5 ${rowBorder}`}>
+    <div className="border-t border-cream-300 py-[18px]">
       <div className="flex items-baseline justify-between gap-3">
-        <span className="font-display text-sm tracking-[.08em] uppercase">Shot {index + 1}</span>
+        <h3 className="font-display text-title font-semibold tracking-[.02em] uppercase">
+          Shot {index + 1}
+          {variation ? ` · ${variation}` : ""}
+        </h3>
         {shot.timeSec !== null && (
-          <span className={`font-mono text-[11px] ${dark ? "text-gold-500" : "text-rust-600"}`}>
+          <span className="text-caption text-ink-600 tabular-nums">
             {formatTimestamp(shot.timeSec)}
           </span>
         )}
       </div>
 
       {shot.stats.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-x-6 gap-y-2">
+        <div className="mt-3.5 grid grid-cols-4 gap-3 max-sm:grid-cols-2">
           {shot.stats.map((stat) => (
-            <div key={stat.label}>
-              <div
-                className={`font-mono text-[15px] font-semibold tabular-nums ${
-                  dark ? "text-cream-100" : "text-ink-900"
-                }`}
-              >
-                {stat.value}
-              </div>
-              <div
-                className={`mt-0.5 font-mono text-[10px] tracking-[.14em] uppercase ${
-                  dark ? "text-sage-400" : "text-ink-600"
-                }`}
-              >
-                {stat.label}
-              </div>
-            </div>
+            <ShotStat key={stat.label} label={stat.label} value={stat.value} />
           ))}
         </div>
       )}
 
       {shot.metrics.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-x-3 gap-y-1">
+        <div className="mt-4">
           {shot.metrics.map((metric) => (
-            <span className="font-mono text-[11px]" key={metric.label}>
-              <span className={dark ? "text-sage-400" : "text-ink-600"}>{metric.label} </span>
-              <span className={`font-semibold ${labelColor(metric.value, dark)}`}>{metric.value}</span>
-            </span>
+            <VerdictRow key={metric.label} label={metric.label} value={metric.value} />
           ))}
         </div>
       )}
     </div>
-  );
-}
-
-function RawDetails({ payload, tone }: { payload: unknown; tone: Tone }) {
-  const dark = tone === "dark";
-  return (
-    <details
-      className={`rounded-md border ${
-        dark ? "border-cream-200/15 bg-black/20" : "border-cream-400 bg-cream-50"
-      }`}
-    >
-      <summary
-        className={`cursor-pointer px-3 py-2 text-sm font-medium ${
-          dark ? "text-sage-400" : "text-ink-600"
-        }`}
-      >
-        Raw report data
-      </summary>
-      <pre
-        className={`overflow-x-auto border-t px-3 py-2 text-xs leading-relaxed ${
-          dark ? "border-cream-200/15 text-cream-200" : "border-cream-400 text-ink-600"
-        }`}
-      >
-        {JSON.stringify(payload, null, 2)}
-      </pre>
-    </details>
   );
 }
 
@@ -248,57 +204,51 @@ function RawDetails({ payload, tone }: { payload: unknown; tone: Tone }) {
 export function BattingReport({
   parsed,
   report,
-  tone,
 }: {
   parsed: ParsedBattingReport;
   report: VideoReport;
-  tone: Tone;
 }) {
-  const dark = tone === "dark";
   const shotCount = parsed.shots.length;
   const metaParts = [
     parsed.heightCm !== null ? `Calibrated to ${Math.round(parsed.heightCm)} cm` : null,
     parsed.fps !== null ? `${Math.round(parsed.fps)} fps` : null,
     report.modelVersion,
-  ].filter(Boolean);
+  ];
 
-  return (
-    <div className={dark ? "" : "pt-4"}>
-      {shotCount === 0 ? (
-        <p className={`pt-4 text-sm ${dark ? "text-sage-400" : "text-ink-600"}`}>
+  if (shotCount === 0) {
+    return (
+      <>
+        <p className="text-body leading-relaxed text-ink-800">
           The analysis ran but didn&apos;t detect a clear batting shot in this video.
         </p>
-      ) : (
-        <>
-          <div className={dark ? "" : "pb-1"}>
-            <Kicker tone={tone}>
-              {shotCount === 1 ? "Shot analysis" : `${shotCount} shots analysed`}
-            </Kicker>
-          </div>
+        <RawDetails payload={report.payload} />
+        <ReportMeta parts={metaParts} />
+      </>
+    );
+  }
 
-          <div className="mt-1">
-            {parsed.shots.map((shot, index) => (
-              <ShotRow key={index} shot={shot} index={index} tone={tone} />
+  return (
+    <>
+      {parsed.shots.map((shot, index) => (
+        <ShotRow index={index} key={index} shot={shot} />
+      ))}
+
+      {parsed.consistency.length > 0 && (
+        <div className="border-t border-cream-300 pt-[18px]">
+          <SectionHeading as="h3">Consistency across shots</SectionHeading>
+          <div className="mt-3.5 grid gap-3">
+            {parsed.consistency.map((item) => (
+              <ConsistencyRow key={item.label} label={item.label} value={item.consistency} />
             ))}
           </div>
-
-          {parsed.consistency.length > 0 && (
-            <div className={`border-b py-4 ${dark ? "border-cream-200/15" : "border-cream-400"}`}>
-              <Kicker tone={tone}>Consistency across shots</Kicker>
-              <ConsistencyList items={parsed.consistency} tone={tone} />
-            </div>
-          )}
-        </>
+          <p className="mt-3 text-caption leading-relaxed text-ink-600">
+            — not enough comparable data across these shots to score reliably.
+          </p>
+        </div>
       )}
 
-      <div className="flex flex-col gap-2 py-4">
-        <RawDetails payload={report.payload} tone={tone} />
-        {metaParts.length > 0 && (
-          <p className={`font-mono text-[10.5px] ${dark ? "text-sage-400" : "text-ink-600"}`}>
-            {metaParts.join(" · ")}
-          </p>
-        )}
-      </div>
-    </div>
+      <RawDetails payload={report.payload} />
+      <ReportMeta parts={metaParts} />
+    </>
   );
 }

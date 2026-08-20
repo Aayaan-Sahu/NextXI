@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { ReportPanel } from "@/components/report-panel";
-import { Badge, PageShell } from "@/components/ui";
+import { Chip, PageShell, PageTitle } from "@/components/ui";
 import { VideoComments } from "@/components/video-comments";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -13,13 +14,13 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
 export async function VideoDetail({
   backHref,
-  reportTone = "light",
+  deleteAction,
   sessionLinkBase,
   where,
 }: {
   backHref: string;
-  /** Report card style; the player detail uses the dark scoreboard. */
-  reportTone?: "light" | "dark";
+  /** When set, the header carries a confirmed delete for this clip. */
+  deleteAction?: (formData: FormData) => Promise<void>;
   /** When set and the video belongs to a session, "back" returns there instead. */
   sessionLinkBase?: string;
   where: Prisma.PlayerVideoWhereInput;
@@ -82,33 +83,48 @@ export async function VideoDetail({
   return (
     <PageShell>
       <Link
-        className="inline-block text-[13px] font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
+        className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
         href={resolvedBackHref}
       >
         ← {backLabel}
       </Link>
-      <header className="mt-[18px] mb-[22px] flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
-        <div>
-          <h1 className="font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase">
-            {video.originalFilename}
-          </h1>
-          <p className="mt-1.5 font-mono text-xs text-ink-600">
+      <header className="mt-3.5 mb-6 flex items-start justify-between gap-6 max-md:flex-col">
+        <div className="min-w-0">
+          <PageTitle>{video.originalFilename}</PageTitle>
+          <p className="mt-1.5 text-ui text-ink-600">
             Uploaded {uploadedAt} · {formatVideoSize(video.sizeBytes)}
           </p>
         </div>
-        <Badge>{formatVideoTags(video.category, video.variation, video.handedness)}</Badge>
+        <div className="flex shrink-0 items-center gap-3">
+          <Chip>{formatVideoTags(video.category, video.variation, video.handedness)}</Chip>
+          {deleteAction ? (
+            <ConfirmDeleteButton
+              action={deleteAction}
+              description="This clip and its coaching report are removed for good."
+              id={video.id}
+              label="Delete"
+              name={video.originalFilename}
+              redirectTo={resolvedBackHref}
+              variant="text"
+              title="Delete this video?"
+            />
+          ) : null}
+        </div>
       </header>
-      <div className="grid grid-cols-[1.55fr_1fr] items-start gap-7 max-lg:grid-cols-1">
-        <div className="grid gap-6">
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+        <div className="grid gap-8">
           <video
-            className="aspect-video w-full rounded-[10px] bg-pitch-950"
+            className="aspect-video w-full rounded-lg bg-olive-950"
             controls
             preload="metadata"
             src={data.signedUrl}
           />
-          <VideoComments comments={comments} />
+          <VideoComments
+            comments={comments}
+            footnote="Only connected coaches can leave feedback here."
+          />
         </div>
-        <ReportPanel report={report} subtitle={video.originalFilename} tone={reportTone} />
+        <ReportPanel report={report} />
       </div>
     </PageShell>
   );

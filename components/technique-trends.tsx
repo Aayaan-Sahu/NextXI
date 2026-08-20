@@ -1,5 +1,5 @@
 import { LineChart } from "@/components/progress-charts";
-import { Kicker, Panel } from "@/components/ui";
+import { SectionHeading } from "@/components/ui";
 import {
   MIN_SESSIONS_FOR_TRENDS,
   type MetricTrend,
@@ -27,20 +27,21 @@ export function TechniqueTrends({ trends }: { trends: TechniqueTrendData }) {
 
   if (groups.length === 0) {
     return (
-      <Panel>
-        <Kicker>Technique trends</Kicker>
-        <p className="mt-4 text-sm text-ink-600">
+      <section>
+        <SectionHeading>Technique trend</SectionHeading>
+        <p className="mt-3.5 text-ui leading-relaxed text-ink-800">
           {trends.analysedSessionCount < MIN_SESSIONS_FOR_TRENDS
             ? `Analyse videos in at least ${MIN_SESSIONS_FOR_TRENDS} practice sessions and your technique trends will appear here.`
             : "Your analysed sessions don’t share a comparable measurement yet — trends appear once the same metric is measured in two sessions."}
         </p>
-      </Panel>
+      </section>
     );
   }
 
   return (
-    <div className="grid gap-3">
-      <div className="grid gap-5 md:grid-cols-2">
+    <section>
+      <SectionHeading>Technique trend</SectionHeading>
+      <div className="mt-3.5 grid gap-5">
         {groups.flatMap((group) =>
           group.series.map((metric) => (
             <LineChart
@@ -53,9 +54,9 @@ export function TechniqueTrends({ trends }: { trends: TechniqueTrendData }) {
           )),
         )}
       </div>
-      <p className="text-[11px] text-ink-600">
+      <p className="mt-3.5 text-caption leading-relaxed text-ink-600">
         Each point is one practice session’s median across its analysed videos.
       </p>
-    </div>
+    </section>
   );
 }

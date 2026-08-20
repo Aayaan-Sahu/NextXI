@@ -1,4 +1,6 @@
 import { assignVideoToSession } from "@/app/dashboard/player/sessions/actions";
+import { VIDEO_DISCIPLINES } from "@/lib/videos";
+import type { VideoDiscipline } from "@/lib/videos";
 
 type AssignableVideo = { id: string; originalFilename: string; tagLabel: string };
 
@@ -7,36 +9,48 @@ type AssignableVideo = { id: string; originalFilename: string; tagLabel: string 
  * discipline, each with an "Add" button. Native <details> — no client JS.
  */
 export function SessionVideoPicker({
+  category,
   sessionId,
   videos,
 }: {
+  category: VideoDiscipline;
   sessionId: string;
   videos: AssignableVideo[];
 }) {
   if (!videos.length) return null;
 
+  const discipline = VIDEO_DISCIPLINES[category].label.toLowerCase();
+
   return (
-    <details className="rounded-[10px] border border-cream-400 bg-white">
-      <summary className="cursor-pointer px-5 py-3.5 text-sm font-semibold text-ink-900">
-        Add an existing video ({videos.length})
+    <details className="group rounded-lg border border-cream-400 bg-cream-50">
+      <summary className="flex cursor-pointer items-center justify-between gap-5 px-[18px] py-3.5">
+        <span>
+          <span className="block text-ui font-semibold text-ink-900">Add an existing video</span>
+          <span className="mt-[3px] block text-caption text-ink-600">
+            Only your standalone {discipline} clips can join this session.
+          </span>
+        </span>
+        <span className="shrink-0 text-ui font-semibold text-rust-600">
+          Pick from library ▾
+        </span>
       </summary>
-      <ul className="border-t border-cream-400">
+      <ul>
         {videos.map((video) => (
           <li
-            className="flex items-center justify-between gap-3 border-b border-cream-400 px-5 py-3 last:border-b-0"
+            className="flex items-center gap-3.5 border-t border-cream-300 px-[18px] py-3"
             key={video.id}
           >
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-ink-900">
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-ui font-semibold text-ink-900">
                 {video.originalFilename}
               </div>
-              <div className="truncate font-mono text-[11.5px] text-ink-600">{video.tagLabel}</div>
+              <div className="truncate text-caption text-ink-600">{video.tagLabel}</div>
             </div>
             <form action={assignVideoToSession}>
               <input name="videoId" type="hidden" value={video.id} />
               <input name="sessionId" type="hidden" value={sessionId} />
               <button
-                className="cursor-pointer rounded-md border border-cream-500 px-3 py-1.5 text-[13px] font-semibold text-ink-900 hover:bg-cream-200"
+                className="cursor-pointer rounded-md bg-cream-300 px-3.5 py-[7px] text-caption font-semibold text-ink-900 hover:bg-cream-350"
                 type="submit"
               >
                 Add

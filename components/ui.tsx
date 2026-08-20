@@ -9,42 +9,50 @@ type Children = {
 };
 
 const WORDMARK_SIZES = {
-  md: "text-xl",
+  sm: "text-base",
+  md: "text-title",
   lg: "text-4xl",
   xl: "text-7xl sm:text-8xl lg:text-9xl",
   "2xl": "text-8xl sm:text-9xl lg:text-[10.5rem]",
 };
 
-/** The NextXI wordmark. `tone` picks the "Next" color for dark or light surfaces. */
+/**
+ * The NextXI wordmark. `tone` picks the "Next" color for dark or light
+ * surfaces; `accent` colors the XI. Amber is the product default — the
+ * landing pins itself to peach so its hero and nav stay untouched.
+ */
 export function Wordmark({
+  accent = "amber",
   size = "md",
   tone = "dark",
 }: {
+  accent?: "amber" | "peach";
   size?: keyof typeof WORDMARK_SIZES;
   tone?: "dark" | "light";
 }) {
   return (
     <span
-      className={`font-display font-bold tracking-[.06em] uppercase ${WORDMARK_SIZES[size]} ${
-        tone === "dark" ? "text-cream-200" : "text-pitch-900"
+      className={`font-display font-bold tracking-[.08em] uppercase ${WORDMARK_SIZES[size]} ${
+        tone === "dark" ? "text-cream-200" : "text-ink-900"
       }`}
     >
-      Next<span className="text-gold-500">XI</span>
+      Next
+      <span className={accent === "amber" ? "text-amber-500" : "text-gold-500"}>XI</span>
     </span>
   );
 }
 
 /**
- * Small monospace section label, e.g. "Coaching report".
+ * The tracked-uppercase eyebrow, and the only one in the product.
  *
- * Pass `as="h2"` (or "h3") whenever the eyebrow is the heading for a content
- * group — panels, list sections, page groups. Kicker replaced `Panel title`
- * on several surfaces, and a bare <div> there leaves screen-reader heading
- * navigation with nothing to land on. Tailwind preflight resets heading
- * margins and size, so the tag swap is a zero-pixel change.
+ * Use it where a panel has no other heading — the report header, the
+ * latest-report band, a gate that must name the state its title doesn't. Never
+ * above an h1 that already says the same words: "GUARDIAN HOME / Aayaan Verma"
+ * spends the rarest treatment in the system on a repeat. When everything is
+ * tracked uppercase, nothing is.
  *
- * Leave it a <div> only for eyebrows that decorate a nearby heading rather
- * than acting as one (the StatusBoard/GatePanel kicker above their h1).
+ * Pass `as="h2"` when the eyebrow really is the group's heading, so screen
+ * reader navigation has something to land on.
  */
 export function Kicker({
   as: Tag = "div",
@@ -53,8 +61,8 @@ export function Kicker({
 }: Children & { as?: "div" | "h2" | "h3"; tone?: "light" | "dark" }) {
   return (
     <Tag
-      className={`font-mono text-[11px] font-semibold tracking-[.2em] uppercase ${
-        tone === "dark" ? "text-gold-500" : "text-rust-600"
+      className={`text-caption font-semibold tracking-[.16em] uppercase ${
+        tone === "dark" ? "text-amber-500" : "text-rust-600"
       }`}
     >
       {children}
@@ -63,40 +71,79 @@ export function Kicker({
 }
 
 /**
+ * The 15px uppercase section head — the second and last display size in the
+ * system. Every content group on a product page opens with one.
+ */
+export function SectionHeading({
+  as: Tag = "h2",
+  children,
+  className = "",
+}: Children & { as?: "h2" | "h3"; className?: string }) {
+  return (
+    <Tag
+      className={`font-display font-semibold tracking-[.08em] uppercase ${
+        Tag === "h2" ? "text-body" : "text-ui"
+      } ${className}`}
+    >
+      {children}
+    </Tag>
+  );
+}
+
+/**
+ * The page title. One per page, and the only place the display face appears at
+ * this size — ten pages were spelling the same six classes out by hand.
+ */
+export function PageTitle({ children, className = "" }: Children & { className?: string }) {
+  return (
+    <h1
+      className={`font-display text-display font-bold tracking-[.02em] uppercase ${className}`}
+    >
+      {children}
+    </h1>
+  );
+}
+
+/** Section head with a trailing link or count on the same baseline. */
+export function SectionHead({
+  aside,
+  children,
+  className = "",
+}: Children & { aside?: ReactNode; className?: string }) {
+  return (
+    <div className={`flex items-baseline justify-between gap-4 ${className}`}>
+      <SectionHeading>{children}</SectionHeading>
+      {aside}
+    </div>
+  );
+}
+
+/**
  * Split auth layout: seam-stitch brand pane + cream form pane on md+.
- * Mobile keeps full-bleed seam so the true-float card sits on the brand band
- * (not a cream sheet), matching DESIGN.md shadow vocabulary.
+ * Mobile keeps full-bleed seam so the card sits on the brand band.
  */
 export function AuthShell({
-  brandKicker = "MATCH DAY",
-  brandLine = "Upload technique. Earn the scoreboard.",
+  brandLine = "Film it. Understand it.",
   children,
 }: Children & {
-  brandKicker?: string;
   brandLine?: string;
 }) {
   return (
     <main
-      className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-2 md:bg-transparent"
+      className="flex min-h-dvh flex-col bg-seam-stitch md:grid md:grid-cols-[minmax(300px,37%)_1fr] md:bg-transparent"
       id="main-content"
     >
-      <aside className="relative flex shrink-0 flex-col overflow-hidden bg-seam-stitch px-6 py-8 sm:px-10 md:min-h-dvh md:px-12 md:py-14">
-        <div className="md:hidden">
-          <Wordmark size="lg" tone="dark" />
-        </div>
-        <div className="hidden md:block">
-          <Wordmark size="xl" tone="dark" />
-        </div>
-        <AuthMount className="relative z-10 mt-6 max-w-sm md:mt-10" variant="fade">
-          <Kicker tone="dark">{brandKicker}</Kicker>
-          <p className="mt-3 text-[15px] leading-relaxed text-cream-200">{brandLine}</p>
+      <aside className="flex shrink-0 flex-col justify-between gap-10 bg-rust-600 px-6 py-8 sm:px-10 md:min-h-dvh md:px-9 md:py-9">
+        <Wordmark size="lg" tone="dark" />
+        {/* Balanced, so the line breaks between its sentences rather than
+            stranding a word — no hard <br> in the copy. */}
+        <AuthMount className="max-w-[290px]" variant="fade">
+          <p className="font-display text-display leading-[1.1] font-semibold text-balance text-cream-50 uppercase">
+            {brandLine}
+          </p>
         </AuthMount>
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-x-0 bottom-0 hidden h-24 bg-thumb-scanlines opacity-30 md:block"
-        />
       </aside>
-      <div className="relative flex flex-1 items-center justify-center px-6 py-10 sm:px-12 md:bg-cream-200 md:py-14">
+      <div className="relative flex flex-1 items-center justify-center bg-cream-200 px-6 py-10 sm:px-12 md:py-14">
         <AuthMount className="relative z-10 w-full max-w-[560px]" variant="form">
           {children}
         </AuthMount>
@@ -109,29 +156,26 @@ export function AuthCard({
   children,
   description,
   footer,
-  kicker = "ACCOUNT",
   step,
   title,
 }: Children & {
-  description?: string;
+  description?: ReactNode;
   footer?: ReactNode;
-  kicker?: string;
   step?: AuthStep;
   title: string;
 }) {
   return (
-    <section className="relative w-full overflow-hidden rounded-xl bg-white text-ink-900 shadow-2xl shadow-black/45 md:rounded-[10px] md:border md:border-cream-400 md:shadow-none">
-      <div className="p-9">
+    <section className="relative w-full overflow-hidden rounded-[10px] bg-cream-200 text-ink-900 shadow-2xl shadow-black/25 md:bg-transparent md:shadow-none">
+      <div className="p-8 sm:p-9">
         {step && <AuthStepper current={step} />}
-        <Kicker>{kicker}</Kicker>
-        <h1 className="mt-2.5 font-display text-[26px] leading-tight font-bold uppercase">
-          {title}
-        </h1>
-        {description && <p className="mt-2 text-sm text-ink-600">{description}</p>}
+        <PageTitle>{title}</PageTitle>
+        {description && (
+          <p className="mt-1.5 text-ui leading-relaxed text-ink-600">{description}</p>
+        )}
         {children}
       </div>
       {footer && (
-        <footer className="border-t border-cream-400 px-9 py-4 text-center text-[13.5px] text-ink-600">
+        <footer className="border-t border-cream-400 px-8 py-4 text-ui text-ink-600 sm:px-9">
           {footer}
         </footer>
       )}
@@ -139,31 +183,95 @@ export function AuthCard({
   );
 }
 
-export function TextLink(props: ComponentProps<typeof Link>) {
+/**
+ * The compact auth card: a maroon header strip carrying the wordmark and one
+ * piece of context (a step label, or the signup stepper), then the form.
+ * Sign-in, code entry and password reset all use this; only sign-up earns the
+ * full split shell.
+ */
+export function AuthSheet({
+  children,
+  context,
+  description,
+  footer,
+  title,
+  width = "sm",
+}: Children & {
+  context?: ReactNode;
+  description?: ReactNode;
+  footer?: ReactNode;
+  title: string;
+  width?: "sm" | "lg";
+}) {
+  const wide = width === "lg";
+
+  return (
+    <main
+      className="flex min-h-dvh items-center justify-center bg-cream-200 px-5 py-10"
+      id="main-content"
+    >
+      <AuthMount
+        className={`w-full ${wide ? "max-w-[700px]" : "max-w-[460px]"}`}
+        variant="form"
+      >
+        <section className="overflow-hidden rounded-[10px] bg-cream-200 text-ink-900 shadow-[0_24px_60px_rgba(0,0,0,.12)]">
+          <div
+            className={`flex items-center justify-between gap-4 bg-rust-600 py-4 ${wide ? "px-8" : "px-7"}`}
+          >
+            <Wordmark size="sm" tone="dark" />
+            {context}
+          </div>
+          <div className={`pt-7 pb-8 ${wide ? "px-7 sm:px-10" : "px-7 sm:px-8"}`}>
+            <h1 className="font-display text-display font-bold tracking-[.02em] uppercase">
+              {title}
+            </h1>
+            {description ? (
+              <p className="mt-1.5 text-ui leading-relaxed text-ink-600">{description}</p>
+            ) : null}
+            {children}
+            {footer ? (
+              <div className="mt-6 border-t border-cream-400 pt-4 text-ui text-ink-600">
+                {footer}
+              </div>
+            ) : null}
+          </div>
+        </section>
+      </AuthMount>
+    </main>
+  );
+}
+
+export function TextLink({ className = "", ...props }: ComponentProps<typeof Link>) {
   return (
     <Link
       {...props}
-      className="font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline"
+      className={`font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline ${className}`}
     />
   );
 }
 
+/**
+ * Flash notice. A left rule and a tinted ground — never a full border, never
+ * a toast. Server strings render verbatim.
+ */
 export function Notice({
   children,
+  className = "",
   tone = "info",
 }: {
   children?: ReactNode;
+  className?: string;
   tone?: "info" | "error";
 }) {
   if (!children) return null;
 
   return (
     <p
-      className={
+      className={`animate-crease-rise rounded-r-md border-l-[3px] px-4 py-2.5 text-ui leading-relaxed ${
         tone === "error"
-          ? "mt-4 animate-crease-rise rounded-md border border-rust-600/30 bg-rust-600/10 px-3 py-2.5 text-sm text-rust-700"
-          : "mt-4 animate-crease-rise rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-sm text-ink-600"
-      }
+          ? "border-rust-600 bg-rust-50 text-rust-800"
+          : "border-amber-500 bg-cream-250 text-ink-800"
+      } ${className}`}
     >
       {children}
     </p>
@@ -172,23 +280,70 @@ export function Notice({
 
 export function PageShell({ children }: Children) {
   return (
-    <main className="mx-auto w-full max-w-[1280px] px-6 py-11 sm:px-12" id="main-content">
+    <main className="mx-auto w-full max-w-[1360px] px-6 pt-7 pb-14 sm:px-10" id="main-content">
       {children}
     </main>
   );
 }
 
-/** Soft cream tonal band behind StatusBoard / GatePanel on role homes. */
-export function StatusBand({
-  children,
-  className = "",
-}: Children & { className?: string }) {
+/**
+ * Shell for a surface that carries a sub-bar under the nav — a roster or an
+ * inbox, where the filter and the way in belong to the whole page rather than
+ * to one section of it.
+ */
+export function BarShell({ bar, children }: Children & { bar: ReactNode }) {
   return (
-    <div
-      className={`-mx-6 bg-cream-100/80 px-6 py-6 sm:-mx-12 sm:rounded-[12px] sm:px-12 ${className}`}
-    >
-      {children}
+    <main id="main-content">
+      {bar}
+      <div className="mx-auto w-full max-w-[1360px] px-6 pt-6 pb-14 sm:px-10">{children}</div>
+    </main>
+  );
+}
+
+/** The full-bleed band under the nav: what this page is, then how to work it. */
+export function SubBar({ children, title }: Children & { title: string }) {
+  return (
+    <div className="border-b border-cream-400 bg-cream-100">
+      <div className="mx-auto flex w-full max-w-[1360px] flex-wrap items-center gap-x-6 gap-y-3 px-6 py-2.5 sm:min-h-[52px] sm:px-10">
+        <SectionHeading>{title}</SectionHeading>
+        <span aria-hidden className="h-5 w-px bg-cream-400 max-sm:hidden" />
+        {children}
+      </div>
     </div>
+  );
+}
+
+export type TabItem = {
+  active: boolean;
+  /** A count that needs answering — drawn as a maroon pill, not a suffix. */
+  badge?: number;
+  href: string;
+  label: string;
+};
+
+/** Roster/inbox tabs. The active tab is underlined in maroon, not boxed. */
+export function Tabs({ items }: { items: TabItem[] }) {
+  return (
+    <nav className="flex flex-wrap items-center gap-x-[22px] gap-y-1.5 text-ui">
+      {items.map((item) => (
+        <Link
+          className={
+            item.active
+              ? "flex items-center gap-1.5 pb-[3px] font-semibold text-rust-600 no-underline shadow-[inset_0_-2px_0_var(--color-rust-600)]"
+              : "flex items-center gap-1.5 pb-[3px] text-ink-600 no-underline hover:text-ink-900"
+          }
+          href={item.href}
+          key={item.href}
+        >
+          {item.label}
+          {item.badge ? (
+            <span className="rounded-[9px] bg-rust-600 px-1.5 py-px text-micro font-semibold text-cream-50">
+              {item.badge}
+            </span>
+          ) : null}
+        </Link>
+      ))}
+    </nav>
   );
 }
 
@@ -202,26 +357,31 @@ export function PageHeader({
   title: string;
 }) {
   return (
-    <header className="mb-8 flex items-end justify-between gap-4 max-md:flex-col max-md:items-start">
-      <div>
-        <h1 className="font-display text-[32px] leading-[1.05] font-bold tracking-[.02em] uppercase">
-          {title}
-        </h1>
-        {subtitle && <p className="mt-2 text-[14.5px] text-ink-600">{subtitle}</p>}
+    <header className="mb-7 flex items-end justify-between gap-6 max-md:flex-col max-md:items-start">
+      <div className="min-w-0">
+        <PageTitle>{title}</PageTitle>
+        {subtitle && <p className="mt-1.5 text-ui text-ink-600">{subtitle}</p>}
       </div>
       {action}
     </header>
   );
 }
 
-export function Panel({ children, title }: Children & { title?: string }) {
+/**
+ * A white card with a hairline. Reach for spacing first — a Panel is for a
+ * genuinely raised surface (the report, a consistency readout), never for
+ * wrapping a list that a hairline could separate.
+ */
+export function Panel({
+  children,
+  className = "",
+  title,
+}: Children & { className?: string; title?: string }) {
   return (
-    <section className="rounded-[10px] border border-cream-400 bg-white p-6">
-      {title && (
-        <h2 className="mb-4 font-display text-xl leading-tight font-semibold uppercase">
-          {title}
-        </h2>
-      )}
+    <section
+      className={`rounded-[10px] border border-cream-400 bg-cream-50 p-5 sm:p-[22px] ${className}`}
+    >
+      {title && <SectionHeading className="mb-3.5">{title}</SectionHeading>}
       {children}
     </section>
   );
@@ -232,7 +392,9 @@ export function Form({ className = "", ...props }: ComponentProps<"form">) {
 }
 
 export function Field({ className = "", ...props }: ComponentProps<"label">) {
-  return <label {...props} className={`grid gap-1.5 text-xs font-bold ${className}`} />;
+  return (
+    <label {...props} className={`grid min-w-0 gap-1.5 text-caption font-semibold ${className}`} />
+  );
 }
 
 /**
@@ -242,29 +404,52 @@ export function Field({ className = "", ...props }: ComponentProps<"label">) {
  * just toggled.
  */
 export function FieldGroup({ className = "", ...props }: ComponentProps<"div">) {
-  return <div {...props} className={`grid gap-1.5 text-xs font-bold ${className}`} />;
+  return (
+    <div {...props} className={`grid min-w-0 gap-1.5 text-caption font-semibold ${className}`} />
+  );
+}
+
+/** The caption under a field — what the value means, or why it is required. */
+export function FieldHint({
+  children,
+  tone = "muted",
+}: Children & { tone?: "muted" | "error" | "ok" }) {
+  return (
+    <span
+      className={`text-caption font-normal ${
+        tone === "error"
+          ? "font-semibold text-rust-600"
+          : tone === "ok"
+            ? "font-semibold text-moss-600"
+            : "text-ink-600"
+      }`}
+    >
+      {children}
+    </span>
+  );
 }
 
 /* 16px on touch devices: smaller inputs trigger iOS Safari's focus auto-zoom,
-   in portrait or landscape — so the 14px size is gated on a fine pointer, not
-   viewport width. */
+   in portrait or landscape — so the 14.5px size is gated on a fine pointer,
+   not viewport width. Focus darkens the border to ink, the way the boards
+   draw an active control. */
 export const inputStyles =
-  "rounded-md border border-cream-500 bg-cream-50 px-3 py-2.5 text-base font-normal text-ink-900 placeholder:text-ink-600 focus:border-gold-500 focus:outline-none focus:ring-2 focus:ring-gold-500/25 sm:pointer-fine:text-sm";
+  "min-w-0 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-base font-normal text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/30 focus:outline-none sm:pointer-fine:text-body";
 
-export function TextInput(props: ComponentProps<"input">) {
-  return <input {...props} className={inputStyles} />;
+export function TextInput({ className = "", ...props }: ComponentProps<"input">) {
+  return <input {...props} className={`${inputStyles} ${className}`} />;
 }
 
-export function TextArea(props: ComponentProps<"textarea">) {
-  return <textarea {...props} className={`resize-y ${inputStyles}`} />;
+export function TextArea({ className = "", ...props }: ComponentProps<"textarea">) {
+  return <textarea {...props} className={`resize-y leading-relaxed ${inputStyles} ${className}`} />;
 }
 
 /** The shared select — one style for every dropdown, no local selectStyles. */
-export function Select(props: ComponentProps<"select">) {
+export function Select({ className = "", ...props }: ComponentProps<"select">) {
   return (
     <select
       {...props}
-      className={`${inputStyles} disabled:bg-cream-100 disabled:text-sage-400`}
+      className={`${inputStyles} disabled:bg-cream-250 disabled:text-ink-400 ${className}`}
     />
   );
 }
@@ -286,16 +471,14 @@ export function Switch({
     >
       <input {...props} className="peer sr-only" type="checkbox" />
       {offLabel ? (
-        <span className="text-[12.5px] font-semibold text-ink-600 peer-checked:hidden">
-          {offLabel}
-        </span>
+        <span className="text-caption text-ink-600 peer-checked:hidden">{offLabel}</span>
       ) : null}
       {onLabel ? (
-        <span className="hidden text-[12.5px] font-semibold text-pitch-900 peer-checked:inline">
+        <span className="hidden text-caption font-semibold text-ink-900 peer-checked:inline">
           {onLabel}
         </span>
       ) : null}
-      <span className="relative h-6 w-11 shrink-0 rounded-full border border-cream-500 bg-cream-200 transition-colors after:absolute after:top-[3px] after:left-[3px] after:h-4 after:w-4 after:rounded-full after:bg-cream-50 after:shadow-sm after:transition-transform peer-checked:border-pitch-900 peer-checked:bg-pitch-900 peer-checked:after:translate-x-5 peer-focus-visible:ring-2 peer-focus-visible:ring-gold-500/40" />
+      <span className="relative h-6 w-11 shrink-0 rounded-full border border-cream-400 bg-cream-250 transition-colors after:absolute after:top-[3px] after:left-[3px] after:h-[18px] after:w-[18px] after:rounded-full after:bg-cream-50 after:transition-transform peer-checked:border-pitch-900 peer-checked:bg-pitch-900 peer-checked:after:translate-x-5 peer-checked:after:bg-amber-500 peer-focus-visible:ring-2 peer-focus-visible:ring-amber-500/40" />
     </label>
   );
 }
@@ -303,143 +486,166 @@ export function Switch({
 /** A checkbox rendered as a toggleable pill, for multi-select chip groups. */
 export function CheckboxChip({ children, ...props }: ComponentProps<"input">) {
   return (
-    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-cream-500 px-4 py-[7px] text-[13px] font-semibold text-ink-900 select-none has-[:checked]:border-pitch-900 has-[:checked]:bg-pitch-900 has-[:checked]:text-cream-200">
+    <label className="inline-flex cursor-pointer items-center gap-1.5 rounded-full border border-cream-400 px-3.5 py-[7px] text-ui text-ink-800 select-none has-[:checked]:border-pitch-900 has-[:checked]:bg-pitch-900 has-[:checked]:font-semibold has-[:checked]:text-cream-200">
       <input {...props} className="sr-only" type="checkbox" />
       {children}
     </label>
   );
 }
 
-/** A small rounded label for tags like player roles. */
-export function Badge({ children }: Children) {
+/**
+ * A pill. `solid` is a fact the system asserts (a role, a discipline tag);
+ * `outline` is a quieter label; `quiet` sits on cream for status text.
+ */
+export function Chip({
+  children,
+  tone = "solid",
+}: Children & { tone?: "solid" | "outline" | "quiet" }) {
+  const styles = {
+    solid: "bg-pitch-900 font-semibold text-cream-200",
+    outline: "border border-cream-400 bg-cream-50 text-ink-800",
+    quiet: "bg-cream-250 font-semibold text-ink-600",
+  };
+
   return (
-    <span className="inline-flex items-center rounded-full border border-cream-400 bg-cream-100 px-3 py-1 text-xs font-semibold text-ink-900">
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-[5px] text-caption ${styles[tone]}`}
+    >
       {children}
     </span>
   );
 }
 
-export function PrimaryButton({
-  variant = "gold",
-  ...props
-}: ComponentProps<"button"> & { variant?: "gold" | "rust" }) {
-  return (
-    <button
-      {...props}
-      className={
-        variant === "rust"
-          ? "cursor-pointer rounded-md bg-rust-600 px-4 py-2.5 text-sm font-bold text-cream-50 hover:bg-rust-700 disabled:cursor-default disabled:opacity-55 disabled:hover:bg-rust-600"
-          : "cursor-pointer rounded-md bg-gold-500 px-4 py-2.5 text-sm font-bold text-pitch-900 hover:bg-gold-600 disabled:cursor-default disabled:opacity-55 disabled:hover:bg-gold-500"
-      }
-    />
-  );
-}
-
-export function SecondaryButton(props: ComponentProps<"button">) {
-  return (
-    <button
-      {...props}
-      className="cursor-pointer rounded-md border border-cream-500 bg-transparent px-4 py-2.5 text-sm font-semibold text-ink-900 hover:bg-cream-100"
-    />
-  );
-}
-
-/**
- * Compact home status strip — who you are and what's live.
- * Light tone is the product default; dark is a thin match-day strip.
- */
-export function StatusBoard({
-  actions,
-  kicker,
-  note,
-  stats,
-  title,
+/** A number and what it measures. The system's only way to show a figure. */
+export function Stat({
+  caption,
+  size = "md",
   tone = "light",
+  value,
 }: {
-  actions?: ReactNode;
-  kicker: string;
-  /** One human sentence under the title — voice, not machine facts. */
-  note?: ReactNode;
-  stats?: string[];
-  title: string;
-  tone?: "light" | "dark";
+  caption: ReactNode;
+  size?: "sm" | "md" | "lg";
+  tone?: "light" | "dark" | "negative";
+  value: ReactNode;
 }) {
-  const dark = tone === "dark";
+  const sizes = { sm: "text-title", md: "text-figure", lg: "text-title" };
 
   return (
-    <section
-      className={
-        dark
-          ? "relative overflow-hidden rounded-[12px] bg-pitch-800 px-6 py-5 text-cream-200"
-          : "rounded-[10px] border border-cream-400 bg-white px-6 py-5"
-      }
-    >
-      {dark ? (
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
-        />
-      ) : null}
-      <div className="relative flex flex-wrap items-end justify-between gap-4">
-        <div className="min-w-0">
-          <Kicker tone={dark ? "dark" : "light"}>{kicker}</Kicker>
-          <h1
-            className={`mt-2 font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-[32px] ${
-              dark ? "text-cream-200" : "text-ink-900"
-            }`}
-          >
-            {title}
-          </h1>
-          {note ? (
-            <p className={`mt-2 text-sm ${dark ? "text-cream-200/85" : "text-ink-600"}`}>
-              {note}
-            </p>
-          ) : null}
-          {stats && stats.length > 0 ? (
-            <p
-              className={`mt-2.5 font-mono text-[11.5px] ${
-                dark ? "text-sage-400" : "text-ink-600"
-              }`}
-            >
-              {stats.join(" · ")}
-            </p>
-          ) : null}
-        </div>
-        {actions}
+    <div>
+      <div
+        className={`font-semibold tabular-nums ${sizes[size]} leading-none ${
+          tone === "dark" ? "text-cream-200" : tone === "negative" ? "text-rust-600" : "text-ink-900"
+        }`}
+      >
+        {value}
       </div>
-    </section>
-  );
-}
-
-/** Dashed empty-state box with optional scanline media and gold CTA. */
-export function EmptyState({
-  action,
-  children,
-  media = false,
-}: {
-  action?: ReactNode;
-  children: ReactNode;
-  media?: boolean;
-}) {
-  return (
-    <div className="rounded-[10px] border border-dashed border-cream-500 bg-cream-50/60 px-6 py-10 text-center">
-      {media ? (
-        <div
-          aria-hidden
-          className="mx-auto mb-4 grid aspect-video w-full max-w-[220px] place-items-center rounded-md bg-thumb-scanlines text-[26px] text-gold-500"
-        >
-          ▶
-        </div>
-      ) : null}
-      <div className="text-sm text-ink-600">{children}</div>
-      {action ? <div className="mt-4 flex justify-center">{action}</div> : null}
+      <div
+        className={`mt-1.5 text-caption ${tone === "dark" ? "text-cream-200/60" : "text-ink-600"}`}
+      >
+        {caption}
+      </div>
     </div>
   );
 }
 
 /**
- * Gated-account hero: large mono code (guardian approval) or review message
- * treated as a scoreboard readout rather than a footnote.
+ * A horizontal meter. Amber reads as progress; maroon marks a value that is
+ * behind where it should be. A null value draws the empty track and the
+ * caller explains the dash.
+ */
+export function Meter({
+  tone = "amber",
+  value,
+}: {
+  tone?: "amber" | "rust";
+  value: number | null;
+}) {
+  return (
+    <div className="mt-1.5 h-1 overflow-hidden rounded-sm bg-cream-350">
+      {value === null ? null : (
+        <div
+          className={`h-full rounded-sm ${tone === "rust" ? "bg-rust-600" : "bg-amber-500"}`}
+          style={{ width: `${Math.max(0, Math.min(100, value))}%` }}
+        />
+      )}
+    </div>
+  );
+}
+
+const BUTTON_BASE =
+  "inline-flex cursor-pointer items-center justify-center gap-2 rounded-md px-5 py-2.5 text-ui font-semibold disabled:cursor-default";
+
+export function PrimaryButton({
+  className = "",
+  ...props
+}: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className={`${BUTTON_BASE} bg-gold-500 text-ink-900 hover:bg-gold-600 disabled:bg-cream-350 disabled:text-ink-400 disabled:hover:bg-cream-350 ${className}`}
+    />
+  );
+}
+
+export function SecondaryButton({ className = "", ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className={`${BUTTON_BASE} bg-cream-300 text-ink-900 hover:bg-cream-350 disabled:bg-cream-350 disabled:text-ink-400 ${className}`}
+    />
+  );
+}
+
+/** Outline maroon — the button that removes something. */
+export function DestructiveButton({ className = "", ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className={`${BUTTON_BASE} border border-rust-300 bg-transparent text-rust-600 hover:bg-rust-50 disabled:border-cream-400 disabled:text-ink-400 disabled:hover:bg-transparent ${className}`}
+    />
+  );
+}
+
+/** Filled maroon. Only the confirming action inside a destructive dialog. */
+export function DangerButton({ className = "", ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className={`${BUTTON_BASE} bg-rust-600 text-cream-50 hover:bg-rust-700 disabled:bg-[#e3d4cf] disabled:text-[#a8837c] disabled:hover:bg-[#e3d4cf] ${className}`}
+    />
+  );
+}
+
+/** The quiet cancel beside a destructive action. */
+export function GhostButton({ className = "", ...props }: ComponentProps<"button">) {
+  return (
+    <button
+      {...props}
+      className={`${BUTTON_BASE} border border-cream-400 bg-transparent text-ink-600 hover:bg-cream-100 ${className}`}
+    />
+  );
+}
+
+/** Dashed empty box: one sentence, an optional CTA. Never an illustration. */
+export function EmptyState({
+  action,
+  children,
+}: {
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="rounded-lg border border-dashed border-cream-500 bg-cream-100 px-6 py-6 text-center">
+      <div className="text-ui text-ink-800">{children}</div>
+      {action ? <div className="mt-3.5 flex justify-center">{action}</div> : null}
+    </div>
+  );
+}
+
+/**
+ * Gated-account hero: the guardian approval code or a review message, read as
+ * a scoreboard rather than a footnote. Centred, because a gate is the only
+ * thing on its page.
  */
 export function GatePanel({
   children,
@@ -451,39 +657,82 @@ export function GatePanel({
   children?: ReactNode;
   code?: string;
   description: ReactNode;
-  kicker: string;
+  /** Only when it names a state the title doesn't — "Awaiting guardian". */
+  kicker?: string;
   title: string;
 }) {
   return (
-    <section className="overflow-hidden rounded-[12px] border border-cream-400 bg-white">
-      <div className="relative bg-pitch-800 px-6 py-7 text-cream-200 sm:px-8">
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-thumb-scanlines opacity-40"
-        />
-        <div className="relative">
-          <Kicker tone="dark">{kicker}</Kicker>
-          <h1 className="mt-2 font-display text-[28px] leading-[1.05] font-bold tracking-[.02em] uppercase sm:text-[32px]">
-            {title}
-          </h1>
-          {code ? (
-            <p className="mt-6 font-mono text-[2rem] tracking-[0.28em] text-gold-500 sm:text-[2.75rem]">
-              {code}
-            </p>
-          ) : null}
+    <section className={`mx-auto w-full ${code ? "max-w-[660px] text-center" : "max-w-[640px]"}`}>
+      {kicker ? <Kicker>{kicker}</Kicker> : null}
+      <h1 className={`font-display text-display font-bold tracking-[.02em] uppercase ${kicker ? "mt-3.5" : ""}`}>
+        {title}
+      </h1>
+      <div className="mt-3 text-body leading-relaxed text-ink-800">{description}</div>
+      {code ? (
+        <div className="mt-8 rounded-xl bg-pitch-900 px-6 py-8">
+          <p className="font-display text-[44px] leading-none font-bold tracking-[.1em] text-amber-500 sm:text-[66px]">
+            {code}
+          </p>
+          <p className="mt-3.5 text-caption text-cream-200/60">Your guardian approval code</p>
         </div>
-      </div>
-      <div className="px-6 py-6 sm:px-8">
-        <div className="text-sm leading-relaxed text-ink-600">{description}</div>
-        {children}
-      </div>
+      ) : null}
+      {children}
     </section>
   );
 }
 
+/**
+ * The confirm dialog. The title asks the question, the body says what it
+ * costs, and the two buttons sit right with the destructive one last —
+ * filled maroon is the only place a maroon button appears.
+ */
+export function ConfirmDialog({
+  children,
+  description,
+  onDismiss,
+  title,
+}: Children & {
+  description?: ReactNode;
+  onDismiss?: () => void;
+  title: string;
+}) {
+  return (
+    <div
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-900/60 p-4"
+      role="alertdialog"
+    >
+      {onDismiss ? (
+        <button
+          aria-label="Cancel"
+          className="absolute inset-0 cursor-default"
+          onClick={onDismiss}
+          type="button"
+        />
+      ) : null}
+      <div className="relative w-full max-w-[420px] overflow-hidden rounded-lg border border-cream-400 bg-cream-200 shadow-[0_24px_60px_rgba(0,0,0,.35)]">
+        <div className="px-[22px] py-5">
+          <h2 className="font-display text-title leading-tight font-bold tracking-[.02em] uppercase">
+            {title}
+          </h2>
+          {description ? (
+            <p className="mt-2 text-ui leading-relaxed text-ink-800">{description}</p>
+          ) : null}
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Right-aligned button row for a dialog footer. */
+export function DialogActions({ children }: Children) {
+  return <div className="mt-4 flex justify-end gap-2.5">{children}</div>;
+}
+
 /** Shimmer placeholder block for skeleton loading screens; caller sets the radius. */
 export function SkeletonBlock({ className = "" }: { className?: string }) {
-  return <div aria-hidden className={`motion-safe:animate-pulse bg-cream-300 ${className}`} />;
+  return <div aria-hidden className={`motion-safe:animate-pulse bg-cream-350 ${className}`} />;
 }
 
 export function SignOutButton() {

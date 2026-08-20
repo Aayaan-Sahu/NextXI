@@ -4,7 +4,7 @@ import { useActionState } from "react";
 import { setAccountPassword, type AuthFormState } from "@/app/auth/actions";
 import { PasswordInput } from "@/components/password-input";
 import { SubmitButton } from "@/components/submit-button";
-import { Field, Form, Kicker, Notice } from "@/components/ui";
+import { Field, Form, Notice, SectionHeading } from "@/components/ui";
 
 const empty: AuthFormState = {};
 
@@ -13,24 +13,29 @@ export function SetPasswordPanel() {
   const [state, action] = useActionState(setAccountPassword, empty);
 
   return (
-    <section className="rounded-[10px] border border-cream-400 bg-cream-100 p-8">
-      <Kicker>Password</Kicker>
-      <p className="mt-3 text-[13.5px] leading-relaxed text-ink-600">
-        Optional. Set one if you&apos;d rather sign in without waiting for an email code.
+    <section>
+      <SectionHeading>Set a password</SectionHeading>
+      <p className="mt-2 text-caption leading-relaxed text-ink-600">
+        Optional. Add one and you can sign in with a password instead of a code.
       </p>
-      <Form action={action} className="mt-5">
+      <Form action={action} className="mt-3">
         <Field>
-          New password
+          <span className="sr-only">New password</span>
           <PasswordInput
             autoComplete="new-password"
             minLength={6}
             name="password"
+            placeholder="New password"
             required
           />
         </Field>
-        <SubmitButton>Save password</SubmitButton>
+        <SubmitButton className="w-full" variant="secondary">
+          Save password
+        </SubmitButton>
       </Form>
-      <Notice tone="error">{state.error}</Notice>
+      <Notice className="mt-3" tone="error">
+        {state.error}
+      </Notice>
     </section>
   );
 }

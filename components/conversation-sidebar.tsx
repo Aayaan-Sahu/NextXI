@@ -3,8 +3,8 @@
 import Link from "next/link";
 import { useParams } from "next/navigation";
 import { useState } from "react";
+import { PersonAvatar } from "@/components/connections";
 import type { ConversationSummary } from "@/lib/messages";
-import { Kicker } from "@/components/ui";
 
 /** True when the query's characters appear in order within the target. */
 function fuzzyMatch(query: string, target: string) {
@@ -18,6 +18,25 @@ function fuzzyMatch(query: string, target: string) {
   return matched === characters.length;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Inbox timestamps compress as they age: a clock today, a weekday this week,
+ * then a date. The row has one line for this, so it never wraps.
+ */
+function inboxTime(iso: string) {
+  const date = new Date(iso);
+  const age = Date.now() - date.getTime();
+
+  if (age < DAY_MS && new Date().getDate() === date.getDate()) {
+    return date
+      .toLocaleTimeString("en-GB", { hour: "numeric", minute: "2-digit", hour12: true })
+      .replace(/\s?([ap])m$/i, "$1");
+  }
+  if (age < 6 * DAY_MS) return date.toLocaleDateString("en-GB", { weekday: "short" });
+  return date.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
 export function ConversationSidebar({
   conversations,
 }: {
@@ -25,7 +44,6 @@ export function ConversationSidebar({
 }) {
   const { connectionId } = useParams<{ connectionId?: string }>();
   const [query, setQuery] = useState("");
-  const InboxHeading = connectionId ? "h2" : "h1";
 
   const trimmed = query.trim();
   const visible = trimmed
@@ -36,82 +54,59 @@ export function ConversationSidebar({
       )
     : conversations;
 
-  const unreadTotal = conversations.reduce(
-    (sum, conversation) => sum + conversation.unreadCount,
-    0,
-  );
-  const stats = [
-    `${conversations.length} thread${conversations.length === 1 ? "" : "s"}`,
-    unreadTotal > 0
-      ? `${unreadTotal} unread`
-      : conversations.length
-        ? "All caught up"
-        : "No threads yet",
-  ];
-
   // Single pane below md: the list fills the screen on the index and hides
   // while a thread is open (MessagesShell swaps in the thread pane there).
   return (
     <aside
-      className={`flex w-full flex-col border-cream-400 bg-cream-100 md:w-[22rem] md:shrink-0 md:border-r ${
+      className={`w-full shrink-0 overflow-y-auto border-cream-400 bg-cream-100 p-2 md:w-[320px] md:border-r ${
         connectionId ? "max-md:hidden" : ""
       }`}
     >
-      <div className="border-b border-cream-400 bg-cream-100/80 px-4 py-5 md:px-5">
-        <Kicker>Messages</Kicker>
-        {/* One h1 per state: on the index this list IS the page, but with a
-            thread open the counterpart's name is the h1 and this demotes. */}
-        <InboxHeading className="mt-2 font-display text-[26px] leading-[1.05] font-bold tracking-[.02em] uppercase text-ink-900">
-          Inbox
-        </InboxHeading>
-        <p className="mt-2.5 font-mono text-[11.5px] text-ink-600">
-          {stats.join(" · ")}
-        </p>
-        <input
-          className="mt-4 w-full rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-base text-ink-900 placeholder:text-sage-400 focus:border-gold-500 focus:ring-2 focus:ring-gold-500/25 focus:outline-none md:text-[13.5px]"
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder="Search"
-          type="search"
-          value={query}
-        />
-      </div>
-      <ul className="min-h-0 flex-1 overflow-y-auto">
+      <input
+        className="mb-1 w-full rounded-md border border-cream-400 bg-cream-50 px-3 py-2 text-base text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/30 focus:outline-none md:text-ui"
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Search conversations"
+        type="search"
+        value={query}
+      />
+      <ul>
         {visible.map((conversation) => {
           const active = conversation.connectionId === connectionId;
 
           return (
             <li key={conversation.connectionId}>
               <Link
-                className={`flex items-center gap-3 border-l-[3px] px-4 py-3.5 no-underline md:px-5 ${
+                className={`flex gap-3 rounded-lg p-3 no-underline ${
                   active
-                    ? "border-gold-500 bg-white"
-                    : "border-transparent hover:bg-cream-50"
+                    ? "bg-cream-50 shadow-[inset_3px_0_0_var(--color-rust-600)]"
+                    : "hover:bg-cream-50/70"
                 }`}
                 href={`/dashboard/messages/${conversation.connectionId}`}
               >
-                <span
-                  className={`flex size-[38px] shrink-0 items-center justify-center rounded-full text-[15px] font-bold ${
-                    active ? "bg-pitch-900 text-gold-500" : "bg-pitch-800 text-cream-200"
-                  }`}
-                >
-                  {conversation.counterpart.name.charAt(0).toUpperCase()}
-                </span>
+                <PersonAvatar
+                  name={conversation.counterpart.name}
+                  role={conversation.counterpart.role}
+                  size="sm"
+                />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold text-ink-900">
-                    {conversation.counterpart.name}
+                  <span className="flex justify-between gap-2">
+                    <span className="truncate text-ui font-semibold text-ink-900">
+                      {conversation.counterpart.name}
+                    </span>
+                    <span className="shrink-0 text-caption text-ink-600">
+                      {conversation.lastMessage
+                        ? inboxTime(conversation.lastMessage.createdAt)
+                        : ""}
+                    </span>
                   </span>
-                  <span
-                    className={`block truncate text-[12.5px] ${
-                      conversation.lastMessage ? "text-ink-600" : "text-sage-400"
-                    }`}
-                  >
+                  <span className="mt-0.5 block truncate text-caption text-ink-600">
                     {conversation.lastMessage
                       ? `${conversation.lastMessage.fromMe ? "You: " : ""}${conversation.lastMessage.body}`
                       : "No messages yet."}
                   </span>
                 </span>
                 {conversation.unreadCount > 0 ? (
-                  <span className="shrink-0 rounded-full bg-rust-600 px-2 py-0.5 text-[11px] font-bold text-cream-200">
+                  <span className="mt-0.5 h-fit shrink-0 rounded-[9px] bg-rust-600 px-1.5 py-px text-micro font-semibold text-cream-50">
                     {conversation.unreadCount}
                   </span>
                 ) : null}
@@ -120,7 +115,7 @@ export function ConversationSidebar({
           );
         })}
         {!visible.length ? (
-          <li className="px-4 py-6 text-sm text-ink-600 md:px-5">
+          <li className="px-3 py-6 text-ui text-ink-600">
             {conversations.length
               ? "No connections match your search."
               : "No conversations yet. Connect with someone to start messaging."}

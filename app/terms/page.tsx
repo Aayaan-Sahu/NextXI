@@ -21,12 +21,10 @@ const infoLink = (href: string, label: string) => (
 export default function TermsPage() {
   return (
     <InfoPage
+      status={`Draft — under review · v${POLICY_VERSION}`}
       title="Terms of Use"
       intro="These are the terms for using NextXI, in plain language. Creating an account means agreeing to them. They are a draft, published for review during the pilot."
     >
-      <p className="font-mono text-[11px] font-semibold tracking-[.14em] text-ink-600 uppercase">
-        Draft — under review · Version {POLICY_VERSION}
-      </p>
       <InfoSection title="Who can hold an account">
         <p>
           Three roles hold accounts. <strong>Players</strong> — if you are under 18, your

@@ -4,32 +4,40 @@ import type { ReactNode } from "react";
 import { useFormStatus } from "react-dom";
 
 const VARIANT_STYLES = {
-  rust: "bg-rust-600 text-cream-50 hover:bg-rust-700",
-  gold: "bg-gold-500 text-pitch-900 hover:bg-gold-600",
+  primary: "bg-gold-500 text-ink-900 hover:bg-gold-600",
+  secondary: "bg-cream-300 text-ink-900 hover:bg-cream-350",
+  danger: "bg-rust-600 text-cream-50 hover:bg-rust-700",
 };
 
 const SPINNER_STYLES = {
-  rust: "border-cream-50/40 border-t-cream-50",
-  gold: "border-pitch-900/30 border-t-pitch-900",
+  primary: "border-ink-900/30 border-t-ink-900",
+  secondary: "border-ink-900/30 border-t-ink-900",
+  danger: "border-cream-50/40 border-t-cream-50",
 };
+
+export type SubmitVariant = keyof typeof VARIANT_STYLES;
 
 /**
  * PrimaryButton for server-action forms: disables and shows a spinner while
  * the action is pending, so a slow network never reads as a dead button.
+ * Peach is the primary action everywhere; `danger` is only the confirming
+ * button inside a destructive dialog.
  */
 export function SubmitButton({
   children,
-  variant = "gold",
+  className = "",
+  variant = "primary",
 }: {
   children: ReactNode;
-  variant?: "gold" | "rust";
+  className?: string;
+  variant?: SubmitVariant;
 }) {
   const { pending } = useFormStatus();
 
   return (
     <button
       aria-busy={pending}
-      className={`relative cursor-pointer rounded-md px-4 py-2.5 text-sm font-bold disabled:cursor-default ${VARIANT_STYLES[variant]}`}
+      className={`relative inline-flex cursor-pointer items-center justify-center rounded-md px-5 py-2.5 text-ui font-semibold disabled:cursor-default ${VARIANT_STYLES[variant]} ${className}`}
       disabled={pending}
       type="submit"
     >
@@ -38,7 +46,7 @@ export function SubmitButton({
         <span className="absolute inset-0 grid place-items-center">
           <span
             aria-label="Submitting"
-            className={`size-4 motion-safe:animate-spin rounded-full border-2 ${SPINNER_STYLES[variant]}`}
+            className={`size-[13px] motion-safe:animate-spin rounded-full border-2 ${SPINNER_STYLES[variant]}`}
             role="status"
           />
         </span>

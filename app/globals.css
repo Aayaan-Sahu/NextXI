@@ -1,46 +1,80 @@
 @import "tailwindcss";
 
 /*
- * NextXI design system — "Crease": ball-red / cream / gold-tan stitching.
+ * NextXI design system — "Crease".
  *
- * pitch: neutral dark charcoal ("leather-black" — video surfaces, scoreboard panels)
- * cream: warm off-whites (page background, cards, borders)
- * gold:  gold-tan (red-light-text) — the "XI" wordmark and small highlights on red; not a second dominant color
- * rust:  cricket-ball red (nav bar, primary buttons, links, sign-in hero, outbound bubbles; 700 is the darker/pressed shade)
- * ink:   text (900 body, 600 muted)
- * sage:  muted pink-taupe (inactive nav-link text on red, placeholder / faint text)
+ * The whole product is drawn from seven values. Nothing outside this block is
+ * a color: no ad-hoc hexes in components, no second opinion about what a
+ * hairline weighs.
+ *
+ *   maroon  #8a2116  brand chrome, links, destructive, negative numbers
+ *   amber   #e8a92e  data emphasis — the XI, the active marker, meter fills
+ *   peach   #f2c79b  primary action, and only that
+ *   ink     #241c15  headings and dark panels
+ *   cream   #f3ebdd  page ground
+ *   card    #fffcf5  raised surface
+ *   hairline#e0d6c3  the only rule weight in the product
+ *
+ * Grouping is done with spacing and one hairline — never a nested card.
+ * Type is Saira Condensed for the page title and 15px uppercase section
+ * heads; Public Sans carries every other role. Mono is not a product face.
  */
 @theme {
+  /* ── Dark surfaces ────────────────────────────────────────────────── */
+  /* pitch-900 is the dark panel: report header, scoreboard band, admin bar. */
   --color-pitch-950: #171310;
-  --color-pitch-900: #211c17;
+  --color-pitch-900: #241c15;
   --color-pitch-800: #2c2620;
   --color-pitch-700: #38312a;
 
-  --color-cream-50: #fdfbf6;
-  --color-cream-100: #f7f0e3;
-  --color-cream-200: #efead9;
-  --color-cream-300: #e4dec9;
-  --color-cream-400: #ddd6c2;
-  --color-cream-500: #e6ddc9;
+  /* Olive video greens — thumbnail placeholders and the player avatar. The
+     product's only non-neutral dark, so a clip well never reads as a panel. */
+  --color-olive-950: #1b2118;
+  --color-olive-800: #2e3b2a;
+  --color-olive-700: #374332;
 
-  --color-gold-500: #f0c8a0;
-  --color-gold-600: #dbae7e;
+  /* ── Cream ramp, light → dark ─────────────────────────────────────── */
+  --color-cream-50: #fffcf5; /* card + field surface */
+  --color-cream-100: #f8f2e7; /* tint band, empty-state fill */
+  --color-cream-200: #f3ebdd; /* page ground */
+  --color-cream-250: #efead9; /* info flash, meter track, quiet chip */
+  --color-cream-300: #ede4d4; /* secondary button, faint inner rule */
+  --color-cream-350: #e4dac6; /* skeleton block */
+  --color-cream-400: #e0d6c3; /* hairline */
+  --color-cream-450: #dcd3c0; /* benchmark band, muted data bar */
+  --color-cream-500: #cfc3aa; /* dashed border, strong rule */
 
+  /* ── Maroon — brand and negative ──────────────────────────────────── */
+  --color-rust-50: #f7e2de; /* error surface */
+  --color-rust-100: #fdf6f4; /* error field fill */
+  --color-rust-300: #c68c84; /* error border, destructive outline */
   --color-rust-500: #c2503f;
-  --color-rust-600: #8a2323;
-  --color-rust-700: #6f1b1b;
+  --color-rust-600: #8a2116; /* brand */
+  --color-rust-700: #6f1b1b; /* pressed */
+  --color-rust-800: #5e1710; /* copy on the error surface */
 
-  --color-ink-900: #2a251e;
-  /* ink-600 is body-adjacent muted text on white/cream surfaces; #6b6353
-     holds ≥4.5:1 on every cream step (the old #948d7c sat at 3.3:1 on white
-     and failed WCAG AA). Keep it dark enough to pass wherever it lands. */
-  --color-ink-600: #6b6353;
+  /* ── Amber — data emphasis. Never a button. ───────────────────────── */
+  --color-amber-500: #e8a92e;
 
+  /* ── Peach — primary action, and only that. ───────────────────────── */
+  --color-gold-500: #f2c79b;
+  --color-gold-600: #e5b482;
+
+  /* ── Ink ──────────────────────────────────────────────────────────── */
+  --color-ink-900: #241c15; /* headings */
+  --color-ink-800: #3b332b; /* body copy */
+  --color-ink-600: #6b6155; /* muted, labels, captions */
+  --color-ink-400: #a2937c; /* disabled */
+
+  /* Faint text on the maroon band (landing). */
   --color-sage-400: #e0b0b0;
 
-  /* vision: cold phosphor-mint accent reserved for the machine-vision /
-     analysis overlay layer — the deliberate counterpoint to the warm Crease
-     palette (see PRODUCT.md, principle 3). Not for product UI chrome. */
+  /* The one green: a positive verdict in a report. Not a UI accent. */
+  --color-moss-600: #2f6b3e;
+
+  /* vision: cold phosphor-mint reserved for the machine-vision overlay on the
+     landing page — the deliberate counterpoint to the warm Crease palette
+     (see PRODUCT.md, principle 3). Not for product UI chrome. */
   --color-vision-300: #b5f5dc;
   --color-vision-500: #7ce8bf;
   --color-vision-700: #2ea77d;
@@ -48,6 +82,42 @@
   --font-sans: var(--font-public-sans), system-ui, sans-serif;
   --font-display: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  /* ── The type scale ───────────────────────────────────────────────────
+   *
+   * Nine roles. Every piece of text in the product is one of them; there is
+   * no arbitrary `text-[13.5px]`. The small end deliberately steps 15 → 14 →
+   * 13 rather than 14.5 → 13.5 → 12.5 — a half-pixel is not a hierarchy, it
+   * is noise, and it reads as several designs assembled together.
+   *
+   *   display   page title (Saira Condensed, uppercase)
+   *   title     dialog and subsection titles
+   *   lead      the one introductory paragraph on a reading page
+   *   body      prose, inputs, primary list rows
+   *   ui        labels, buttons, descriptions, secondary rows — the workhorse
+   *   caption   metadata, hints, table headers
+   *   micro     chips and badges, where the box is the constraint
+   *   figure    a measured number
+   *   figure-sm a measured number inside a row
+   */
+  --text-display: 30px;
+  --text-display--line-height: 1.05;
+  --text-title: 20px;
+  --text-title--line-height: 1.25;
+  --text-lead: 17px;
+  --text-lead--line-height: 1.6;
+  --text-body: 15px;
+  --text-body--line-height: 1.6;
+  --text-ui: 14px;
+  --text-ui--line-height: 1.5;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.45;
+  --text-micro: 11px;
+  --text-micro--line-height: 1.3;
+  --text-figure: 28px;
+  --text-figure--line-height: 1;
+  --text-figure-sm: 20px;
+  --text-figure-sm--line-height: 1;
 }
 
 /* Faint woven seam-stitch texture behind the sign-in hero. */
@@ -58,9 +128,19 @@
     repeating-linear-gradient(90deg, transparent 0 6px, rgb(255 255 255 / 0.05) 6px 6.6px);
 }
 
-/* Broadcast-scanline texture for video thumbnail placeholders. */
+/* Broadcast-scanline overlay, painted over a dark section on the landing page. */
 @utility bg-thumb-scanlines {
   background-color: var(--color-pitch-800);
+  background-image: repeating-linear-gradient(
+    0deg,
+    transparent 0 24px,
+    rgb(0 0 0 / 0.12) 24px 48px
+  );
+}
+
+/* A clip that has no thumbnail yet: the olive video ground, scanlined. */
+@utility bg-clip-scanlines {
+  background-color: var(--color-olive-800);
   background-image: repeating-linear-gradient(
     0deg,
     transparent 0 24px,
@@ -138,6 +218,6 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .skip-to-content:focus {
   transform: translateY(0.75rem);
-  outline: 2px solid var(--color-gold-500);
+  outline: 2px solid var(--color-amber-500);
   outline-offset: 2px;
 }

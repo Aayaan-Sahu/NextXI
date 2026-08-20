@@ -10,7 +10,7 @@ export function LandingFooter() {
       <div className="mx-auto w-full max-w-[1280px]">
         <div className="flex items-center justify-between gap-4 max-md:flex-col">
           <div className="flex flex-col gap-1 max-md:items-center">
-            <Wordmark tone="dark" />
+            <Wordmark accent="peach" tone="dark" />
             <p className="text-[13px] text-cream-200/50">
               Cricket talent, seen properly.
             </p>
