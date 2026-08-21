@@ -1,5 +1,5 @@
 import { Kicker } from "@/components/ui";
-import { COACH_NOTE, DISCLOSURE, DRILL, WEAKEST } from "./report-data";
+import { COACH_NOTE, DRILL, WEAKEST } from "./report-data";
 
 type Tone = "dark" | "light";
 
@@ -42,8 +42,6 @@ export function ReportTrailer({ tone }: { tone: Tone }) {
           <p className={`mt-1.5 text-caption italic ${muted}`}>&ldquo;{COACH_NOTE}&rdquo;</p>
         </div>
       </div>
-
-      <p className={`border-t pt-3 text-caption ${rule} ${muted}`}>{DISCLOSURE}</p>
     </>
   );
 }
