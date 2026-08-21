@@ -76,6 +76,34 @@ function PinFit({ children }: { children: React.ReactNode }) {
 // scroll drives the headline → "video slides left, report reveals" handoff.
 const VIDEO_END = 0.5;
 
+// The replay. Once the report card is in, the footage cuts back to the
+// trigger and re-plays the shot's key second under the scroll, holding on the
+// moments the score rows describe as they land (see variant-scoreboard's
+// reveal schedule and AnalysisHud's callouts): downswing start for the front
+// elbow, the downswing itself for the bat path, the follow-through for head
+// travel. Times are seconds into the 14 s clip.
+const REPLAY_CUT = 0.68;
+const REPLAY_STOPS = [0.68, 0.71, 0.745, 0.775, 0.815, 0.85];
+const REPLAY_TIMES = [5.5, 5.5, 6.05, 6.05, 6.72, 7.3];
+const CLIP_S = 14;
+
+function piecewise(stops: number[], values: number[], x: number) {
+  if (x <= stops[0]) return values[0];
+  for (let i = 1; i < stops.length; i++) {
+    if (x <= stops[i]) {
+      const k = (x - stops[i - 1]) / (stops[i] - stops[i - 1]);
+      return values[i - 1] + (values[i] - values[i - 1]) * k;
+    }
+  }
+  return values[values.length - 1];
+}
+
+/** Where the playhead sits (as a fraction of the clip) for a pin progress. */
+function seekFractionAt(p: number) {
+  if (p < REPLAY_CUT) return clamp01(p / VIDEO_END);
+  return piecewise(REPLAY_STOPS, REPLAY_TIMES, p) / CLIP_S;
+}
+
 /**
  * Pinned hero: scrolling scrubs the analysis video, then — in the SAME shot,
  * no second video — the headline rises, the video slides and shrinks to the
@@ -95,9 +123,15 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   // The video only scrubs over the first VIDEO_END of the pin, so everything
   // video-relative (seek, HUD, entry wipe) reads this remapped value.
   const videoProgress = useTransform(scrollYProgress, (p) => clamp01(p / VIDEO_END));
-  const smooth = useSpring(videoProgress, { stiffness: 120, damping: 30 });
-  useMotionValueEvent(videoProgress, "change", (progress) => {
-    if (progress === 0 || progress === 1) smooth.jump(progress);
+  // The playhead: the scrub, then the replay. Springs for feel, except at the
+  // ends and across the replay's cut, which must be a cut — a spring there
+  // would rewind through eight seconds of footage in a blur.
+  const seek = useTransform(scrollYProgress, seekFractionAt);
+  const smooth = useSpring(seek, { stiffness: 120, damping: 30 });
+  useMotionValueEvent(seek, "change", (fraction) => {
+    if (fraction === 0 || fraction === 1 || Math.abs(fraction - smooth.get()) > 0.2) {
+      smooth.jump(fraction);
+    }
   });
 
   useMotionValueEvent(smooth, "change", (progress) => {
@@ -188,7 +222,12 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             loop={!scrub}
             className="h-full w-full object-contain"
           />
-          <AnalysisHud progress={videoProgress} scrub={scrub} videoRef={videoRef} />
+          <AnalysisHud
+            progress={videoProgress}
+            scrub={scrub}
+            story={scrub ? scrollYProgress : undefined}
+            videoRef={videoRef}
+          />
         </motion.div>
 
         {/* "AI-backed scouting for young cricketers" — scrub-only overlay that rises as

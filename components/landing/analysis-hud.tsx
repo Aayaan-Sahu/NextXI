@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useMotionValue, useMotionValueEvent, type MotionValue } from "motion/react";
+import { motion, useMotionValue, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
 import { HERO_DRIVE_TRACK, type TrackSample } from "@/components/landing/hero-drive-track";
+import { METRICS } from "@/components/landing/report-variants/report-data";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
@@ -78,6 +79,59 @@ const LIMBS: Array<[keyof typeof P, keyof typeof P]> = [
 ];
 const JOINTS = Object.keys(P) as Array<keyof typeof P>;
 
+/* ── replay callouts ───────────────────────────────────────────────────────
+ *
+ * In the pinned split the footage re-plays the shot's key second while the
+ * scoreboard's rows land (hero-scrub-video's REPLAY_*), and each row gets its
+ * measurement drawn on the frame as it arrives: the front-elbow angle at
+ * downswing start, the bat path against its straight-line chord, head travel
+ * through the follow-through. Windows are in pin progress and trail each
+ * row's reveal by a beat, so the video answers the card rather than racing it.
+ * Geometry is amber — measured, like everything else on the HUD — and each
+ * label carries the row's verdict as a moss or rust rule. */
+const T_DOWNSWING = 6.05;
+const T_FOLLOW = 7.3;
+const CALLOUT_WINDOWS = {
+  elbow: [0.745, 0.775],
+  swing: [0.78, 0.815],
+  head: [0.82, 0.85],
+} as const;
+const sv = ([x, y]: [number, number]) => ({ x: x * 1.6, y: y * 0.9 });
+
+/** Bat path vs. its chord from downswing start to impact, and the point of
+    greatest deviation between them. */
+const SWING = (() => {
+  const a = sv(sampleAt(P.batTip, T_DOWNSWING));
+  const b = sv(sampleAt(P.batTip, IMPACT_T));
+  const dx = b.x - a.x, dy = b.y - a.y, len2 = dx * dx + dy * dy;
+  let dev = { x: a.x, y: a.y, fx: a.x, fy: a.y, d: 0 };
+  for (const pt of TRAIL.pts) {
+    if (pt.t < T_DOWNSWING || pt.t > IMPACT_T) continue;
+    const k = ((pt.x - a.x) * dx + (pt.y - a.y) * dy) / len2;
+    const fx = a.x + k * dx, fy = a.y + k * dy;
+    const d = Math.hypot(pt.x - fx, pt.y - fy);
+    if (d > dev.d) dev = { x: pt.x, y: pt.y, fx, fy, d };
+  }
+  return { a, b, dev };
+})();
+
+/** Head position at downswing start and at the end of the follow-through. */
+const HEAD = { from: sv(sampleAt(P.head, T_DOWNSWING)), to: sv(sampleAt(P.head, T_FOLLOW)) };
+
+/** Short perpendicular tick at a line's end, for the head-travel bracket. */
+function tickAt(x: number, y: number, dx: number, dy: number, size = 1.2) {
+  const len = Math.hypot(dx, dy) || 1;
+  const nx = (-dy / len) * size, ny = (dx / len) * size;
+  return `M ${x + nx} ${y + ny} L ${x - nx} ${y - ny}`;
+}
+
+const fmtValue = (m: (typeof METRICS)[number]) => `${m.value.toFixed(m.decimals)}${m.unit === "°" ? "°" : ` ${m.unit}`}`;
+const CALLOUT_COPY = [
+  { key: "elbow", label: "Front elbow", value: fmtValue(METRICS[0]), tone: "good" },
+  { key: "swing", label: "Swing path", value: `${fmtValue(METRICS[1])} off`, tone: "bad" },
+  { key: "head", label: "Head travel", value: fmtValue(METRICS[2]), tone: "good" },
+] as const;
+
 /** One box recipe for every piece of chrome on the frame. There used to be
     three — some bordered, some blurred, four different paddings — which read as
     three different overlays sharing a video. Flat ink, no border, no blur. */
@@ -117,10 +171,14 @@ const fmtTime = (t: number) => `${t.toFixed(2)}s`;
 export function AnalysisHud({
   progress,
   scrub,
+  story,
   videoRef,
 }: {
   progress: MotionValue<number>;
   scrub: boolean;
+  /** Pin progress, scrub only — drives the replay's geometry return and the
+      callouts. Absent in the autoplay fallback, where there is no replay. */
+  story?: MotionValue<number>;
   videoRef: React.RefObject<HTMLVideoElement | null>;
 }) {
   const [phase, setPhase] = useState(events[0].label);
@@ -139,20 +197,45 @@ export function AnalysisHud({
   const tipRef = useRef<HTMLSpanElement>(null);
   const limbRefs = useRef<Array<SVGLineElement | null>>([]);
   const jointRefs = useRef<Partial<Record<keyof typeof P, SVGGElement | null>>>({});
+  const elbowArcRef = useRef<SVGPathElement>(null);
+  const elbowTagRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
 
   // Fade with the scroll story in scrub mode: in after the red wipe, out
-  // before the headline takes the frame. Always on when the video autoplays.
+  // before the headline takes the frame. The chrome (name tag, clock,
+  // readouts, phase) stays out; the tracked geometry comes back for the
+  // replay once the split has formed. Always on when the video autoplays.
+  const chromeOpacity = useMotionValue(scrub ? 0 : 1);
   const hudOpacity = useMotionValue(scrub ? 0 : 1);
   useMotionValueEvent(progress, "change", (p) => {
-    if (scrub) hudOpacity.set(clamp01((p - 0.02) / 0.03) - clamp01((p - 0.78) / 0.08));
+    if (!scrub) return;
+    const base = clamp01((p - 0.02) / 0.03) - clamp01((p - 0.78) / 0.08);
+    chromeOpacity.set(base);
+    hudOpacity.set(Math.max(base, story ? clamp01((story.get() - 0.68) / 0.03) : 0));
+  });
+  const never = useMotionValue(0);
+  useMotionValueEvent(story ?? never, "change", (s) => {
+    if (scrub) hudOpacity.set(Math.max(hudOpacity.get(), clamp01((s - 0.68) / 0.03)));
   });
   // useCanScrub's server snapshot is true, so SSR'd autoplay visits (phones,
   // reduced motion) hydrate with hudOpacity frozen at 0 — the motion value's
   // initial argument is captured once. Snap it on when scrub settles to false.
   useEffect(() => {
-    if (!scrub) hudOpacity.set(1);
-  }, [scrub, hudOpacity]);
+    if (!scrub) {
+      hudOpacity.set(1);
+      chromeOpacity.set(1);
+    }
+  }, [scrub, hudOpacity, chromeOpacity]);
+
+  // Callout reveals, keyed to the card's rows. Keyframes span [0,1] and hold.
+  const storyOrNever = story ?? never;
+  const elbowIn = useTransform(storyOrNever, [0, ...CALLOUT_WINDOWS.elbow, 1], [0, 0, 1, 1]);
+  const swingIn = useTransform(storyOrNever, [0, ...CALLOUT_WINDOWS.swing, 1], [0, 0, 1, 1]);
+  const headIn = useTransform(storyOrNever, [0, ...CALLOUT_WINDOWS.head, 1], [0, 0, 1, 1]);
+  const calloutIn = { elbow: elbowIn, swing: swingIn, head: headIn } as const;
+  // The bat path and head bracket draw in rather than fade in.
+  const swingDash = useTransform(swingIn, (k) => `${k * 200} 200`);
+  const headDash = useTransform(headIn, (k) => `${k * 40} 40`);
 
   useEffect(() => {
     let raf = 0;
@@ -257,6 +340,29 @@ export function AnalysisHud({
       // readouts
       const shoulder = sampleAt(P.shoulder, t), elbow = sampleAt(P.elbow, t), hands = sampleAt(P.hands, t);
       const elbowDeg = angleAt(shoulder, elbow, hands);
+
+      // front-elbow callout rides the joint: an arc between the upper arm and
+      // forearm, label just off the elbow
+      const arc = elbowArcRef.current;
+      if (arc) {
+        const e = sv(elbow), sh = sv(shoulder), h = sv(hands);
+        const a1 = Math.atan2(sh.y - e.y, sh.x - e.x);
+        const a2 = Math.atan2(h.y - e.y, h.x - e.x);
+        let diff = a2 - a1;
+        while (diff > Math.PI) diff -= 2 * Math.PI;
+        while (diff < -Math.PI) diff += 2 * Math.PI;
+        const r = 4.5;
+        arc.setAttribute(
+          "d",
+          `M ${e.x + r * Math.cos(a1)} ${e.y + r * Math.sin(a1)} A ${r} ${r} 0 0 ${diff > 0 ? 1 : 0} ${e.x + r * Math.cos(a2)} ${e.y + r * Math.sin(a2)}`,
+        );
+      }
+      const elbowTag = elbowTagRef.current;
+      if (elbowTag) {
+        // off to the right of the joint, clear of the forearm and bat
+        elbowTag.style.left = `${elbow[0] + 7}%`;
+        elbowTag.style.top = `${elbow[1] - 11}%`;
+      }
       const strideM = metersBetween(sampleAt(P.ankleF, t), sampleAt(P.ankleB, t));
       const tipMph = speedMps(P.batTip, t) * MPS_TO_MPH;
       if (timeRef.current) timeRef.current.textContent = fmtTime(t);
@@ -290,12 +396,13 @@ export function AnalysisHud({
           preserveAspectRatio="none"
           className="absolute inset-0 h-full w-full"
         >
-          <rect
+          <motion.rect
             ref={boxRef}
             fill="none"
             strokeWidth={0.22}
             strokeDasharray="1.6 1.1"
             className="stroke-cream-200/45"
+            style={{ opacity: chromeOpacity }}
           />
           <path ref={trailRef} d={TRAIL.d} fill="none" strokeWidth={0.45} strokeLinecap="round" strokeLinejoin="round" className="stroke-amber-500" />
           {LIMBS.map((pair, i) => (
@@ -328,28 +435,98 @@ export function AnalysisHud({
             className="stroke-amber-500"
             style={{ opacity: 0 }}
           />
+
+          {/* replay callouts */}
+          <motion.path
+            ref={elbowArcRef}
+            fill="none"
+            strokeWidth={0.4}
+            strokeDasharray="0.9 0.7"
+            className="stroke-amber-500"
+            style={{ opacity: elbowIn }}
+          />
+          <motion.g style={{ opacity: swingIn }}>
+            <motion.line
+              x1={SWING.a.x}
+              y1={SWING.a.y}
+              x2={SWING.b.x}
+              y2={SWING.b.y}
+              strokeWidth={0.3}
+              strokeDasharray="1.4 1"
+              className="stroke-cream-200/70"
+              style={{ strokeDasharray: swingDash }}
+            />
+            <line
+              x1={SWING.dev.fx}
+              y1={SWING.dev.fy}
+              x2={SWING.dev.x}
+              y2={SWING.dev.y}
+              strokeWidth={0.45}
+              strokeLinecap="round"
+              className="stroke-amber-500"
+            />
+            <circle cx={SWING.dev.x} cy={SWING.dev.y} r={0.8} className="fill-amber-500" />
+          </motion.g>
+          <motion.g style={{ opacity: headIn }}>
+            <motion.line
+              x1={HEAD.from.x}
+              y1={HEAD.from.y}
+              x2={HEAD.to.x}
+              y2={HEAD.to.y}
+              strokeWidth={0.4}
+              className="stroke-amber-500"
+              style={{ strokeDasharray: headDash }}
+            />
+            <path
+              d={`${tickAt(HEAD.from.x, HEAD.from.y, HEAD.to.x - HEAD.from.x, HEAD.to.y - HEAD.from.y)} ${tickAt(HEAD.to.x, HEAD.to.y, HEAD.to.x - HEAD.from.x, HEAD.to.y - HEAD.from.y)}`}
+              strokeWidth={0.4}
+              className="stroke-amber-500"
+            />
+          </motion.g>
         </svg>
+
+        {/* callout labels: the HUD's box, with the row's verdict as a rule */}
+        {CALLOUT_COPY.map((c) => (
+          <motion.div
+            key={c.key}
+            ref={c.key === "elbow" ? elbowTagRef : undefined}
+            style={
+              c.key === "elbow"
+                ? { opacity: calloutIn[c.key] }
+                : c.key === "swing"
+                  // hangs left of the deviation tick, over the crease rather
+                  // than the batter's legs
+                  ? { opacity: calloutIn[c.key], left: `${SWING.dev.x / 1.6 - 3}%`, top: `${SWING.dev.y / 0.9 - 2}%`, x: "-100%" }
+                  : { opacity: calloutIn[c.key], left: `${HEAD.from.x / 1.6 - 4}%`, top: `${HEAD.from.y / 0.9 - 16}%` }
+            }
+            className={`absolute w-fit border-l-2 ${BOX} ${c.tone === "good" ? "border-moss-600" : "border-rust-500"}`}
+          >
+            <div className={LABEL}>{c.label}</div>
+            <div className="mt-0.5 text-caption font-semibold tabular-nums text-cream-50">{c.value}</div>
+          </motion.div>
+        ))}
 
         {/* subject tag rides the bounding box — the real player, named, for
             credibility (Aryaman is the demo subject, not a benchmark pro). */}
-        <div ref={subjectTagRef} className="absolute">
+        <motion.div ref={subjectTagRef} style={{ opacity: chromeOpacity }} className="absolute">
           <div className={`w-fit ${BOX} max-sm:px-2 max-sm:py-1`}>
             <div className="text-caption font-semibold text-cream-50">Aryaman Varma</div>
             <div className="text-micro text-cream-200/70">
               Wisden Schools Cricketer &rsquo;25 · England U19
             </div>
           </div>
-        </div>
+        </motion.div>
 
         {/* Elapsed clock — rides the upper letterbox band on phones. */}
-        <div
+        <motion.div
+          style={{ opacity: chromeOpacity }}
           className={`absolute top-5 right-5 ${BOX} max-sm:top-auto max-sm:right-0 max-sm:bottom-full max-sm:mb-2 max-sm:px-2 max-sm:py-1`}
         >
           <span
             ref={timeRef}
             className="text-caption font-semibold tabular-nums text-cream-50"
           />
-        </div>
+        </motion.div>
 
         {/* Readouts + phase. On phones both drop into the letterbox band below
             the frame (the frame itself is only ~220px tall); from sm the
@@ -358,7 +535,8 @@ export function AnalysisHud({
           {/* The three live measurements. Amber is the measured value, cream
               names it — the same split the dashboard uses. Feed and exit speed
               used to sit here too, but both read "—" for most of the scrub. */}
-          <div
+          <motion.div
+            style={{ opacity: chromeOpacity }}
             className={`absolute top-[30%] left-5 flex flex-col gap-2 ${BOX} max-sm:static max-sm:flex-row max-sm:justify-between max-sm:gap-2 max-sm:px-3 max-sm:py-2`}
           >
             {(
@@ -379,16 +557,19 @@ export function AnalysisHud({
                 />
               </div>
             ))}
-          </div>
+          </motion.div>
 
           {/* Where in the shot we are. The tick rail that used to sit under
               this said the same thing a second way. */}
-          <div className={`absolute bottom-6 left-5 ${BOX} max-sm:static max-sm:px-3 max-sm:py-2`}>
+          <motion.div
+            style={{ opacity: chromeOpacity }}
+            className={`absolute bottom-6 left-5 ${BOX} max-sm:static max-sm:px-3 max-sm:py-2`}
+          >
             <div className="flex items-baseline gap-2.5">
               <span className={LABEL}>Phase</span>
               <span className="text-caption font-semibold text-amber-500">{phase}</span>
             </div>
-          </div>
+          </motion.div>
         </div>
       </div>
     </motion.div>
