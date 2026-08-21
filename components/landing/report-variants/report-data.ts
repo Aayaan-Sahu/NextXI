@@ -139,5 +139,3 @@ export const DRILL =
   "3 × 10 front-foot drives with a cone pinned under the back heel, stopping the set the moment the elbow drops — you are training the last four balls, not the first eight.";
 export const COACH_NOTE =
   "Genuinely repeatable technique for the age group. Hold the front-elbow shape deeper into the session and the swing path stays straight all the way through.";
-export const DISCLOSURE =
-  "Measurements, not scores · bat tracked on 96% of frames · the elbow benchmark is a published study of club-to-international batters; every other range is the player's own recent sessions. No genuine elite range exists yet for these metrics — we don't invent one.";
