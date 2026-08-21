@@ -16,12 +16,12 @@ import { useCanScrub } from "@/components/landing/use-can-scrub";
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 // Breathing room the pinned card keeps above and below itself.
-const PIN_MARGIN = 16;
+const PIN_MARGIN = 36;
 
 // The settled split: the video panel's left inset and the share of the
 // viewport it leaves to the card on the right. The card column (below) is
 // sized so its left edge lands a gutter past the panel's right edge.
-const SPLIT_RIGHT = 0.435;
+const SPLIT_RIGHT = 0.41;
 // Vertical inset that makes the settled panel exactly 16:9, so the batter
 // fills it edge to edge with no letterbox:
 //   panel width  = (1 - 0.025 - SPLIT_RIGHT) * 100vw
@@ -252,7 +252,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
 
         {/* report, right side, revealing block by block (scrub only) */}
         {scrub && (
-          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[39%] max-w-[560px] items-center">
+          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[36%] max-w-[520px] items-center">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full w-full">
               <PinFit>
                 <VariantScoreboard progress={scrollYProgress} />

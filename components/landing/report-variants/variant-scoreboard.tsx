@@ -63,7 +63,6 @@ function verdictFor(score: number) {
   return "Keep building";
 }
 
-const nextScoreFor = (score: number) => Math.min(94, score + 6);
 const good = (score: number) => score >= 70;
 
 /** 0→1 ramp over `window` of a scroll progress; a settled constant 1 without one. */
@@ -136,7 +135,7 @@ function Dial({
   const dash = useTransform(ramp, (k) => `${filled * k} ${circumference}`);
   const count = useTransform(ramp, (k) => Math.round(value * k));
   return (
-    <div className="relative size-[7.5rem] shrink-0">
+    <div className="relative size-28 shrink-0">
       <svg aria-hidden className="size-full -rotate-90" viewBox="0 0 100 100">
         <circle className="stroke-cream-300" cx="50" cy="50" fill="none" r="44" strokeWidth="8" />
         <motion.circle
@@ -224,7 +223,7 @@ function TileRow({
   const width = useTransform(ramp, (k) => `${target * k}%`);
   const ok = good(tile.score);
   return (
-    <div className={`border-b border-cream-400 ${compact ? "py-2" : "py-3.5"}`}>
+    <div className={`border-b border-cream-400 ${compact ? "py-2.5" : "py-3.5"}`}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-body font-semibold text-ink-900">{tile.name}</span>
         <span className="flex items-baseline gap-2.5">
@@ -234,11 +233,11 @@ function TileRow({
           </span>
         </span>
       </div>
-      <div className="relative mt-1.5 h-3 overflow-hidden rounded-full bg-cream-300" aria-hidden>
+      <div className="relative mt-2 h-3 overflow-hidden rounded-full bg-cream-300" aria-hidden>
         <motion.div className={`h-full rounded-full ${ok ? "bg-moss-600" : "bg-rust-600"}`} style={{ width }} />
         <div className="absolute inset-y-0 w-px bg-ink-900/45" style={{ left: `${ELITE_LEVEL}%` }} />
       </div>
-      <p className={`mt-1 text-ink-800 ${compact ? "text-body" : "text-caption"}`}>
+      <p className={`mt-1.5 text-ink-800 ${compact ? "text-ui" : "text-caption"}`}>
         <TileNote note={tile.note} />
       </p>
     </div>
@@ -280,11 +279,12 @@ function SessionsChart() {
 
 export function VariantScoreboard({ progress }: { progress?: MotionValue<number> } = {}) {
   const compact = !!progress;
-  // Seven reveal blocks (header, scores kicker, three score rows, fix, stamp)
-  // on the hero split's schedule — every from/to must stay inside [0,1] or
-  // Motion's ScrollTimeline throws ("offsets must be in range [0,1]").
+  // Nine reveal beats of similar height — masthead, dial, scores kicker, three
+  // rows, the fix, its drill, the stamp — on the editorial card's cadence, the
+  // last landing just before the unpin. Every from/to must stay inside [0,1]
+  // or Motion's ScrollTimeline throws ("offsets must be in range [0,1]").
   const S = 0.62;
-  const step = 0.043;
+  const step = 0.04;
   const dur = 0.05;
   const w = (i: number) => ({ from: S + i * step, to: S + i * step + dur });
 
@@ -294,33 +294,37 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
     // never has one.
     <div
       className={`rounded-[10px] border border-cream-400 bg-cream-50 px-6 text-ink-900 sm:px-7 ${
-        compact ? "pt-5 pb-3 shadow-float" : "pt-6 pb-4"
+        compact ? "pt-5 pb-2.5 shadow-float" : "pt-6 pb-4"
       }`}
     >
-      {/* Header: the same masthead as the editorial card, then the session's
-          number and verdict side by side — one block, one alignment. */}
-      <Reveal progress={progress} {...w(0)} className={`border-b border-cream-400 ${compact ? "pb-3" : "pb-5"}`}>
+      {/* The same masthead as the editorial card, then the session's number
+          and verdict side by side. */}
+      <Reveal progress={progress} {...w(0)}>
         <Kicker>Coaching report</Kicker>
         <div className="mt-2 text-ui text-ink-600">{SUBTITLE}</div>
-        <div className={`flex items-center gap-5 ${compact ? "mt-3.5" : "mt-5"}`}>
-          <Dial progress={progress} value={SCORE} window={progress ? [S, S + 0.1] : undefined} />
-          <div className="min-w-0">
-            <div className="font-display text-display font-bold tracking-[.04em] text-ink-900 uppercase">
-              {verdictFor(SCORE)}
-            </div>
-            <div className="mt-2">
-              <ChangePill now={SCORE} previous={LAST_SESSION} />
-            </div>
+      </Reveal>
+      <Reveal
+        progress={progress}
+        {...w(1)}
+        className={`flex items-center gap-5 border-b border-cream-400 ${compact ? "mt-3.5 pb-3.5" : "mt-5 pb-5"}`}
+      >
+        <Dial progress={progress} value={SCORE} window={progress ? [w(1).from, w(1).from + 0.1] : undefined} />
+        <div className="min-w-0">
+          <div className="font-display text-display font-bold tracking-[.04em] text-ink-900 uppercase">
+            {verdictFor(SCORE)}
+          </div>
+          <div className="mt-2">
+            <ChangePill now={SCORE} previous={LAST_SESSION} />
           </div>
         </div>
       </Reveal>
 
-      <Reveal progress={progress} {...w(1)} className={compact ? "pt-3.5" : "pt-4"}>
+      <Reveal progress={progress} {...w(2)} className={compact ? "pt-3.5" : "pt-4"}>
         <Kicker>Your 3 scores</Kicker>
       </Reveal>
       <div className="mt-1">
         {TILES.map((tile, i) => {
-          const { from, to } = w(2 + i);
+          const { from, to } = w(3 + i);
           return (
             <Reveal key={tile.name} progress={progress} from={from} to={to}>
               <TileRow
@@ -338,24 +342,21 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
 
       {!compact && <SessionsChart />}
 
-      {/* The fix: a kicker, the one thing, and the drill as the system's info
-          flash — a left rule on a tinted ground, never a box inside a box. */}
-      <Reveal progress={progress} {...w(5)} className={`border-b border-cream-400 ${compact ? "py-3" : "py-4"}`}>
+      {/* The fix: a kicker and the one thing, then the drill as the system's
+          info flash — a left rule on a tinted ground, never a box in a box. */}
+      <Reveal progress={progress} {...w(6)} className={compact ? "pt-3.5" : "pt-4"}>
         <Kicker>Fix this one thing</Kicker>
         <div className="mt-2 text-title font-bold text-ink-900">Your bat swing</div>
-        <p className="mt-1 text-body text-ink-800">
-          {compact ? WEAKEST_SHORT : WEAKEST}
-        </p>
-        <div className="mt-2.5 border-l-2 border-rust-500 bg-rust-50 px-3 py-2">
-          <div className="text-ui font-semibold text-ink-900">Your drill</div>
-          <p className="mt-1 text-ui text-ink-800">{DRILL}</p>
-        </div>
-        <p className="mt-2.5 text-ui font-semibold text-rust-600">
-          → Fix this and your score becomes {nextScoreFor(SCORE)}
+        <p className="mt-1 text-body text-ink-800">{compact ? WEAKEST_SHORT : WEAKEST}</p>
+      </Reveal>
+      <Reveal progress={progress} {...w(7)} className={`border-b border-cream-400 ${compact ? "pt-2 pb-3" : "pt-3 pb-4"}`}>
+        <p className="border-l-2 border-rust-500 bg-rust-50 px-3 py-2 text-ui text-ink-800">
+          <span className="font-semibold text-ink-900">Your drill · </span>
+          {DRILL}
         </p>
       </Reveal>
 
-      <Reveal progress={progress} {...w(6)} className={`flex items-start gap-3 ${compact ? "pt-3 pb-1" : "py-4"}`}>
+      <Reveal progress={progress} {...w(8)} className={`flex items-start gap-3 ${compact ? "pt-3 pb-1" : "py-4"}`}>
         <span className="mt-px flex size-6 shrink-0 items-center justify-center rounded-full bg-moss-600/15 text-caption text-moss-600">
           ✓
         </span>
