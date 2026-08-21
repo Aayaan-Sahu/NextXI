@@ -52,12 +52,15 @@ export default async function Home({ searchParams }: { searchParams: SearchParam
   return (
     // `lang` on the landing root, not <html>: the product behind /auth stays
     // English, and the Devanagari faces (see globals.css) key off this
-    // attribute so they never load for an English visitor. The hero video
-    // section tags itself `lang="en"` — the report it shows is the product.
+    // attribute so they never load for an English visitor.
     <main className={lang === "hi" ? hindiFontVars : undefined} id="main-content" lang={lang}>
       <LandingNav copy={copy.nav} lang={lang} toggle={showToggle ? copy.toggle : undefined} />
       <BallHero copy={copy.hero} />
-      <HeroScrubVideo src="/hero-drive.mp4" poster="/hero-drive-poster.jpg" />
+      <HeroScrubVideo
+        copy={{ video: copy.video, hud: copy.hud, report: copy.report }}
+        poster="/hero-drive-poster.jpg"
+        src="/hero-drive.mp4"
+      />
       <FeaturesSteps copy={copy.steps} />
       <TheWall copy={copy.wall} lang={lang} />
       <MoreFeatures copy={copy.more} />

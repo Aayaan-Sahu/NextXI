@@ -2,7 +2,9 @@
 
 import { motion, useMotionValue, useTransform, type MotionValue } from "motion/react";
 import { Kicker } from "@/components/ui";
-import { DRILL, SUBTITLE, WEAKEST, WEAKEST_SHORT } from "./report-data";
+import type { LandingCopy } from "@/components/landing/copy";
+
+type ReportCopy = LandingCopy["report"];
 
 /**
  * Variant A — "Scoreboard": the session as a number. A 0–100 dial and verdict,
@@ -33,34 +35,20 @@ const LAST_SESSION = 76;
 /** The elite mark on every bar — a target, always on. */
 const ELITE_LEVEL = 95;
 
-const TILES: ScoreTile[] = [
-  {
-    name: "Front elbow",
-    score: 91,
-    note: "Very good. Elbow stays high — almost elite.",
-    delta: { text: "4", dir: "up" },
-  },
-  {
-    name: "Bat swing",
-    score: 64,
-    note: "Needs work. Bat comes down 4.1 cm off straight — costs you most.",
-    delta: { text: "3", dir: "down" },
-  },
-  {
-    name: "Head movement",
-    score: 88,
-    note: "Big improvement. Head 3 cm steadier than usual.",
-    delta: { text: "2", dir: "up" },
-  },
+// Numbers only — each tile's name and note come from `copy.tiles`, in order.
+const TILES: Omit<ScoreTile, "name" | "note">[] = [
+  { score: 91, delta: { text: "4", dir: "up" } },
+  { score: 64, delta: { text: "3", dir: "down" } },
+  { score: 88, delta: { text: "2", dir: "up" } },
 ];
 
 const HISTORY = [68, 71, 74, 79, LAST_SESSION, SCORE];
 
-function verdictFor(score: number) {
-  if (score >= 85) return "Great session";
-  if (score >= 70) return "Good session";
-  if (score >= 60) return "Solid session";
-  return "Keep building";
+function verdictFor(score: number, verdicts: ReportCopy["verdicts"]) {
+  if (score >= 85) return verdicts.great;
+  if (score >= 70) return verdicts.good;
+  if (score >= 60) return verdicts.solid;
+  return verdicts.keep;
 }
 
 const good = (score: number) => score >= 70;
@@ -121,10 +109,12 @@ function RevealBox({
 }
 
 function Dial({
+  ofHundred,
   value,
   progress,
   window,
 }: {
+  ofHundred: string;
   value: number;
   progress?: MotionValue<number>;
   window?: [number, number];
@@ -156,23 +146,23 @@ function Dial({
           {count}
         </motion.span>
         <span className="mt-0.5 text-caption font-semibold tracking-[.12em] text-ink-600 uppercase">
-          of 100
+          {ofHundred}
         </span>
       </div>
     </div>
   );
 }
 
-function ChangePill({ now, previous }: { now: number; previous: number }) {
+function ChangePill({ copy, now, previous }: { copy: ReportCopy["pill"]; now: number; previous: number }) {
   const delta = now - previous;
   const base = "inline-block rounded-full px-3 py-1 text-ui font-semibold";
   if (Math.abs(delta) < 2) {
-    return <span className={`${base} bg-cream-250 text-ink-600`}>About the same as last time</span>;
+    return <span className={`${base} bg-cream-250 text-ink-600`}>{copy.same}</span>;
   }
   if (delta > 0) {
-    return <span className={`${base} bg-moss-600 text-cream-50`}>▲ {delta} on last session</span>;
+    return <span className={`${base} bg-moss-600 text-cream-50`}>{copy.up.replace("{n}", String(delta))}</span>;
   }
-  return <span className={`${base} bg-rust-600 text-cream-50`}>▼ {-delta} on last session</span>;
+  return <span className={`${base} bg-rust-600 text-cream-50`}>{copy.down.replace("{n}", String(-delta))}</span>;
 }
 
 function DeltaMark({ delta }: { delta: ScoreTile["delta"] }) {
@@ -195,8 +185,9 @@ function DeltaMark({ delta }: { delta: ScoreTile["delta"] }) {
   );
 }
 
+/** Bolds the verdict — the first sentence, ended by a full stop or a danda. */
 function TileNote({ note }: { note: string }) {
-  const dot = note.indexOf(". ");
+  const dot = note.search(/[.।] /);
   if (dot === -1) return <>{note}</>;
   return (
     <>
@@ -245,10 +236,10 @@ function TileRow({
 }
 
 /** Always six columns; the standalone card only. */
-function SessionsChart() {
+function SessionsChart({ copy }: { copy: ReportCopy["chart"] }) {
   return (
     <div className="border-b border-cream-400 py-4">
-      <Kicker>Last 6 sessions</Kicker>
+      <Kicker>{copy.kicker}</Kicker>
       <div className="mt-3 flex items-end gap-1.5" aria-hidden>
         {HISTORY.map((value, index) => {
           const today = index === HISTORY.length - 1;
@@ -270,14 +261,20 @@ function SessionsChart() {
         })}
       </div>
       <div className="mt-1.5 flex justify-between text-caption text-ink-600">
-        <span>6 weeks ago</span>
-        <span className="text-amber-500">today</span>
+        <span>{copy.ago}</span>
+        <span className="text-amber-500">{copy.today}</span>
       </div>
     </div>
   );
 }
 
-export function VariantScoreboard({ progress }: { progress?: MotionValue<number> } = {}) {
+export function VariantScoreboard({
+  copy,
+  progress,
+}: {
+  copy: ReportCopy;
+  progress?: MotionValue<number>;
+}) {
   const compact = !!progress;
   // Nine reveal beats of similar height — masthead, dial, scores kicker, three
   // rows, the fix, its drill, the stamp — on the editorial card's cadence, the
@@ -300,33 +297,39 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
       {/* The same masthead as the editorial card, then the session's number
           and verdict side by side. */}
       <Reveal progress={progress} {...w(0)}>
-        <Kicker>Coaching report</Kicker>
-        <div className="mt-2 text-ui text-ink-600">{SUBTITLE}</div>
+        <Kicker>{copy.kicker}</Kicker>
+        <div className="mt-2 text-ui text-ink-600">{copy.subtitle}</div>
       </Reveal>
       <Reveal
         progress={progress}
         {...w(1)}
         className={`flex items-center gap-5 border-b border-cream-400 ${compact ? "mt-3.5 pb-3.5" : "mt-5 pb-5"}`}
       >
-        <Dial progress={progress} value={SCORE} window={progress ? [w(1).from, w(1).from + 0.1] : undefined} />
+        <Dial
+          ofHundred={copy.ofHundred}
+          progress={progress}
+          value={SCORE}
+          window={progress ? [w(1).from, w(1).from + 0.1] : undefined}
+        />
         <div className="min-w-0">
           <div className="font-display text-display font-bold tracking-[.04em] text-ink-900 uppercase">
-            {verdictFor(SCORE)}
+            {verdictFor(SCORE, copy.verdicts)}
           </div>
           <div className="mt-2">
-            <ChangePill now={SCORE} previous={LAST_SESSION} />
+            <ChangePill copy={copy.pill} now={SCORE} previous={LAST_SESSION} />
           </div>
         </div>
       </Reveal>
 
       <Reveal progress={progress} {...w(2)} className={compact ? "pt-3.5" : "pt-4"}>
-        <Kicker>Your 3 scores</Kicker>
+        <Kicker>{copy.scoresKicker}</Kicker>
       </Reveal>
       <div className="mt-1">
-        {TILES.map((tile, i) => {
+        {TILES.map((numbers, i) => {
           const { from, to } = w(3 + i);
+          const tile = { ...numbers, ...copy.tiles[i] };
           return (
-            <Reveal key={tile.name} progress={progress} from={from} to={to}>
+            <Reveal key={i} progress={progress} from={from} to={to}>
               <TileRow
                 compact={compact}
                 progress={progress}
@@ -340,19 +343,19 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
         })}
       </div>
 
-      {!compact && <SessionsChart />}
+      {!compact && <SessionsChart copy={copy.chart} />}
 
       {/* The fix: a kicker and the one thing, then the drill as the system's
           info flash — a left rule on a tinted ground, never a box in a box. */}
       <Reveal progress={progress} {...w(6)} className={compact ? "pt-3.5" : "pt-4"}>
-        <Kicker>Fix this one thing</Kicker>
-        <div className="mt-2 text-title font-bold text-ink-900">Your bat swing</div>
-        <p className="mt-1 text-body text-ink-800">{compact ? WEAKEST_SHORT : WEAKEST}</p>
+        <Kicker>{copy.fixKicker}</Kicker>
+        <div className="mt-2 text-title font-bold text-ink-900">{copy.fixTitle}</div>
+        <p className="mt-1 text-body text-ink-800">{compact ? copy.weakestShort : copy.weakest}</p>
       </Reveal>
       <Reveal progress={progress} {...w(7)} className={`border-b border-cream-400 ${compact ? "pt-2 pb-3" : "pt-3 pb-4"}`}>
         <p className="border-l-2 border-rust-500 bg-rust-50 px-3 py-2 text-ui text-ink-800">
-          <span className="font-semibold text-ink-900">Your drill · </span>
-          {DRILL}
+          <span className="font-semibold text-ink-900">{copy.drillLabel}</span>
+          {copy.drill}
         </p>
       </Reveal>
 
@@ -361,11 +364,9 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
           ✓
         </span>
         <div>
-          <div className="text-body font-semibold text-ink-900">Approved by an ECB Level 3 coach</div>
+          <div className="text-body font-semibold text-ink-900">{copy.approved}</div>
           {!compact && (
-            <p className="mt-1.5 text-caption text-ink-600 italic">
-              &ldquo;Genuinely repeatable technique. Lock in the one thing above and the rest holds.&rdquo;
-            </p>
+            <p className="mt-1.5 text-caption text-ink-600 italic">&ldquo;{copy.quote}&rdquo;</p>
           )}
         </div>
       </Reveal>

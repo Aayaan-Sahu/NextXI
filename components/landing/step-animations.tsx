@@ -12,7 +12,7 @@ function AnimationPanel({ children }: { children: React.ReactNode }) {
 }
 
 /** Step 1: a video chip floats up into a dashed upload tray, on repeat. */
-export function UploadAnimation() {
+export function UploadAnimation({ file }: { file: string }) {
   return (
     <AnimationPanel>
       <div className="flex flex-col items-center gap-5">
@@ -40,7 +40,7 @@ export function UploadAnimation() {
             ▶
           </span>
           <span className="text-micro font-semibold tracking-[.16em] text-cream-200 uppercase">
-            over-14.mp4
+            {file}
           </span>
         </motion.div>
 
@@ -142,7 +142,7 @@ export function NeuralNetAnimation() {
 }
 
 /** Step 3: a cursor glides in, clicks Connect, and the button flips state. */
-export function ConnectAnimation() {
+export function ConnectAnimation({ labels }: { labels: { connect: string; connected: string } }) {
   const cycle = 3.2;
 
   return (
@@ -162,14 +162,14 @@ export function ConnectAnimation() {
             transition={{ duration: cycle, times: [0, 0.5, 0.55, 0.95, 1], repeat: Infinity }}
             className="rounded-md bg-rust-600 py-2 text-center text-caption font-semibold text-cream-50"
           >
-            Connect
+            {labels.connect}
           </motion.div>
           <motion.div
             animate={{ opacity: [0, 0, 1, 1, 0] }}
             transition={{ duration: cycle, times: [0, 0.5, 0.55, 0.95, 1], repeat: Infinity }}
             className="absolute inset-0 rounded-md bg-gold-500 py-2 text-center text-caption font-semibold text-ink-900"
           >
-            Connected ✓
+            {labels.connected}
           </motion.div>
           {/* click ripple */}
           <motion.span

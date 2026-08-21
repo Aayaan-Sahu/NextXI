@@ -77,7 +77,7 @@ export function TheWall({ copy, lang }: { copy: LandingCopy["wall"]; lang: Landi
           <BandIntro tone="dark" className="mt-4 max-w-[52ch]">
             {copy.intro}
           </BandIntro>
-          <WallFigure className="mx-auto mt-10 w-full max-w-[360px] lg:mx-0" />
+          <WallFigure className="mx-auto mt-10 w-full max-w-[360px] lg:mx-0" labels={copy.figure} />
         </div>
 
         <div>

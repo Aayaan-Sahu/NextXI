@@ -8,20 +8,23 @@
  * cricket terms transliterated (बैट, कोच, ट्रायल, स्काउट), numbers in Latin
  * digits, product and people's names untouched.
  *
- * What deliberately stays English in both languages: the coaching report and
- * the HUD readouts inside the pinned hero, and the skeleton figure's labels.
- * They depict the product as it ships today, and the product reports in
- * English — a Hindi report on the landing page would promise one that doesn't
- * exist yet. Translate them the day the pipeline does.
+ * The demo report and HUD inside the pinned hero are translated too, so the
+ * Hindi page reads as one piece. Note what that implies: the product itself
+ * still reports in English today, so the Hindi demo is a preview of a report
+ * the pipeline doesn't write yet. Names, unit symbols (°, s, fps), file
+ * extensions and proper nouns (ECB, U19, AI) stay as they are.
  */
 
 import type { LandingLang } from "@/lib/landing-lang";
+import { DRILL, SUBTITLE, WEAKEST, WEAKEST_SHORT } from "./report-variants/report-data";
 
 export type { LandingLang };
 
 type Step = { kicker: string; title: string; body: string };
 type Gate = { kicker: string; title: string; body: string };
 type Stage = { title: string; body: string };
+type Callout = { label: string; value: string };
+type Tile = { name: string; note: string };
 
 export type LandingCopy = {
   meta: { title: string; description: string };
@@ -33,11 +36,43 @@ export type LandingCopy = {
     taglineAccent: string;
     scroll: string;
   };
+  /** The pinned analysis video: its headline overlay, then everything the
+      HUD writes over the footage and everything on the report card. */
+  video: { heading: string; footage: string };
+  hud: {
+    callouts: { elbow: Callout; swing: Callout; head: Callout };
+    subject: { name: string; credit: string };
+    readouts: { elbow: string; stride: string; batTip: string; phase: string };
+    /** Keyed by the event labels in hero-drive-track.ts. */
+    phases: Record<string, string>;
+    units: { m: string; mph: string };
+  };
+  report: {
+    kicker: string;
+    subtitle: string;
+    ofHundred: string;
+    verdicts: { great: string; good: string; solid: string; keep: string };
+    /** `{n}` is the points difference. */
+    pill: { same: string; up: string; down: string };
+    scoresKicker: string;
+    tiles: [Tile, Tile, Tile];
+    fixKicker: string;
+    fixTitle: string;
+    weakest: string;
+    weakestShort: string;
+    drillLabel: string;
+    drill: string;
+    approved: string;
+    quote: string;
+    chart: { kicker: string; ago: string; today: string };
+  };
   steps: {
     kicker: string;
     heading: string;
     items: [Step, Step, Step];
     guide: string;
+    /** Labels inside the step illustrations. */
+    animations: { file: string; connect: string; connected: string };
   };
   wall: {
     kicker: string;
@@ -46,6 +81,8 @@ export type LandingCopy = {
     featuredKicker: string;
     placeholders: [Stage, Stage, Stage];
     footnote: string;
+    /** The skeleton figure's two measurement annotations. */
+    figure: { elbow: string; stride: string };
   };
   more: {
     kicker: string;
@@ -99,6 +136,60 @@ const en: LandingCopy = {
     taglineAccent: "seen properly",
     scroll: "Scroll",
   },
+  video: {
+    heading: "AI-backed scouting for young cricketers",
+    footage: "Footage · Aryaman Varma · Professional cricketer",
+  },
+  hud: {
+    callouts: {
+      elbow: { label: "Front elbow", value: "118°" },
+      swing: { label: "Swing path", value: "4.1 cm off" },
+      head: { label: "Head travel", value: "11 cm" },
+    },
+    subject: { name: "Aryaman Varma", credit: "Wisden Schools Cricketer ’25 · England U19" },
+    readouts: { elbow: "Elbow", stride: "Stride", batTip: "Bat tip", phase: "Phase" },
+    phases: {
+      stance: "stance",
+      backlift: "backlift",
+      trigger: "trigger",
+      downswing: "downswing",
+      impact: "impact",
+      "follow-through": "follow-through",
+      recovery: "recovery",
+    },
+    units: { m: "m", mph: "mph" },
+  },
+  report: {
+    kicker: "Coaching report",
+    subtitle: SUBTITLE,
+    ofHundred: "of 100",
+    verdicts: {
+      great: "Great session",
+      good: "Good session",
+      solid: "Solid session",
+      keep: "Keep building",
+    },
+    pill: {
+      same: "About the same as last time",
+      up: "▲ {n} on last session",
+      down: "▼ {n} on last session",
+    },
+    scoresKicker: "Your 3 scores",
+    tiles: [
+      { name: "Front elbow", note: "Very good. Elbow stays high — almost elite." },
+      { name: "Bat swing", note: "Needs work. Bat comes down 4.1 cm off straight — costs you most." },
+      { name: "Head movement", note: "Big improvement. Head 3 cm steadier than usual." },
+    ],
+    fixKicker: "Fix this one thing",
+    fixTitle: "Your bat swing",
+    weakest: WEAKEST,
+    weakestShort: WEAKEST_SHORT,
+    drillLabel: "Your drill · ",
+    drill: DRILL,
+    approved: "Approved by an ECB Level 3 coach",
+    quote: "Genuinely repeatable technique. Lock in the one thing above and the rest holds.",
+    chart: { kicker: "Last 6 sessions", ago: "6 weeks ago", today: "today" },
+  },
   steps: {
     kicker: "How it works",
     heading: "From the nets to the scout's desk",
@@ -120,6 +211,7 @@ const en: LandingCopy = {
       },
     ],
     guide: "Watch the recording guide",
+    animations: { file: "over-14.mp4", connect: "Connect", connected: "Connected ✓" },
   },
   wall: {
     kicker: "Noticed through NextXI",
@@ -134,6 +226,7 @@ const en: LandingCopy = {
     ],
     footnote:
       "Nothing on this wall is ever invented. Every story is a real player, shared with their guardian's permission — first name and initial only.",
+    figure: { elbow: "Elbow 128°", stride: "Stride 92 cm" },
   },
   more: {
     kicker: "One platform",
@@ -221,6 +314,66 @@ const hi: LandingCopy = {
     taglineAccent: "सही नज़रों में",
     scroll: "स्क्रॉल करें",
   },
+  video: {
+    heading: "युवा क्रिकेटरों के लिए AI-समर्थित स्काउटिंग",
+    footage: "फ़ुटेज · Aryaman Varma · पेशेवर क्रिकेटर",
+  },
+  hud: {
+    callouts: {
+      elbow: { label: "अगली कोहनी", value: "118°" },
+      swing: { label: "स्विंग पाथ", value: "4.1 सेमी दूर" },
+      head: { label: "सिर की हलचल", value: "11 सेमी" },
+    },
+    subject: { name: "Aryaman Varma", credit: "विज़डन स्कूल्स क्रिकेटर ’25 · इंग्लैंड U19" },
+    readouts: { elbow: "कोहनी", stride: "स्ट्राइड", batTip: "बैट टिप", phase: "फ़ेज़" },
+    phases: {
+      stance: "स्टांस",
+      backlift: "बैकलिफ़्ट",
+      trigger: "ट्रिगर",
+      downswing: "डाउनस्विंग",
+      impact: "इम्पैक्ट",
+      "follow-through": "फ़ॉलो-थ्रू",
+      recovery: "रिकवरी",
+    },
+    units: { m: "मी", mph: "मील/घं" },
+  },
+  report: {
+    kicker: "कोचिंग रिपोर्ट",
+    subtitle: "Aryaman Varma · फ्रंट-फ़ुट ड्राइव · 12 गेंदें · 240 fps",
+    ofHundred: "100 में से",
+    verdicts: {
+      great: "शानदार सेशन",
+      good: "अच्छा सेशन",
+      solid: "ठोस सेशन",
+      keep: "लगे रहें",
+    },
+    pill: {
+      same: "पिछली बार जैसा ही",
+      up: "▲ पिछले सेशन से {n} ऊपर",
+      down: "▼ पिछले सेशन से {n} नीचे",
+    },
+    scoresKicker: "आपके 3 स्कोर",
+    tiles: [
+      { name: "अगली कोहनी", note: "बहुत अच्छा। कोहनी ऊँची रहती है — लगभग एलीट।" },
+      {
+        name: "बैट स्विंग",
+        note: "सुधार चाहिए। बैट सीधी रेखा से 4.1 सेमी हटकर आता है — सबसे ज़्यादा नुकसान यहीं।",
+      },
+      { name: "सिर की हलचल", note: "बड़ा सुधार। सिर पहले से 3 सेमी ज़्यादा स्थिर।" },
+    ],
+    fixKicker: "यह एक चीज़ ठीक करें",
+    fixTitle: "आपका बैट स्विंग",
+    weakest:
+      "स्विंग पाथ डेविएशन। आख़िरी चार गेंदों पर यह आपके सामान्य 2.6–3.8 सेमी के मुक़ाबले 4.1 सेमी तक खुल जाता है, क्योंकि अगली कोहनी गिरती है — थकान में आपकी तकनीक यहीं ढीली पड़ती है।",
+    weakestShort:
+      "आख़िरी चार गेंदों पर स्विंग पाथ 4.1 सेमी तक खुल जाता है — थकते ही अगली कोहनी गिरती है।",
+    drillLabel: "आपकी ड्रिल · ",
+    drill:
+      "3 × 10 फ्रंट-फ़ुट ड्राइव, पिछली एड़ी के नीचे एक कोन दबाकर; जिस पल कोहनी गिरे, सेट वहीं रोक दें — आप आख़िरी चार गेंदों की ट्रेनिंग कर रहे हैं, पहली आठ की नहीं।",
+    approved: "ECB लेवल 3 कोच द्वारा स्वीकृत",
+    quote: "सचमुच दोहराने लायक तकनीक। ऊपर वाली एक चीज़ पक्की कर लें, बाक़ी सब टिका रहेगा।",
+    chart: { kicker: "पिछले 6 सेशन", ago: "6 हफ़्ते पहले", today: "आज" },
+  },
   steps: {
     kicker: "यह कैसे काम करता है",
     heading: "नेट्स से स्काउट की टेबल तक",
@@ -242,6 +395,7 @@ const hi: LandingCopy = {
       },
     ],
     guide: "रिकॉर्डिंग गाइड देखें",
+    animations: { file: "ओवर-14.mp4", connect: "कनेक्ट", connected: "कनेक्टेड ✓" },
   },
   wall: {
     kicker: "NextXI के ज़रिए नज़र में आए",
@@ -256,6 +410,7 @@ const hi: LandingCopy = {
     ],
     footnote:
       "इस वॉल पर कुछ भी गढ़ा हुआ नहीं है। हर कहानी एक असली खिलाड़ी की है, उनके अभिभावक की अनुमति से साझा की गई — सिर्फ़ पहला नाम और इनिशियल।",
+    figure: { elbow: "कोहनी 128°", stride: "स्ट्राइड 92 सेमी" },
   },
   more: {
     kicker: "एक ही प्लेटफ़ॉर्म",

@@ -11,15 +11,14 @@ import {
   UploadAnimation,
 } from "@/components/landing/step-animations";
 
-// The words live in `copy.ts` (per language); this is only the order and the
-// animation each step gets.
-const STEPS = [
-  { guide: true, animation: <UploadAnimation /> },
-  { guide: false, animation: <NeuralNetAnimation /> },
-  { guide: false, animation: <ConnectAnimation /> },
-];
-
 export function FeaturesSteps({ copy }: { copy: LandingCopy["steps"] }) {
+  // The words live in `copy.ts` (per language); this is only the order and
+  // the animation each step gets.
+  const STEPS = [
+    { guide: true, animation: <UploadAnimation file={copy.animations.file} /> },
+    { guide: false, animation: <NeuralNetAnimation /> },
+    { guide: false, animation: <ConnectAnimation labels={copy.animations} /> },
+  ];
   return (
     <section className="bg-seam-stitch px-6 py-24 sm:px-12">
       <div className="mx-auto w-full max-w-[1000px]">

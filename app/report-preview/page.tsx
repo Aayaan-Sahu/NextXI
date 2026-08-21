@@ -1,5 +1,6 @@
 import { VariantEditorial } from "@/components/landing/report-variants/variant-editorial";
 import { VariantRadar } from "@/components/landing/report-variants/variant-radar";
+import { getLandingCopy } from "@/components/landing/copy";
 import { VariantScoreboard } from "@/components/landing/report-variants/variant-scoreboard";
 
 /**
@@ -8,7 +9,7 @@ import { VariantScoreboard } from "@/components/landing/report-variants/variant-
  */
 export default function ReportPreview() {
   const variants = [
-    { id: "A", name: "Scoreboard", note: "White card · dark hero · 3 scores · measurements · last 6 · one fix", node: <VariantScoreboard /> },
+    { id: "A", name: "Scoreboard", note: "White card · dark hero · 3 scores · measurements · last 6 · one fix", node: <VariantScoreboard copy={getLandingCopy("en").report} /> },
     { id: "B", name: "Radar", note: "Dark · repeatability across the session at a glance", node: <VariantRadar /> },
     { id: "C", name: "Editorial", note: "Light · printed-report measurement rows", node: <VariantEditorial /> },
   ];
