@@ -252,7 +252,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
 
         {/* report, right side, revealing block by block (scrub only) */}
         {scrub && (
-          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[36%] max-w-[520px] items-center">
+          <div className="pointer-events-none absolute inset-y-0 right-[2.5%] flex w-[36%] max-w-[520px] items-center">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full w-full">
               <PinFit>
                 <VariantScoreboard progress={scrollYProgress} />
