@@ -136,7 +136,7 @@ function Dial({
   const dash = useTransform(ramp, (k) => `${filled * k} ${circumference}`);
   const count = useTransform(ramp, (k) => Math.round(value * k));
   return (
-    <div className="relative size-[6.5rem] shrink-0">
+    <div className="relative size-[7.5rem] shrink-0">
       <svg aria-hidden className="size-full -rotate-90" viewBox="0 0 100 100">
         <circle className="stroke-cream-300" cx="50" cy="50" fill="none" r="44" strokeWidth="8" />
         <motion.circle
@@ -151,10 +151,12 @@ function Dial({
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <motion.span className="font-display text-display font-bold tracking-[.02em] text-ink-900 tabular-nums">
+        {/* The one oversized figure on the card — the session's number, at
+            the size the dashboard gives the guardian code. */}
+        <motion.span className="font-display text-[44px] leading-none font-bold tracking-[.02em] text-ink-900 tabular-nums">
           {count}
         </motion.span>
-        <span className="-mt-0.5 text-micro font-semibold tracking-[.12em] text-ink-600 uppercase">
+        <span className="mt-0.5 text-caption font-semibold tracking-[.12em] text-ink-600 uppercase">
           of 100
         </span>
       </div>
@@ -164,7 +166,7 @@ function Dial({
 
 function ChangePill({ now, previous }: { now: number; previous: number }) {
   const delta = now - previous;
-  const base = "inline-block rounded-full px-3 py-1 text-caption font-semibold";
+  const base = "inline-block rounded-full px-3 py-1 text-ui font-semibold";
   if (Math.abs(delta) < 2) {
     return <span className={`${base} bg-cream-250 text-ink-600`}>About the same as last time</span>;
   }
@@ -222,21 +224,21 @@ function TileRow({
   const width = useTransform(ramp, (k) => `${target * k}%`);
   const ok = good(tile.score);
   return (
-    <div className={`border-b border-cream-400 ${compact ? "py-2.5" : "py-3.5"}`}>
+    <div className={`border-b border-cream-400 ${compact ? "py-2" : "py-3.5"}`}>
       <div className="flex items-baseline justify-between gap-3">
         <span className="text-body font-semibold text-ink-900">{tile.name}</span>
         <span className="flex items-baseline gap-2.5">
           <DeltaMark delta={tile.delta} />
-          <span className={`text-figure-sm font-semibold tabular-nums ${ok ? "text-moss-600" : "text-rust-600"}`}>
+          <span className={`font-semibold tabular-nums ${compact ? "text-figure" : "text-figure-sm"} ${ok ? "text-moss-600" : "text-rust-600"}`}>
             {tile.score}
           </span>
         </span>
       </div>
-      <div className="relative mt-2 h-3 overflow-hidden rounded-full bg-cream-300" aria-hidden>
+      <div className="relative mt-1.5 h-3 overflow-hidden rounded-full bg-cream-300" aria-hidden>
         <motion.div className={`h-full rounded-full ${ok ? "bg-moss-600" : "bg-rust-600"}`} style={{ width }} />
         <div className="absolute inset-y-0 w-px bg-ink-900/45" style={{ left: `${ELITE_LEVEL}%` }} />
       </div>
-      <p className={`mt-1.5 text-ink-800 ${compact ? "text-ui" : "text-caption"}`}>
+      <p className={`mt-1 text-ink-800 ${compact ? "text-body" : "text-caption"}`}>
         <TileNote note={tile.note} />
       </p>
     </div>
@@ -297,9 +299,9 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
     >
       {/* Header: the same masthead as the editorial card, then the session's
           number and verdict side by side — one block, one alignment. */}
-      <Reveal progress={progress} {...w(0)} className={`border-b border-cream-400 ${compact ? "pb-3.5" : "pb-5"}`}>
+      <Reveal progress={progress} {...w(0)} className={`border-b border-cream-400 ${compact ? "pb-3" : "pb-5"}`}>
         <Kicker>Coaching report</Kicker>
-        <div className="mt-2 text-caption text-ink-600">{SUBTITLE}</div>
+        <div className="mt-2 text-ui text-ink-600">{SUBTITLE}</div>
         <div className={`flex items-center gap-5 ${compact ? "mt-3.5" : "mt-5"}`}>
           <Dial progress={progress} value={SCORE} window={progress ? [S, S + 0.1] : undefined} />
           <div className="min-w-0">
@@ -338,27 +340,27 @@ export function VariantScoreboard({ progress }: { progress?: MotionValue<number>
 
       {/* The fix: a kicker, the one thing, and the drill as the system's info
           flash — a left rule on a tinted ground, never a box inside a box. */}
-      <Reveal progress={progress} {...w(5)} className={`border-b border-cream-400 ${compact ? "py-3.5" : "py-4"}`}>
+      <Reveal progress={progress} {...w(5)} className={`border-b border-cream-400 ${compact ? "py-3" : "py-4"}`}>
         <Kicker>Fix this one thing</Kicker>
         <div className="mt-2 text-title font-bold text-ink-900">Your bat swing</div>
-        <p className={`mt-1 text-ink-800 ${compact ? "text-ui" : "text-body"}`}>
+        <p className="mt-1 text-body text-ink-800">
           {compact ? WEAKEST_SHORT : WEAKEST}
         </p>
         <div className="mt-2.5 border-l-2 border-rust-500 bg-rust-50 px-3 py-2">
-          <div className="text-caption font-semibold text-ink-900">Your drill</div>
-          <p className="mt-1 text-caption text-ink-800">{DRILL}</p>
+          <div className="text-ui font-semibold text-ink-900">Your drill</div>
+          <p className="mt-1 text-ui text-ink-800">{DRILL}</p>
         </div>
-        <p className="mt-2.5 text-caption font-semibold text-rust-600">
+        <p className="mt-2.5 text-ui font-semibold text-rust-600">
           → Fix this and your score becomes {nextScoreFor(SCORE)}
         </p>
       </Reveal>
 
-      <Reveal progress={progress} {...w(6)} className={`flex items-start gap-3 ${compact ? "pt-3.5 pb-1" : "py-4"}`}>
+      <Reveal progress={progress} {...w(6)} className={`flex items-start gap-3 ${compact ? "pt-3 pb-1" : "py-4"}`}>
         <span className="mt-px flex size-6 shrink-0 items-center justify-center rounded-full bg-moss-600/15 text-caption text-moss-600">
           ✓
         </span>
         <div>
-          <div className="text-ui font-semibold text-ink-900">Approved by an ECB Level 3 coach</div>
+          <div className="text-body font-semibold text-ink-900">Approved by an ECB Level 3 coach</div>
           {!compact && (
             <p className="mt-1.5 text-caption text-ink-600 italic">
               &ldquo;Genuinely repeatable technique. Lock in the one thing above and the rest holds.&rdquo;

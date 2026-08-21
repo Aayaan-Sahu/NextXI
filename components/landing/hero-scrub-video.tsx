@@ -16,7 +16,19 @@ import { useCanScrub } from "@/components/landing/use-can-scrub";
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
 // Breathing room the pinned card keeps above and below itself.
-const PIN_MARGIN = 28;
+const PIN_MARGIN = 16;
+
+// The settled split: the video panel's left inset and the share of the
+// viewport it leaves to the card on the right. The card column (below) is
+// sized so its left edge lands a gutter past the panel's right edge.
+const SPLIT_RIGHT = 0.435;
+// Vertical inset that makes the settled panel exactly 16:9, so the batter
+// fills it edge to edge with no letterbox:
+//   panel width  = (1 - 0.025 - SPLIT_RIGHT) * 100vw
+//   panel height = width * 9/16
+//   inset        = (100vh - height) / 2
+// max(0px, …) keeps the panel inside the viewport on ultra-wide screens.
+const SPLIT_INSET_Y = `max(0px, 50% - ${(((1 - 0.025 - SPLIT_RIGHT) * 9) / 16 / 2) * 100}vw)`;
 
 /**
  * Scales the report card down (never up) so its natural height fits the pinned
@@ -118,9 +130,13 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   // (rather than a transform) lets the batter's 16:9 frame fill the panel
   // edge-to-edge. Tuned by screenshot.
   const videoLeft = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "2.5%", "2.5%"]);
-  const videoRight = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "39.5%", "39.5%"]);
-  const videoTop = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
-  const videoBottom = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "17.5%", "17.5%"]);
+  const videoRight = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", `${SPLIT_RIGHT * 100}%`, `${SPLIT_RIGHT * 100}%`]);
+  // The vertical inset is a calc() of vh and vw, which Motion cannot
+  // interpolate as a keyframe string — so it is built per frame from a
+  // numeric 0→1 multiplier on the same schedule as the horizontal insets.
+  const splitY = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], [0, 0, 1, 1]);
+  const videoTop = useTransform(splitY, (m) => `calc(${m} * ${SPLIT_INSET_Y})`);
+  const videoBottom = videoTop;
   const videoRadius = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0px", "0px", "26px", "26px"]);
   // The report slides in on the right; its blocks then reveal (in
   // VariantScoreboard, driven by scrollYProgress over roughly [0.62, 0.93]).
@@ -197,7 +213,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
 
         {/* report, right side, revealing block by block (scrub only) */}
         {scrub && (
-          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[46%] max-w-[500px] items-center">
+          <div className="pointer-events-none absolute inset-y-0 right-[3%] flex w-[39%] max-w-[560px] items-center">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full w-full">
               <PinFit>
                 <VariantScoreboard progress={scrollYProgress} />
