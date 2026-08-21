@@ -239,6 +239,23 @@ export function AnalysisHud({
 
   useEffect(() => {
     let raf = 0;
+    // Draw for the frame the browser has actually presented, not the time the
+    // seek was asked for. Under a fast scrub a seek is in flight a third of
+    // the time and currentTime runs ~2 frames ahead of the picture, which puts
+    // the skeleton's bat ahead of the real one through the downswing. The
+    // presented time is exact by construction, including across the replay's
+    // cut. Falls back to currentTime where rVFC is unavailable.
+    let presented = NaN;
+    let vfc = 0;
+    const vid0 = videoRef.current;
+    const hasVfc = !!vid0 && "requestVideoFrameCallback" in vid0;
+    if (vid0 && hasVfc) {
+      const onFrame = (_now: number, meta: VideoFrameCallbackMetadata) => {
+        presented = meta.mediaTime;
+        vfc = vid0.requestVideoFrameCallback(onFrame);
+      };
+      vfc = vid0.requestVideoFrameCallback(onFrame);
+    }
     const tick = () => {
       raf = requestAnimationFrame(tick);
       const vid = videoRef.current;
@@ -254,7 +271,7 @@ export function AnalysisHud({
       frameBox.style.width = `${vw}px`;
       frameBox.style.height = `${vh}px`;
 
-      const t = vid.currentTime;
+      const t = Number.isFinite(presented) ? presented : vid.currentTime;
 
       // joints + limbs + bounding box
       let minX = 100, minY = 100, maxX = 0, maxY = 0;
@@ -379,7 +396,10 @@ export function AnalysisHud({
       }
     };
     raf = requestAnimationFrame(tick);
-    return () => cancelAnimationFrame(raf);
+    return () => {
+      cancelAnimationFrame(raf);
+      if (vid0 && hasVfc && vfc) vid0.cancelVideoFrameCallback(vfc);
+    };
   }, [videoRef]);
 
   return (
