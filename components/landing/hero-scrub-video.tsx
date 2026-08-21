@@ -18,17 +18,22 @@ const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 // Breathing room the pinned card keeps above and below itself.
 const PIN_MARGIN = 36;
 
-// The settled split: the video panel's left inset and the share of the
-// viewport it leaves to the card on the right. The card column (below) is
-// sized so its left edge lands a gutter past the panel's right edge.
-const SPLIT_RIGHT = 0.41;
-// Vertical inset that makes the settled panel exactly 16:9, so the batter
-// fills it edge to edge with no letterbox:
-//   panel width  = (1 - 0.025 - SPLIT_RIGHT) * 100vw
-//   panel height = width * 9/16
-//   inset        = (100vh - height) / 2
-// max(0px, …) keeps the panel inside the viewport on ultra-wide screens.
-const SPLIT_INSET_Y = `max(0px, 50% - ${(((1 - 0.025 - SPLIT_RIGHT) * 9) / 16 / 2) * 100}vw)`;
+// The settled split. One margin — EDGE — on the outside of the video, between
+// video and card, and on the outside of the card, so the pair sits centred
+// whatever the viewport. The card column is CARD_W wide (keep in sync with
+// its classes below); when PinFit has to scale the card down to fit a short
+// viewport, the video reclaims the width it gives up, so the gutter holds.
+//   panel right inset = 2 * EDGE + scale * CARD_W
+//   panel width       = 100% - 3 * EDGE - scale * CARD_W
+// The panel's vertical inset makes it exactly 16:9 so the batter fills it
+// edge to edge with no letterbox: inset = (100% - width * 9/16) / 2.
+// max(0px, …) keeps it inside the viewport on ultra-wide screens.
+const EDGE = "2.5%";
+const CARD_W = "min(36%, 520px)";
+const CARD_VW = "min(36vw, 520px)";
+const splitRight = (scale: number) => `(2 * ${EDGE} + ${scale} * ${CARD_W})`;
+const splitInsetY = (scale: number) =>
+  `max(0px, 50% - ${9 / 32} * (92.5vw - ${scale} * ${CARD_VW}))`;
 
 /**
  * Scales the report card down (never up) so its natural height fits the pinned
@@ -37,7 +42,7 @@ const SPLIT_INSET_Y = `max(0px, 50% - ${(((1 - 0.025 - SPLIT_RIGHT) * 9) / 16 / 
  * Origin is left-centre so the gutter to the video never widens — the card
  * gives back space on its outer edge instead.
  */
-function PinFit({ children }: { children: React.ReactNode }) {
+function PinFit({ children, onScale }: { children: React.ReactNode; onScale: (scale: number) => void }) {
   const boxRef = useRef<HTMLDivElement>(null);
   const cardRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -50,21 +55,25 @@ function PinFit({ children }: { children: React.ReactNode }) {
       // offsetHeight ignores the transform, so this is the natural height.
       const available = box.clientHeight - PIN_MARGIN * 2;
       const natural = card.offsetHeight;
-      setScale(natural > 0 ? Math.min(1, available / natural) : 1);
+      const next = natural > 0 ? Math.min(1, available / natural) : 1;
+      setScale(next);
+      onScale(next);
     };
     fit();
     const ro = new ResizeObserver(fit);
     ro.observe(box);
     ro.observe(card);
     return () => ro.disconnect();
-  }, []);
+  }, [onScale]);
 
   return (
     <div ref={boxRef} className="flex h-full w-full items-center">
+      {/* Origin right-centre: the card keeps its outer margin and gives the
+          width back on the video side, where the panel reclaims it. */}
       <div
         ref={cardRef}
         className="w-full"
-        style={{ transform: `scale(${scale})`, transformOrigin: "left center" }}
+        style={{ transform: `scale(${scale})`, transformOrigin: "right center" }}
       >
         {children}
       </div>
@@ -163,13 +172,16 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   // left, sitting almost flush with the report. Animating the wrapper insets
   // (rather than a transform) lets the batter's 16:9 frame fill the panel
   // edge-to-edge. Tuned by screenshot.
-  const videoLeft = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", "2.5%", "2.5%"]);
-  const videoRight = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0%", "0%", `${SPLIT_RIGHT * 100}%`, `${SPLIT_RIGHT * 100}%`]);
-  // The vertical inset is a calc() of vh and vw, which Motion cannot
-  // interpolate as a keyframe string — so it is built per frame from a
-  // numeric 0→1 multiplier on the same schedule as the horizontal insets.
-  const splitY = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], [0, 0, 1, 1]);
-  const videoTop = useTransform(splitY, (m) => `calc(${m} * ${SPLIT_INSET_Y})`);
+  // How far PinFit had to shrink the card to fit the viewport (1 = not at all).
+  const [cardScale, setCardScale] = useState(1);
+  // The insets are calc() strings of % and vw, which Motion cannot interpolate
+  // as keyframes — so they are built per frame from a numeric 0→1 multiplier.
+  // The transformers close over cardScale; useTransform re-evaluates with the
+  // latest closure on every render, so a scale change re-lays the split.
+  const split = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], [0, 0, 1, 1]);
+  const videoLeft = useTransform(split, (m) => `calc(${m} * ${EDGE})`);
+  const videoRight = useTransform(split, (m) => `calc(${m} * ${splitRight(cardScale)})`);
+  const videoTop = useTransform(split, (m) => `calc(${m} * ${splitInsetY(cardScale)})`);
   const videoBottom = videoTop;
   const videoRadius = useTransform(scrollYProgress, [0, 0.56, 0.72, 1], ["0px", "0px", "26px", "26px"]);
   // The report slides in on the right; its blocks then reveal (in
@@ -254,7 +266,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         {scrub && (
           <div className="pointer-events-none absolute inset-y-0 right-[2.5%] flex w-[36%] max-w-[520px] items-center">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full w-full">
-              <PinFit>
+              <PinFit onScale={setCardScale}>
                 <VariantScoreboard progress={scrollYProgress} />
               </PinFit>
             </motion.div>
