@@ -5,8 +5,14 @@ import { checkUsername } from "@/app/auth/actions";
 import { Field, FieldHint } from "@/components/ui";
 import { USERNAME_PATTERN, usernameFromName } from "@/lib/usernames";
 
-export function UsernameHandleField({ nameValue }: { nameValue: string }) {
-  const suggested = usernameFromName(nameValue);
+export function UsernameHandleField({
+  nameValue = "",
+  suggestFromName = true,
+}: {
+  nameValue?: string;
+  suggestFromName?: boolean;
+}) {
+  const suggested = suggestFromName ? usernameFromName(nameValue) : "";
   const [override, setOverride] = useState<string | null>(null);
   const username = override ?? suggested;
   const [check, setCheck] = useState<{
@@ -47,7 +53,9 @@ export function UsernameHandleField({ nameValue }: { nameValue: string }) {
           ? "3–30 letters, numbers, or underscores."
           : status === "checking"
             ? "Checking…"
-            : "Public on your profile. We'll suggest one from your name.";
+            : suggestFromName
+              ? "Public on your profile. We'll suggest one from your name."
+              : "Public on your profile.";
 
   const bad = status === "taken" || status === "invalid";
 
@@ -67,7 +75,7 @@ export function UsernameHandleField({ nameValue }: { nameValue: string }) {
           aria-invalid={bad}
           autoCapitalize="none"
           autoComplete="username"
-          className="min-w-0 flex-1 border-none bg-transparent py-2.5 text-base font-normal text-ink-900 focus:outline-none sm:pointer-fine:text-body"
+          className="min-w-0 flex-1 border-none bg-transparent py-2.5 text-base font-normal text-ink-900 focus:outline-none sm:pointer-fine:text-body [&:-webkit-autofill]:shadow-[inset_0_0_0_1000px_var(--color-cream-50)] [&:-webkit-autofill]:[-webkit-text-fill-color:var(--color-ink-900)]"
           name="username"
           onChange={(event) => {
             setOverride(

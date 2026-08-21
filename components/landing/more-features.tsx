@@ -16,7 +16,7 @@ const STEPS = [
   {
     step: "02",
     title: "AI report",
-    body: "Every upload becomes a numbers-first coaching report — real measurements, not scores. When the footage doesn't show enough to measure honestly, the report says so. Coaches you connect with watch the video itself and leave their own feedback.",
+    body: "Every upload becomes a numbers-first coaching report — real measurements, not scores. When the footage can't be measured honestly, the report says so.",
   },
   {
     step: "03",

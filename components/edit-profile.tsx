@@ -125,7 +125,7 @@ export function EditPlayerProfilePanel({
     <section>
       <SectionHeading>Player details</SectionHeading>
       <Form action={updateProfile} className="mt-[18px]" id={PROFILE_FORM_ID}>
-        <div className="grid gap-x-5 gap-y-[18px] sm:grid-cols-2">
+        <div className="grid items-start gap-x-5 gap-y-[18px] sm:grid-cols-2">
           <Field>
             Name
             <TextInput defaultValue={player.name} name="name" required type="text" />
@@ -212,7 +212,7 @@ export function EditCoachProfilePanel({
     <section>
       <SectionHeading>Coach details</SectionHeading>
       <Form action={updateProfile} className="mt-[18px]" id={PROFILE_FORM_ID}>
-        <div className="grid gap-x-5 gap-y-[18px] sm:grid-cols-2">
+        <div className="grid items-start gap-x-5 gap-y-[18px] sm:grid-cols-2">
           <Field>
             Name
             <TextInput defaultValue={coach.name} name="name" required type="text" />

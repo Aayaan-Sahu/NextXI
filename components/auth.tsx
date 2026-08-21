@@ -1,21 +1,18 @@
 "use client";
 
 import { useActionState, useState } from "react";
-import { useFormStatus } from "react-dom";
 import {
-  requestEmailCode,
-  requestPasswordReset,
   resendVerification,
   signIn,
+  signUp,
+  requestPasswordReset,
   updatePassword,
-  verifySignupOtp,
   type AuthFormState,
   type CheckEmailState,
 } from "@/app/auth/actions";
-import { AuthStepper } from "@/components/auth-stepper";
-import { OtpBoxes } from "@/components/otp-boxes";
 import { PasswordInput } from "@/components/password-input";
 import { SubmitButton } from "@/components/submit-button";
+import { UsernameHandleField } from "@/components/username-field";
 import {
   AuthCard,
   AuthSheet,
@@ -57,7 +54,7 @@ export function AuthPanel({
       <AuthShell brandLine="Film it. Understand it.">
         <div className="animate-crease-fade" key={mode}>
           <AuthCard
-            description="We email you a 6-digit code — no password needed to start."
+            description="A handle, an email, a password. We'll send a verification link you can tap whenever."
             footer={
               <>
                 Already have an account?{" "}
@@ -82,7 +79,7 @@ export function AuthPanel({
 
   return (
     <AuthSheet
-      description="We'll email a 6-digit code to your address."
+      description="Email and password — the ones you used to create the account."
       footer={
         <>
           New here?{" "}
@@ -99,15 +96,29 @@ export function AuthPanel({
 }
 
 function SignUpForm({ bannerError }: { bannerError?: string }) {
-  const [otpState, otpAction] = useActionState(requestEmailCode, emptyAuth);
+  const [state, action] = useActionState(signUp, emptyAuth);
 
   return (
     <>
-      <Form action={otpAction} className="mt-6">
-        <input name="intent" type="hidden" value="sign-up" />
+      <Form action={action} className="mt-6">
+        <UsernameHandleField suggestFromName={false} />
         <Field>
           Email
           <TextInput autoComplete="email" name="email" required type="email" />
+        </Field>
+        <Field>
+          Password
+          <PasswordInput autoComplete="new-password" minLength={6} name="password" required />
+          <FieldHint>Minimum 6 characters.</FieldHint>
+        </Field>
+        <Field>
+          Confirm password
+          <PasswordInput
+            autoComplete="new-password"
+            minLength={6}
+            name="confirmPassword"
+            required
+          />
         </Field>
         <label className="flex items-start gap-2.5 text-ui leading-relaxed select-none">
           <input
@@ -128,10 +139,10 @@ function SignUpForm({ bannerError }: { bannerError?: string }) {
             .
           </span>
         </label>
-        <SubmitButton className="w-full">Email me a code</SubmitButton>
+        <SubmitButton className="w-full">Create account</SubmitButton>
       </Form>
       <Notice className="mt-4" tone="error">
-        {otpState.error ?? bannerError}
+        {state.error ?? bannerError}
       </Notice>
       <p className="mt-5 border-t border-cream-400 pt-4 text-caption leading-relaxed text-ink-600">
         Under-18s need a parent or guardian to approve their account after sign-up.
@@ -141,67 +152,29 @@ function SignUpForm({ bannerError }: { bannerError?: string }) {
 }
 
 function SignInForm({ bannerError }: { bannerError?: string }) {
-  const [passwordMode, setPasswordMode] = useState(false);
-  const [otpState, otpAction] = useActionState(requestEmailCode, emptyAuth);
-  const [passwordState, passwordAction] = useActionState(signIn, emptyAuth);
-
-  if (passwordMode) {
-    return (
-      <>
-        <Notice className="mt-5" tone="error">
-          {passwordState.error ?? bannerError}
-        </Notice>
-        <p className="mt-4 text-ui text-ink-600">
-          Password sign-in, for accounts that set one.
-        </p>
-        <Form action={passwordAction} className="mt-6">
-          <Field>
-            Email
-            <TextInput autoComplete="email" name="email" required type="email" />
-          </Field>
-          <Field>
-            <span className="flex items-baseline justify-between gap-3">
-              Password
-              <TextLink className="text-caption" href="/auth/reset-password">
-                Forgot your password?
-              </TextLink>
-            </span>
-            <PasswordInput autoComplete="current-password" minLength={6} name="password" required />
-            <FieldHint>Minimum 6 characters.</FieldHint>
-          </Field>
-          <SubmitButton className="w-full">Sign in</SubmitButton>
-        </Form>
-        <button
-          className={`mt-4 w-full text-center ${inlineLinkStyles}`}
-          onClick={() => setPasswordMode(false)}
-          type="button"
-        >
-          Email me a code instead
-        </button>
-      </>
-    );
-  }
+  const [state, action] = useActionState(signIn, emptyAuth);
 
   return (
     <>
-      <Form action={otpAction} className="mt-6">
-        <input name="intent" type="hidden" value="sign-in" />
+      <Notice className="mt-5" tone="error">
+        {state.error ?? bannerError}
+      </Notice>
+      <Form action={action} className="mt-6">
         <Field>
           Email
           <TextInput autoComplete="email" name="email" required type="email" />
         </Field>
-        <SubmitButton className="w-full">Email me a code</SubmitButton>
+        <Field>
+          <span className="flex items-baseline justify-between gap-3">
+            Password
+            <TextLink className="text-caption" href="/auth/reset-password">
+              Forgot your password?
+            </TextLink>
+          </span>
+          <PasswordInput autoComplete="current-password" minLength={6} name="password" required />
+        </Field>
+        <SubmitButton className="w-full">Sign in</SubmitButton>
       </Form>
-      <button
-        className={`mt-4 w-full text-center ${inlineLinkStyles}`}
-        onClick={() => setPasswordMode(true)}
-        type="button"
-      >
-        Sign in with a password
-      </button>
-      <Notice className="mt-4" tone="error">
-        {otpState.error ?? bannerError}
-      </Notice>
     </>
   );
 }
@@ -267,79 +240,38 @@ export function CheckEmailPanel({
   message?: string;
 }) {
   const [address, setAddress] = useState(email);
-  const [editingEmail, setEditingEmail] = useState(!email);
-  const [otpState, otpAction] = useActionState(verifySignupOtp, emptyAuth);
   const [resendState, resendAction] = useActionState(resendVerification, emptyCheck);
-
-  const codeError = otpState.error ?? error;
 
   return (
     <AuthSheet
-      context={<AuthStepper current="confirm" tone="dark" />}
       description={
         address
-          ? `We sent a 6-digit code to ${address}. It expires after a short time.`
-          : "Enter the email you used and the 6-digit code from NextXI."
+          ? `We sent a verification link to ${address}. Click it whenever — it doesn't block you.`
+          : "Enter the email you used and we'll send a verification link."
       }
       footer={<TextLink href="/auth">← Back to sign in</TextLink>}
-      title="Check your email"
+      title="Verify your email"
     >
       <Notice className="mt-5" tone="error">
-        {codeError ?? resendState.error}
+        {error ?? resendState.error}
       </Notice>
 
-      <Form action={otpAction} className="mt-6">
-        {address && !editingEmail ? (
-          <input name="email" type="hidden" value={address} />
-        ) : (
-          <Field>
-            Email
-            <TextInput
-              autoComplete="email"
-              name="email"
-              onChange={(event) => setAddress(event.target.value)}
-              required
-              type="email"
-              value={address}
-            />
-          </Field>
-        )}
-        <div>
-          <OtpBoxes invalid={Boolean(codeError)} />
-          <p className="mt-2.5 text-caption text-ink-600">
-            Paste the whole code and it fills every box.
-          </p>
-        </div>
-        <SubmitButton className="w-full">Confirm and continue</SubmitButton>
+      <Form action={resendAction} className="mt-6">
+        <Field>
+          Email
+          <TextInput
+            autoComplete="email"
+            name="email"
+            onChange={(event) => setAddress(event.target.value)}
+            required
+            type="email"
+            value={address}
+          />
+        </Field>
+        <SubmitButton className="w-full">Resend verification email</SubmitButton>
       </Form>
-
-      <div className="mt-5 flex items-center gap-[18px] text-ui font-semibold">
-        <form action={resendAction}>
-          <input name="email" type="hidden" value={address} />
-          <ResendButton />
-        </form>
-        {address && !editingEmail ? (
-          <button className={inlineLinkStyles} onClick={() => setEditingEmail(true)} type="button">
-            Use a different email
-          </button>
-        ) : null}
-      </div>
 
       <Notice className="mt-4">{resendState.message ?? message}</Notice>
     </AuthSheet>
-  );
-}
-
-function ResendButton() {
-  const { pending } = useFormStatus();
-
-  return (
-    <button
-      className={`${inlineLinkStyles} disabled:cursor-default disabled:opacity-60`}
-      disabled={pending}
-      type="submit"
-    >
-      {pending ? "Sending…" : "Resend code"}
-    </button>
   );
 }

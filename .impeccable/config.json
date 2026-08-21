@@ -1,0 +1,14 @@
+{
+  "detector": {
+    "ignoreRules": [],
+    "ignoreFiles": [],
+    "ignoreValues": [
+      {
+        "rule": "design-system-font-size",
+        "value": "44px",
+        "createdAt": "2026-08-21T00:46:58.241Z",
+        "reason": "User confirmed 44px is intentional: the session figure in the scoreboard dial and the guardian code share one oversized display step"
+      }
+    ]
+  }
+}

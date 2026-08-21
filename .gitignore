@@ -42,3 +42,7 @@ next-env.d.ts
 
 /app/generated/prisma
 .gstack/
+
+# impeccable design-hook scratch (config.json is shared and committed)
+.impeccable/hook.cache.json
+.impeccable/config.local.json

@@ -63,10 +63,12 @@ export function OnboardingPanel({
   email,
   error,
   role = "player",
+  username,
 }: {
   email?: string;
   error?: string;
   role?: OnboardingRole;
+  username?: string | null;
 }) {
   const copy = COPY[role];
   const isPlayer = role === "player";
@@ -96,17 +98,25 @@ export function OnboardingPanel({
       title={copy.title}
       width={isPlayer ? "lg" : "sm"}
     >
-      <RoleForm error={error} key={role} role={role} submit={copy.submit} />
+      <RoleForm
+        error={error}
+        key={role}
+        reservedUsername={username}
+        role={role}
+        submit={copy.submit}
+      />
     </AuthSheet>
   );
 }
 
 function RoleForm({
   error,
+  reservedUsername,
   role,
   submit,
 }: {
   error?: string;
+  reservedUsername?: string | null;
   role: OnboardingRole;
   submit: string;
 }) {
@@ -121,9 +131,12 @@ function RoleForm({
       </Notice>
       <Form action={action} className="mt-6">
         <input name="role" type="hidden" value={role} />
+        <p className="-mt-1 text-caption leading-relaxed text-ink-600">
+          We emailed a verification link. Click it whenever — it doesn&apos;t block you.
+        </p>
         {role === "player" ? (
           <>
-            <div className="grid gap-x-5 gap-y-[18px] sm:grid-cols-2">
+            <div className="grid items-start gap-x-5 gap-y-[18px] sm:grid-cols-2">
               <Field>
                 Name
                 <TextInput
@@ -135,7 +148,7 @@ function RoleForm({
                   value={name}
                 />
               </Field>
-              <UsernameHandleField nameValue={name} />
+              <UsernameSlot nameValue={name} reserved={reservedUsername} />
               <Field>
                 Date of birth
                 <TextInput max={dob.max} min={dob.min} name="dateOfBirth" required type="date" />
@@ -144,8 +157,10 @@ function RoleForm({
                 Club
                 <TextInput name="club" required type="text" />
               </Field>
-              <CountryField />
-              <PhysicalFields />
+              <div className="sm:col-span-2">
+                <CountryField />
+              </div>
+              <PhysicalFields className="sm:col-span-2" />
             </div>
             <RolesField />
           </>
@@ -162,7 +177,7 @@ function RoleForm({
                 value={name}
               />
             </Field>
-            <UsernameHandleField nameValue={name} />
+            <UsernameSlot nameValue={name} reserved={reservedUsername} />
             {role === "coach" ? <CoachFields /> : <GuardianFields />}
           </>
         )}
@@ -207,6 +222,27 @@ function RoleSwitchLinks({ role }: { role: OnboardingRole }) {
       )}
     </span>
   );
+}
+
+function UsernameSlot({
+  nameValue,
+  reserved,
+}: {
+  nameValue: string;
+  reserved?: string | null;
+}) {
+  if (reserved) {
+    return (
+      <Field>
+        Username
+        <input name="username" type="hidden" value={reserved} />
+        <p className="text-body font-normal text-ink-900">@{reserved}</p>
+        <FieldHint>Picked when you created the account.</FieldHint>
+      </Field>
+    );
+  }
+
+  return <UsernameHandleField nameValue={nameValue} />;
 }
 
 function CountryField() {

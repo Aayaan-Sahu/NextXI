@@ -6,14 +6,16 @@ import { Field, FieldHint, TextInput } from "@/components/ui";
  * inside a longer column.
  */
 export function PhysicalFields({
+  className = "",
   defaultHeight,
   defaultWeight,
 }: {
+  className?: string;
   defaultHeight?: number | string;
   defaultWeight?: number | string | null;
 }) {
   return (
-    <div className="grid grid-cols-2 gap-3.5">
+    <div className={`grid grid-cols-2 items-start gap-3.5 ${className}`}>
       <Field>
         Height cm
         <TextInput
@@ -37,6 +39,7 @@ export function PhysicalFields({
           placeholder="Optional"
           type="text"
         />
+        <FieldHint>Optional.</FieldHint>
       </Field>
     </div>
   );

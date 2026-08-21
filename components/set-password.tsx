@@ -8,15 +8,15 @@ import { Field, Form, Notice, SectionHeading } from "@/components/ui";
 
 const empty: AuthFormState = {};
 
-/** Optional password so OTP-first accounts can sign in without a code next time. */
+/** Password for signing in. OTP-era accounts that never set one can add it here. */
 export function SetPasswordPanel() {
   const [state, action] = useActionState(setAccountPassword, empty);
 
   return (
     <section>
-      <SectionHeading>Set a password</SectionHeading>
+      <SectionHeading>Password</SectionHeading>
       <p className="mt-2 text-caption leading-relaxed text-ink-600">
-        Optional. Add one and you can sign in with a password instead of a code.
+        The password you use to sign in. Change it here if you want a new one.
       </p>
       <Form action={action} className="mt-3">
         <Field>
