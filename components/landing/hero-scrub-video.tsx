@@ -10,6 +10,7 @@ import {
   useTransform,
 } from "motion/react";
 import { AnalysisHud } from "@/components/landing/analysis-hud";
+import type { LandingCopy } from "@/components/landing/copy";
 import { VariantScoreboard } from "@/components/landing/report-variants/variant-scoreboard";
 import { useCanScrub } from "@/components/landing/use-can-scrub";
 
@@ -120,7 +121,15 @@ function seekFractionAt(p: number) {
  * batter stays in view. On coarse pointers / reduced motion the video just
  * autoplays and the report sits under it.
  */
-export function HeroScrubVideo({ src, poster }: { src: string; poster: string }) {
+export function HeroScrubVideo({
+  copy,
+  src,
+  poster,
+}: {
+  copy: Pick<LandingCopy, "video" | "hud" | "report">;
+  src: string;
+  poster: string;
+}) {
   const sectionRef = useRef<HTMLElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const scrub = useCanScrub();
@@ -235,6 +244,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             className="h-full w-full object-contain"
           />
           <AnalysisHud
+            copy={copy.hud}
             progress={videoProgress}
             scrub={scrub}
             story={scrub ? scrollYProgress : undefined}
@@ -254,10 +264,10 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-6 text-center"
           >
             <h2 className="max-w-5xl font-display text-4xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 text-shadow-display uppercase sm:text-6xl lg:text-8xl">
-              AI-backed scouting for young cricketers
+              {copy.video.heading}
             </h2>
             <p className="mt-6 text-caption font-semibold tracking-[.16em] text-cream-200 uppercase">
-              Footage · Aryaman Varma · Professional cricketer
+              {copy.video.footage}
             </p>
           </motion.div>
         )}
@@ -267,7 +277,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
           <div className="pointer-events-none absolute inset-y-0 right-[2.5%] flex w-[36%] max-w-[520px] items-center">
             <motion.div style={{ opacity: reportOpacity, x: reportX }} className="h-full w-full">
               <PinFit onScale={setCardScale}>
-                <VariantScoreboard progress={scrollYProgress} />
+                <VariantScoreboard copy={copy.report} progress={scrollYProgress} />
               </PinFit>
             </motion.div>
           </div>
@@ -299,10 +309,10 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
         <div className="bg-pitch-950 px-6 py-16 sm:px-12">
           <div className="mx-auto mb-12 max-w-[460px] text-center">
             <h2 className="font-display text-4xl leading-[1.04] font-bold tracking-[.02em] text-cream-100 uppercase">
-              AI-backed scouting for young cricketers
+              {copy.video.heading}
             </h2>
             <p className="mt-4 text-caption font-semibold tracking-[.16em] text-cream-200 uppercase">
-              Footage · Aryaman Varma · Professional cricketer
+              {copy.video.footage}
             </p>
           </div>
           <motion.div
@@ -312,7 +322,7 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
             transition={{ duration: 0.6 }}
             className="mx-auto w-full max-w-[460px]"
           >
-            <VariantScoreboard />
+            <VariantScoreboard copy={copy.report} />
           </motion.div>
         </div>
       )}

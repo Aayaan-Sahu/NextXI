@@ -76,6 +76,10 @@
 
   --font-sans: var(--font-public-sans), system-ui, sans-serif;
   --font-display: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
+  /* The wordmark's face. Same Saira as display, but its own token: a brand
+     mark never follows the page's language, and the Hindi landing swaps
+     `font-display` for a Devanagari face (see the end of this file). */
+  --font-brand: var(--font-saira-condensed), var(--font-public-sans), sans-serif;
 
   /* ── Elevation ────────────────────────────────────────────────────────
    *
@@ -227,4 +231,30 @@ input[type="number"]::-webkit-outer-spin-button {
   transform: translateY(0.75rem);
   outline: 2px solid var(--color-amber-500);
   outline-offset: 2px;
+}
+
+/* The Hindi landing page (`<main lang="hi">`, see app/page.tsx). Same two
+   roles, Devanagari faces: Hind stands in for Public Sans, Khand for Saira
+   Condensed. The theme tokens are left alone — the wordmark keeps Saira via
+   its own `font-brand`, and anything tagged `lang="en"` inside would get the
+   theme faces straight back. Unlayered, so the role override outranks the
+   utility. `uppercase` passes through harmlessly — Devanagari has no case —
+   but tracking does not: letter-spacing cuts the shirorekha (the headline
+   stroke that joins a word) into pieces, so tracked roles lose it here. The
+   eyebrow still reads as one through colour, weight and size. The wordmark
+   is Latin and keeps its tracking. */
+[lang="hi"] {
+  font-family: var(--font-hind), var(--font-public-sans), system-ui, sans-serif;
+}
+[lang="hi"] .font-display {
+  font-family: var(--font-khand), var(--font-hind), sans-serif;
+}
+[lang="hi"] [class*="tracking-"]:not(.font-brand) {
+  letter-spacing: 0;
+}
+[lang="hi"] [lang="en"] {
+  font-family: var(--font-sans);
+}
+[lang="hi"] [lang="en"] .font-display {
+  font-family: var(--font-display);
 }

@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { motion, useMotionValue, useMotionValueEvent, useTransform, type MotionValue } from "motion/react";
+import type { LandingCopy } from "@/components/landing/copy";
 import { HERO_DRIVE_TRACK, type TrackSample } from "@/components/landing/hero-drive-track";
-import { METRICS } from "@/components/landing/report-variants/report-data";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
 
@@ -125,11 +125,12 @@ function tickAt(x: number, y: number, dx: number, dy: number, size = 1.2) {
   return `M ${x + nx} ${y + ny} L ${x - nx} ${y - ny}`;
 }
 
-const fmtValue = (m: (typeof METRICS)[number]) => `${m.value.toFixed(m.decimals)}${m.unit === "°" ? "°" : ` ${m.unit}`}`;
-const CALLOUT_COPY = [
-  { key: "elbow", label: "Front elbow", value: fmtValue(METRICS[0]), tone: "good" },
-  { key: "swing", label: "Swing path", value: `${fmtValue(METRICS[1])} off`, tone: "bad" },
-  { key: "head", label: "Head travel", value: fmtValue(METRICS[2]), tone: "good" },
+// The callouts' words and values come from `copy.hud.callouts` (per language,
+// values written to match report-data); this is their order and verdict.
+const CALLOUTS = [
+  { key: "elbow", tone: "good" },
+  { key: "swing", tone: "bad" },
+  { key: "head", tone: "good" },
 ] as const;
 
 /** One box recipe for every piece of chrome on the frame. There used to be
@@ -169,11 +170,13 @@ const fmtTime = (t: number) => `${t.toFixed(2)}s`;
  * chrome clips away and only the on-frame geometry shows — intentional.
  */
 export function AnalysisHud({
+  copy,
   progress,
   scrub,
   story,
   videoRef,
 }: {
+  copy: LandingCopy["hud"];
   progress: MotionValue<number>;
   scrub: boolean;
   /** Pin progress, scrub only — drives the replay's geometry return and the
@@ -200,6 +203,12 @@ export function AnalysisHud({
   const elbowArcRef = useRef<SVGPathElement>(null);
   const elbowTagRef = useRef<HTMLDivElement>(null);
   const phaseRef = useRef(phase);
+  // The draw loop reads the unit labels through a ref: copy is fixed for a
+  // page load, and the loop must not re-bind every render.
+  const unitsRef = useRef(copy.units);
+  useEffect(() => {
+    unitsRef.current = copy.units;
+  }, [copy.units]);
 
   // Fade with the scroll story in scrub mode: in after the red wipe, out
   // before the headline takes the frame. The chrome (name tag, clock,
@@ -384,8 +393,8 @@ export function AnalysisHud({
       const tipMph = speedMps(P.batTip, t) * MPS_TO_MPH;
       if (timeRef.current) timeRef.current.textContent = fmtTime(t);
       if (elbowRef.current) elbowRef.current.textContent = `${elbowDeg.toFixed(1)}°`;
-      if (strideRef.current) strideRef.current.textContent = `${strideM.toFixed(2)} m`;
-      if (tipRef.current) tipRef.current.textContent = `${tipMph.toFixed(1)} mph`;
+      if (strideRef.current) strideRef.current.textContent = `${strideM.toFixed(2)} ${unitsRef.current.m}`;
+      if (tipRef.current) tipRef.current.textContent = `${tipMph.toFixed(1)} ${unitsRef.current.mph}`;
 
       // phase (React state, changes rarely)
       let current = events[0].label;
@@ -506,7 +515,7 @@ export function AnalysisHud({
         </svg>
 
         {/* callout labels: the HUD's box, with the row's verdict as a rule */}
-        {CALLOUT_COPY.map((c) => (
+        {CALLOUTS.map((c) => (
           <motion.div
             key={c.key}
             ref={c.key === "elbow" ? elbowTagRef : undefined}
@@ -521,8 +530,10 @@ export function AnalysisHud({
             }
             className={`absolute w-fit border-l-2 ${BOX} ${c.tone === "good" ? "border-moss-600" : "border-rust-500"}`}
           >
-            <div className={LABEL}>{c.label}</div>
-            <div className="mt-0.5 text-caption font-semibold tabular-nums text-cream-50">{c.value}</div>
+            <div className={LABEL}>{copy.callouts[c.key].label}</div>
+            <div className="mt-0.5 text-caption font-semibold tabular-nums text-cream-50">
+              {copy.callouts[c.key].value}
+            </div>
           </motion.div>
         ))}
 
@@ -530,10 +541,8 @@ export function AnalysisHud({
             credibility (Aryaman is the demo subject, not a benchmark pro). */}
         <motion.div ref={subjectTagRef} style={{ opacity: chromeOpacity }} className="absolute">
           <div className={`w-fit ${BOX} max-sm:px-2 max-sm:py-1`}>
-            <div className="text-caption font-semibold text-cream-50">Aryaman Varma</div>
-            <div className="text-micro text-cream-200/70">
-              Wisden Schools Cricketer &rsquo;25 · England U19
-            </div>
+            <div className="text-caption font-semibold text-cream-50">{copy.subject.name}</div>
+            <div className="text-micro text-cream-200/70">{copy.subject.credit}</div>
           </div>
         </motion.div>
 
@@ -561,9 +570,9 @@ export function AnalysisHud({
           >
             {(
               [
-                ["Elbow", elbowRef],
-                ["Stride", strideRef],
-                ["Bat tip", tipRef],
+                [copy.readouts.elbow, elbowRef],
+                [copy.readouts.stride, strideRef],
+                [copy.readouts.batTip, tipRef],
               ] as const
             ).map(([label, ref]) => (
               <div
@@ -586,8 +595,10 @@ export function AnalysisHud({
             className={`absolute bottom-6 left-5 ${BOX} max-sm:static max-sm:px-3 max-sm:py-2`}
           >
             <div className="flex items-baseline gap-2.5">
-              <span className={LABEL}>Phase</span>
-              <span className="text-caption font-semibold text-amber-500">{phase}</span>
+              <span className={LABEL}>{copy.readouts.phase}</span>
+              <span className="text-caption font-semibold text-amber-500">
+                {copy.phases[phase] ?? phase}
+              </span>
             </div>
           </motion.div>
         </div>

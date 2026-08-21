@@ -1,6 +1,7 @@
 "use client";
 
 import { motion, useReducedMotion } from "motion/react";
+import type { LandingCopy } from "@/components/landing/copy";
 
 /**
  * The wall's left-page graphic: a pose-skeleton batter mid front-foot drive —
@@ -38,7 +39,13 @@ const LIMBS = [
   "M178 132 L210 168 L225 211", // front arm
 ];
 
-export function WallFigure({ className }: { className?: string }) {
+export function WallFigure({
+  className,
+  labels,
+}: {
+  className?: string;
+  labels: LandingCopy["wall"]["figure"];
+}) {
   const reduced = useReducedMotion() ?? false;
 
   return (
@@ -120,7 +127,7 @@ export function WallFigure({ className }: { className?: string }) {
           x={252}
           y={162}
         >
-          Elbow 128°
+          {labels.elbow}
         </text>
         <path
           className="stroke-amber-500/60"
@@ -134,7 +141,7 @@ export function WallFigure({ className }: { className?: string }) {
           x={167}
           y={427}
         >
-          Stride 92 cm
+          {labels.stride}
         </text>
       </motion.g>
 
