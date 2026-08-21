@@ -2,6 +2,7 @@
 
 import { useActionState } from "react";
 import { joinWaitlist, type WaitlistActionState } from "@/app/actions";
+import type { LandingCopy } from "@/components/landing/copy";
 
 export type WaitlistState = "joined" | "invalid";
 
@@ -10,9 +11,11 @@ const initialState: WaitlistActionState = { status: "idle" };
 /** Email capture for the pre-launch waitlist, styled for the seam-red hero. */
 export function WaitlistForm({
   align = "start",
+  copy,
   waitlist,
 }: {
   align?: "start" | "center";
+  copy: LandingCopy["waitlist"];
   waitlist?: WaitlistState;
 }) {
   const [state, formAction, pending] = useActionState(joinWaitlist, initialState);
@@ -31,8 +34,7 @@ export function WaitlistForm({
         }`}
         role="status"
       >
-        <span className="font-semibold text-cream-50">You&apos;re on the list.</span>{" "}
-        We&apos;ll email when there&apos;s news — no spam.
+        <span className="font-semibold text-cream-50">{copy.joinedTitle}</span> {copy.joinedBody}
       </div>
     );
   }
@@ -42,12 +44,12 @@ export function WaitlistForm({
       <form action={formAction} className="flex gap-2.5 max-sm:flex-col">
         <input
           key={invalidEmail ?? "email"}
-          aria-label="Email address"
+          aria-label={copy.emailLabel}
           autoComplete="email"
           className="min-w-0 flex-1 rounded-md border border-cream-400 bg-cream-50 px-3 py-2.5 text-base text-ink-900 placeholder:text-ink-600 focus:border-ink-900 focus:ring-2 focus:ring-amber-500/60 focus:outline-none sm:pointer-fine:text-body"
           defaultValue={invalidEmail}
           name="email"
-          placeholder="you@email.com"
+          placeholder={copy.placeholder}
           required
           type="email"
         />
@@ -56,7 +58,7 @@ export function WaitlistForm({
           disabled={pending}
           type="submit"
         >
-          {pending ? "Joining…" : "Join the waitlist"}
+          {pending ? copy.joining : copy.join}
         </button>
       </form>
       <p
@@ -64,13 +66,11 @@ export function WaitlistForm({
         role="status"
       >
         {pending ? (
-          "Adding you to the list…"
+          copy.adding
         ) : status === "invalid" ? (
-          <span className="font-semibold text-cream-50">
-            That email doesn&apos;t look right. Try again?
-          </span>
+          <span className="font-semibold text-cream-50">{copy.invalid}</span>
         ) : (
-          "We'll send one email. No spam."
+          copy.noSpam
         )}
       </p>
     </div>

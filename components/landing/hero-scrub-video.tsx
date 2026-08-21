@@ -192,9 +192,13 @@ export function HeroScrubVideo({ src, poster }: { src: string; poster: string })
   return (
     // In scrub mode the section tucks under the ball opener's final viewport
     // (-mt-[100vh], lower z): its pin starts the instant the ball unpins.
+    // `lang="en"` regardless of the page language: the report and HUD here
+    // depict the product, which reports in English — on the Hindi landing
+    // page this is an English island (see globals.css).
     <section
       ref={sectionRef}
       className={scrub ? "relative z-0 -mt-[100vh] h-[600vh]" : "relative"}
+      lang="en"
     >
       <div
         className={`flex flex-col justify-center overflow-hidden bg-pitch-950 ${

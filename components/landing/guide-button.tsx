@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
  * Same asset the dashboard upload flow uses (recording-guide.mp4), surfaced on
  * the landing page under the Upload step.
  */
-export function GuideButton() {
+export function GuideButton({ label }: { label: string }) {
   const [open, setOpen] = useState(false);
 
   useEffect(() => {
@@ -26,7 +26,7 @@ export function GuideButton() {
         onClick={() => setOpen(true)}
         type="button"
       >
-        <span aria-hidden>▶</span> Watch the recording guide
+        <span aria-hidden>▶</span> {label}
       </button>
       {open ? (
         <div

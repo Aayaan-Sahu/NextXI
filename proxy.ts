@@ -1,8 +1,27 @@
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { isLandingLang, LANG_COOKIE, LANG_COOKIE_MAX_AGE } from "@/lib/landing-lang";
 import { getSupabaseConfig } from "@/lib/supabase/server";
 
 export async function proxy(request: NextRequest) {
+  // The landing page's language switch: `/?lang=hi` pins a choice for a year
+  // and bounces back to a clean `/`. Handled here so the toggle can be two
+  // plain links — no JavaScript, no server action, works from a shared URL.
+  if (request.nextUrl.pathname === "/") {
+    const wanted = request.nextUrl.searchParams.get("lang");
+    if (isLandingLang(wanted)) {
+      const clean = request.nextUrl.clone();
+      clean.searchParams.delete("lang");
+      const redirect = NextResponse.redirect(clean);
+      redirect.cookies.set(LANG_COOKIE, wanted, {
+        maxAge: LANG_COOKIE_MAX_AGE,
+        path: "/",
+        sameSite: "lax",
+      });
+      return redirect;
+    }
+  }
+
   let response = NextResponse.next({ request });
   const { key, url } = getSupabaseConfig();
 

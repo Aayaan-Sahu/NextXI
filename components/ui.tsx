@@ -32,7 +32,7 @@ export function Wordmark({
 }) {
   return (
     <span
-      className={`font-display font-bold tracking-[.08em] uppercase ${WORDMARK_SIZES[size]} ${
+      className={`font-brand font-bold tracking-[.08em] uppercase ${WORDMARK_SIZES[size]} ${
         tone === "dark" ? "text-cream-200" : "text-ink-900"
       }`}
     >

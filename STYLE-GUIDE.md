@@ -71,7 +71,15 @@ Nine roles. Every piece of text in the product is one of them. There is no
 
 **Two faces, and only two.** Saira Condensed (`font-display`) names pages and
 sections. Public Sans carries everything else. There is no mono anywhere in the
-codebase and none is loaded — aligned figures use `tabular-nums`.
+codebase and none is loaded — aligned figures use `tabular-nums`. The wordmark
+uses `font-brand` — the same Saira, on its own token, because a brand mark never
+follows the page's language.
+
+The one place the faces change is the Hindi landing page (`<main lang="hi">`,
+offered to visitors in India): Hind stands in for Public Sans and Khand for
+Saira, role for role, via `[lang="hi"]` rules at the end of `globals.css`. Same
+nine sizes, same seven colours. The coaching report inside it stays
+`lang="en"` and keeps the product's faces — it depicts the product.
 
 **Emphasis comes from weight and colour, not another size.** A field label and a
 caption are both 13px; the label is semibold ink, the caption is regular

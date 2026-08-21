@@ -11,6 +11,7 @@ import {
   useTransform,
 } from "motion/react";
 import { Wordmark } from "@/components/ui";
+import type { LandingCopy } from "@/components/landing/copy";
 import { useCanScrub } from "@/components/landing/use-can-scrub";
 
 const clamp01 = (value: number) => Math.min(1, Math.max(0, value));
@@ -33,7 +34,7 @@ const BallCanvas = dynamic(() => import("@/components/landing/ball-canvas"), {
  * beat before the ball appears, so a fast connection reads as choreography
  * rather than a race the ball happened to win.
  */
-export function BallHero() {
+export function BallHero({ copy }: { copy: LandingCopy["hero"] }) {
   const sectionRef = useRef<HTMLElement>(null);
   const reduced = useReducedMotion() ?? false;
   const scrub = useCanScrub();
@@ -131,7 +132,7 @@ export function BallHero() {
             className="absolute inset-0 flex items-center justify-center px-6 text-center font-display text-5xl leading-[1.02] font-bold tracking-[.02em] text-cream-100 text-shadow-display uppercase sm:text-7xl lg:text-8xl"
           >
             <span className="max-w-6xl">
-              Cricket talent, <span className="text-gold-500">seen properly</span>
+              {copy.taglineLead} <span className="text-gold-500">{copy.taglineAccent}</span>
             </span>
           </motion.span>
         </motion.h1>
@@ -152,7 +153,7 @@ export function BallHero() {
           }`}
         >
           <p className="text-caption font-semibold tracking-[.16em] text-cream-200/70 uppercase">
-            Scroll
+            {copy.scroll}
           </p>
           <motion.span
             animate={scrub && !reduced && !cueHidden ? { y: [0, 6, 0] } : { y: 0 }}

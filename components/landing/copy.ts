@@ -1,0 +1,336 @@
+/**
+ * Every word on the landing page, in English and Hindi.
+ *
+ * One dictionary, one type: a section's component takes its slice as a prop
+ * and never reaches for a string of its own, so the two languages can't drift
+ * apart in what they say — only in how they say it. The Hindi is written, not
+ * machine-translated, in the register Indian cricket actually speaks: English
+ * cricket terms transliterated (बैट, कोच, ट्रायल, स्काउट), numbers in Latin
+ * digits, product and people's names untouched.
+ *
+ * What deliberately stays English in both languages: the coaching report and
+ * the HUD readouts inside the pinned hero, and the skeleton figure's labels.
+ * They depict the product as it ships today, and the product reports in
+ * English — a Hindi report on the landing page would promise one that doesn't
+ * exist yet. Translate them the day the pipeline does.
+ */
+
+import type { LandingLang } from "@/lib/landing-lang";
+
+export type { LandingLang };
+
+type Step = { kicker: string; title: string; body: string };
+type Gate = { kicker: string; title: string; body: string };
+type Stage = { title: string; body: string };
+
+export type LandingCopy = {
+  meta: { title: string; description: string };
+  nav: { signIn: string; createAccount: string };
+  toggle: { label: string; en: string; hi: string };
+  hero: {
+    /** Tagline in two parts: the lead, then the gold-accented close. */
+    taglineLead: string;
+    taglineAccent: string;
+    scroll: string;
+  };
+  steps: {
+    kicker: string;
+    heading: string;
+    items: [Step, Step, Step];
+    guide: string;
+  };
+  wall: {
+    kicker: string;
+    heading: string;
+    intro: string;
+    featuredKicker: string;
+    placeholders: [Stage, Stage, Stage];
+    footnote: string;
+  };
+  more: {
+    kicker: string;
+    heading: string;
+    items: [Stage, Stage, Stage, Stage];
+  };
+  trust: {
+    kicker: string;
+    heading: string;
+    gates: [Gate, Gate, Gate];
+  };
+  cta: {
+    heading: string;
+    body: string;
+    button: string;
+    waitlistPrompt: string;
+  };
+  waitlist: {
+    emailLabel: string;
+    placeholder: string;
+    join: string;
+    joining: string;
+    adding: string;
+    invalid: string;
+    noSpam: string;
+    joinedTitle: string;
+    joinedBody: string;
+  };
+  footer: {
+    tagline: string;
+    signIn: string;
+    createAccount: string;
+    safeguarding: string;
+    privacy: string;
+    terms: string;
+    contact: string;
+    built: string;
+  };
+};
+
+const en: LandingCopy = {
+  meta: {
+    title: "NextXI — AI-backed scouting for young cricketers",
+    description:
+      "Film your bowling or batting on a phone and build a profile scouts can check — measured technique and real footage, ready for the people who pick teams.",
+  },
+  nav: { signIn: "Sign in", createAccount: "Create account" },
+  toggle: { label: "Language", en: "EN", hi: "हिंदी" },
+  hero: {
+    taglineLead: "Cricket talent,",
+    taglineAccent: "seen properly",
+    scroll: "Scroll",
+  },
+  steps: {
+    kicker: "How it works",
+    heading: "From the nets to the scout's desk",
+    items: [
+      {
+        kicker: "01 · Upload",
+        title: "Players upload videos",
+        body: "Film a clip from the nets. Watch the short guide so the report can actually see your action.",
+      },
+      {
+        kicker: "02 · Analyze",
+        title: "AI builds your coaching report",
+        body: "Our AI tracks your head, bat and feet through every ball, and turns the movement into real measurements — stride, head travel, swing path — in a report you can read on the bus home.",
+      },
+      {
+        kicker: "03 · Connect",
+        title: "Coaches & scouts find you",
+        body: "Verified coaches and scouts watch your videos, read our AI report, and reach out. No talent goes undiscovered.",
+      },
+    ],
+    guide: "Watch the recording guide",
+  },
+  wall: {
+    kicker: "Noticed through NextXI",
+    heading: "The wall",
+    intro:
+      "Players who get a trial, a coach, or a call-up through this platform can land here — when they and their guardian want that story told. Every story is real. There's room for yours.",
+    featuredKicker: "Noticed",
+    placeholders: [
+      { title: "The first story", body: "Lands here" },
+      { title: "More stories", body: "On their way" },
+      { title: "Your name", body: "Could be here" },
+    ],
+    footnote:
+      "Nothing on this wall is ever invented. Every story is a real player, shared with their guardian's permission — first name and initial only.",
+  },
+  more: {
+    kicker: "One platform",
+    heading: "End-to-end provider",
+    items: [
+      {
+        title: "Sessions",
+        body: "Track sessions, goals, and match stats across the season.",
+      },
+      {
+        title: "AI report",
+        body: "Every upload becomes a numbers-first coaching report — real measurements, not scores. When the footage can't be measured honestly, the report says so.",
+      },
+      {
+        title: "Coach connections",
+        body: "Coaches send connection requests to promising players and build their roster. Players can also request to connect with coaches.",
+      },
+      {
+        title: "Get found",
+        body: "Coaches and scouts search the player pool, watch your footage, and read your numbers. Interest comes to you — trials, sessions, a place in a squad.",
+      },
+    ],
+  },
+  trust: {
+    kicker: "Built safe for youth cricket",
+    heading: "The adults stay in the loop",
+    gates: [
+      {
+        kicker: "Under 18",
+        title: "Guardians see everything",
+        body: "For players under the age of 18, parents/guardians get their own account linked to their child's. They see every report and every message.",
+      },
+      {
+        kicker: "Coaches",
+        title: "Verified before contact",
+        body: "Every coach is checked and approved by us before they can contact any player.",
+      },
+      {
+        kicker: "Footage",
+        title: "Your videos, your call",
+        body: "Videos stay private unless the player decides otherwise.",
+      },
+    ],
+  },
+  cta: {
+    heading: "Ready to get seen.",
+    body: "Create a player account. A couple of minutes, then you're on the card. Coaches and parents join from there.",
+    button: "Create account",
+    waitlistPrompt:
+      "Not ready for an account yet? Leave your email and we'll write when there's news.",
+  },
+  waitlist: {
+    emailLabel: "Email address",
+    placeholder: "you@email.com",
+    join: "Join the waitlist",
+    joining: "Joining…",
+    adding: "Adding you to the list…",
+    invalid: "That email doesn't look right. Try again?",
+    noSpam: "We'll send one email. No spam.",
+    joinedTitle: "You're on the list.",
+    joinedBody: "We'll email when there's news — no spam.",
+  },
+  footer: {
+    tagline: "Cricket talent, seen properly.",
+    signIn: "Sign in",
+    createAccount: "Create account",
+    safeguarding: "Safeguarding",
+    privacy: "Privacy",
+    terms: "Terms",
+    contact: "Contact",
+    built: "Built for young players, their guardians, and the coaches who find them.",
+  },
+};
+
+const hi: LandingCopy = {
+  meta: {
+    title: "NextXI — युवा क्रिकेटरों के लिए AI-समर्थित स्काउटिंग",
+    description:
+      "अपनी बॉलिंग या बैटिंग फ़ोन पर शूट करें और ऐसी प्रोफ़ाइल बनाएँ जिसे स्काउट परख सकें — मापी हुई तकनीक और असली फ़ुटेज, टीम चुनने वालों के लिए तैयार।",
+  },
+  nav: { signIn: "साइन इन", createAccount: "अकाउंट बनाएँ" },
+  toggle: { label: "भाषा", en: "EN", hi: "हिंदी" },
+  hero: {
+    taglineLead: "क्रिकेट टैलेंट,",
+    taglineAccent: "सही नज़रों में",
+    scroll: "स्क्रॉल करें",
+  },
+  steps: {
+    kicker: "यह कैसे काम करता है",
+    heading: "नेट्स से स्काउट की टेबल तक",
+    items: [
+      {
+        kicker: "01 · अपलोड",
+        title: "खिलाड़ी वीडियो अपलोड करते हैं",
+        body: "नेट्स में एक क्लिप शूट करें। छोटी-सी गाइड देख लें, ताकि रिपोर्ट आपका एक्शन ठीक से देख सके।",
+      },
+      {
+        kicker: "02 · विश्लेषण",
+        title: "AI आपकी कोचिंग रिपोर्ट बनाता है",
+        body: "हमारा AI हर गेंद पर आपके सिर, बैट और पैरों को ट्रैक करता है, और उस मूवमेंट को असली मापों में बदलता है — स्ट्राइड, सिर की हलचल, स्विंग पाथ — एक ऐसी रिपोर्ट में जो आप घर लौटते हुए बस में पढ़ सकें।",
+      },
+      {
+        kicker: "03 · कनेक्ट",
+        title: "कोच और स्काउट आपको ढूँढते हैं",
+        body: "वेरिफ़ाइड कोच और स्काउट आपके वीडियो देखते हैं, हमारी AI रिपोर्ट पढ़ते हैं, और आपसे संपर्क करते हैं। कोई टैलेंट अनदेखा नहीं रहता।",
+      },
+    ],
+    guide: "रिकॉर्डिंग गाइड देखें",
+  },
+  wall: {
+    kicker: "NextXI के ज़रिए नज़र में आए",
+    heading: "द वॉल",
+    intro:
+      "जिन खिलाड़ियों को इस प्लेटफ़ॉर्म के ज़रिए ट्रायल, कोच या कॉल-अप मिलता है, वे यहाँ आ सकते हैं — जब वे और उनके अभिभावक चाहें कि यह कहानी बताई जाए। हर कहानी सच्ची है। आपके लिए भी जगह है।",
+    featuredKicker: "नज़र में आए",
+    placeholders: [
+      { title: "पहली कहानी", body: "यहाँ आएगी" },
+      { title: "और कहानियाँ", body: "रास्ते में हैं" },
+      { title: "आपका नाम", body: "यहाँ हो सकता है" },
+    ],
+    footnote:
+      "इस वॉल पर कुछ भी गढ़ा हुआ नहीं है। हर कहानी एक असली खिलाड़ी की है, उनके अभिभावक की अनुमति से साझा की गई — सिर्फ़ पहला नाम और इनिशियल।",
+  },
+  more: {
+    kicker: "एक ही प्लेटफ़ॉर्म",
+    heading: "शुरू से आख़िर तक",
+    items: [
+      {
+        title: "सेशन",
+        body: "पूरे सीज़न के सेशन, लक्ष्य और मैच के आँकड़े ट्रैक करें।",
+      },
+      {
+        title: "AI रिपोर्ट",
+        body: "हर अपलोड एक नंबरों पर टिकी कोचिंग रिपोर्ट बनता है — असली माप, स्कोर नहीं। जब फ़ुटेज को ईमानदारी से मापा न जा सके, रिपोर्ट साफ़ कह देती है।",
+      },
+      {
+        title: "कोच से कनेक्शन",
+        body: "कोच होनहार खिलाड़ियों को कनेक्शन रिक्वेस्ट भेजते हैं और अपनी टीम बनाते हैं। खिलाड़ी भी कोच से जुड़ने की रिक्वेस्ट भेज सकते हैं।",
+      },
+      {
+        title: "नज़र में आएँ",
+        body: "कोच और स्काउट खिलाड़ियों के पूल में खोजते हैं, आपकी फ़ुटेज देखते हैं, और आपके नंबर पढ़ते हैं। मौके ख़ुद आपके पास आते हैं — ट्रायल, सेशन, स्क्वाड में जगह।",
+      },
+    ],
+  },
+  trust: {
+    kicker: "युवा क्रिकेट के लिए सुरक्षित बनाया गया",
+    heading: "बड़े हमेशा जानकारी में रहते हैं",
+    gates: [
+      {
+        kicker: "18 से कम",
+        title: "अभिभावक सब कुछ देखते हैं",
+        body: "18 साल से कम उम्र के खिलाड़ियों के माता-पिता/अभिभावकों को अपना अलग अकाउंट मिलता है, जो बच्चे के अकाउंट से जुड़ा होता है। वे हर रिपोर्ट और हर मैसेज देखते हैं।",
+      },
+      {
+        kicker: "कोच",
+        title: "संपर्क से पहले वेरिफ़ाइड",
+        body: "हर कोच को किसी भी खिलाड़ी से संपर्क करने से पहले हम जाँचते और मंज़ूरी देते हैं।",
+      },
+      {
+        kicker: "फ़ुटेज",
+        title: "आपके वीडियो, आपका फ़ैसला",
+        body: "वीडियो प्राइवेट रहते हैं, जब तक खिलाड़ी ख़ुद कुछ और न तय करे।",
+      },
+    ],
+  },
+  cta: {
+    heading: "नज़र में आने के लिए तैयार।",
+    body: "प्लेयर अकाउंट बनाएँ। बस दो मिनट, और आप लिस्ट में हैं। कोच और माता-पिता वहीं से जुड़ते हैं।",
+    button: "अकाउंट बनाएँ",
+    waitlistPrompt: "अभी अकाउंट नहीं बनाना? अपना ईमेल छोड़ जाएँ, कोई ख़बर होगी तो हम लिखेंगे।",
+  },
+  waitlist: {
+    emailLabel: "ईमेल पता",
+    placeholder: "aap@email.com",
+    join: "वेटलिस्ट में जुड़ें",
+    joining: "जुड़ रहे हैं…",
+    adding: "आपको लिस्ट में जोड़ रहे हैं…",
+    invalid: "यह ईमेल सही नहीं लग रहा। फिर से कोशिश करें?",
+    noSpam: "हम एक ही ईमेल भेजेंगे। कोई स्पैम नहीं।",
+    joinedTitle: "आप लिस्ट में हैं।",
+    joinedBody: "कोई ख़बर होगी तो ईमेल करेंगे — कोई स्पैम नहीं।",
+  },
+  footer: {
+    tagline: "क्रिकेट टैलेंट, सही नज़रों में।",
+    signIn: "साइन इन",
+    createAccount: "अकाउंट बनाएँ",
+    safeguarding: "सुरक्षा",
+    privacy: "प्राइवेसी",
+    terms: "शर्तें",
+    contact: "संपर्क",
+    built: "युवा खिलाड़ियों, उनके अभिभावकों, और उन्हें ढूँढने वाले कोचों के लिए बनाया गया।",
+  },
+};
+
+const COPY: Record<LandingLang, LandingCopy> = { en, hi };
+
+export function getLandingCopy(lang: LandingLang): LandingCopy {
+  return COPY[lang];
+}

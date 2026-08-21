@@ -1,3 +1,4 @@
+import type { LandingCopy, LandingLang } from "@/components/landing/copy";
 import { BandHeading, BandIntro } from "@/components/landing/landing-ui";
 import { WallFigure } from "@/components/landing/wall-figure";
 import { Kicker } from "@/components/ui";
@@ -24,28 +25,28 @@ type WallEntry = {
   /** Discipline · age group · club, e.g. "Leg spin · U15 · Wandsworth CC".
       Omitted until confirmed — an entry only ever states what we know. */
   detail?: string;
-  /** What actually happened, e.g. "Invited to a county trial". */
-  outcome: string;
+  /** What actually happened, e.g. "Invited to a county trial" — in each
+      landing language, since it's the one line of copy that is data. */
+  outcome: Record<LandingLang, string>;
 };
 
 const ENTRIES: WallEntry[] = [
-  { name: "Peter N.", outcome: "Scouted by Mubasher H." },
+  {
+    name: "Peter N.",
+    outcome: { en: "Scouted by Mubasher H.", hi: "Mubasher H. ने स्काउट किया" },
+  },
 ];
 
-// Placeholders are sliced away as real entries land, so every line must read
-// correctly at ANY entry count and carry no calendar claim that can silently
-// go stale — the footnote below stakes this section on literal accuracy.
-const PLACEHOLDERS = [
-  { title: "The first story", note: "Lands here" },
-  { title: "More stories", note: "On their way" },
-  { title: "Your name", note: "Could be here" },
-];
+// Placeholders (`copy.wall.placeholders`) are sliced away as real entries
+// land, so every line must read correctly at ANY entry count and carry no
+// calendar claim that can silently go stale — the footnote stakes this
+// section on literal accuracy.
 
 function slotNumber(n: number) {
   return String(n).padStart(2, "0");
 }
 
-function EntryCopy({ entry }: { entry: WallEntry }) {
+function EntryCopy({ entry, lang }: { entry: WallEntry; lang: LandingLang }) {
   return (
     <>
       <h3 className="font-display text-title font-semibold text-cream-50 uppercase">
@@ -54,14 +55,14 @@ function EntryCopy({ entry }: { entry: WallEntry }) {
       {entry.detail && (
         <p className="mt-1 text-caption text-cream-200/70">{entry.detail}</p>
       )}
-      <p className="mt-1 text-ui text-cream-200">{entry.outcome}</p>
+      <p className="mt-1 text-ui text-cream-200">{entry.outcome[lang]}</p>
     </>
   );
 }
 
-export function TheWall() {
+export function TheWall({ copy, lang }: { copy: LandingCopy["wall"]; lang: LandingLang }) {
   const [featured, ...rest] = ENTRIES;
-  const openSlots = PLACEHOLDERS.slice(ENTRIES.length);
+  const openSlots = copy.placeholders.slice(ENTRIES.length);
 
   return (
     <section className="bg-pitch-900 px-6 py-24 sm:px-12">
@@ -69,14 +70,12 @@ export function TheWall() {
         {/* Left page of the spread: the pitch — copy plus the platform's
             skeleton view of a batter. The board hangs on the right. */}
         <div>
-          <Kicker tone="dark">Noticed through NextXI</Kicker>
+          <Kicker tone="dark">{copy.kicker}</Kicker>
           <BandHeading tone="dark" className="mt-3">
-            The wall
+            {copy.heading}
           </BandHeading>
           <BandIntro tone="dark" className="mt-4 max-w-[52ch]">
-            Players who get a trial, a coach, or a call-up through this platform
-            can land here — when they and their guardian want that story told.
-            Every story is real. There&apos;s room for yours.
+            {copy.intro}
           </BandIntro>
           <WallFigure className="mx-auto mt-10 w-full max-w-[360px] lg:mx-0" />
         </div>
@@ -91,7 +90,7 @@ export function TheWall() {
             {featured ? (
               <article className="relative border-b border-cream-400/25 px-7 py-10 sm:px-10 sm:py-12">
                 <div className="flex items-baseline justify-between gap-4">
-                  <Kicker tone="dark">Noticed</Kicker>
+                  <Kicker tone="dark">{copy.featuredKicker}</Kicker>
                   <span className="text-title font-semibold text-amber-500 tabular-nums">
                     {slotNumber(1)}
                   </span>
@@ -105,7 +104,7 @@ export function TheWall() {
                 {featured.detail && (
                   <p className="mt-3 text-ui text-cream-200/70">{featured.detail}</p>
                 )}
-                <p className="mt-4 text-lead text-cream-200">{featured.outcome}</p>
+                <p className="mt-4 text-lead text-cream-200">{featured.outcome[lang]}</p>
               </article>
             ) : null}
 
@@ -127,7 +126,7 @@ export function TheWall() {
                     {slotNumber(i + 2)}
                   </span>
                   <div className="min-w-0">
-                    <EntryCopy entry={entry} />
+                    <EntryCopy entry={entry} lang={lang} />
                   </div>
                 </div>
               </article>
@@ -142,7 +141,7 @@ export function TheWall() {
                   className={`relative px-7 py-8 sm:px-10 ${last ? "" : "border-b border-cream-400/25"}`}
                 >
                   <div className="flex items-baseline justify-between gap-4">
-                    <Kicker tone="dark">{slot.note}</Kicker>
+                    <Kicker tone="dark">{slot.body}</Kicker>
                     <span className="text-title font-semibold text-amber-500/70 tabular-nums">
                       {slotNumber(n)}
                     </span>
@@ -155,11 +154,7 @@ export function TheWall() {
             })}
           </div>
 
-          <p className="mt-5 max-w-[64ch] text-caption text-cream-200/70">
-            Nothing on this wall is ever invented. Every story is a real player,
-            shared with their guardian&apos;s permission — first name and initial
-            only.
-          </p>
+          <p className="mt-5 max-w-[64ch] text-caption text-cream-200/70">{copy.footnote}</p>
         </div>
       </div>
     </section>
