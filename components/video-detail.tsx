@@ -1,27 +1,42 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Prisma } from "@/app/generated/prisma/client";
+import { ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
+import { ClipPlayer } from "@/components/clip-player";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { ReportPanel } from "@/components/report-panel";
 import { Chip, PageShell, PageTitle } from "@/components/ui";
 import { VideoComments } from "@/components/video-comments";
+import { VideoTimeProvider } from "@/components/video-time";
 import { prisma } from "@/lib/prisma";
 import { getDerivedMeasurements } from "@/lib/report-history";
+import { deriveMoments, deriveVideoFps } from "@/lib/report-moments";
+import { isReportPublished, redactReportForPlayer } from "@/lib/report-review";
+import { getReviewingCoachNames, releaseOrphanedReports } from "@/lib/report-review.server";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoSize, formatVideoTags } from "@/lib/videos";
 import { getVideoReport } from "@/lib/videos.server";
 
 const SIGNED_URL_TTL_SECONDS = 60 * 60;
 
+/**
+ * The player's (and guardian's) video page. The report and every comment go
+ * through the published gate: until a connected coach signs the report off,
+ * the panel reads "With your coach" and the thread shows only what was
+ * posted before the review began.
+ */
 export async function VideoDetail({
   backHref,
   deleteAction,
+  initialTime,
   sessionLinkBase,
   where,
 }: {
   backHref: string;
   /** When set, the header carries a confirmed delete for this clip. */
   deleteAction?: (formData: FormData) => Promise<void>;
+  /** A `?t=` deep link: open the clip paused at this second. */
+  initialTime?: number;
   /** When set and the video belongs to a session, "back" returns there instead. */
   sessionLinkBase?: string;
   where: Prisma.PlayerVideoWhereInput;
@@ -61,9 +76,24 @@ export async function VideoDetail({
     throw new Error("Could not create a playback link for this video.");
   }
 
-  const [comments, report] = await Promise.all([
+  let report = await getVideoReport(video.id);
+
+  // Safety net: a report still waiting on a coach who has since gone
+  // (revoked, account deleted) is released the moment the player opens it.
+  if (
+    report?.status === ReportStatus.READY &&
+    report.reviewStatus === ReportReviewStatus.AWAITING_REVIEW &&
+    (await releaseOrphanedReports(video.playerId, { revalidate: false })) > 0
+  ) {
+    report = await getVideoReport(video.id);
+  }
+
+  const delivered = report?.status === ReportStatus.READY;
+  const published = isReportPublished(report);
+
+  const [comments, coachNames] = await Promise.all([
     prisma.videoComment.findMany({
-      where: { videoId: video.id },
+      where: { videoId: video.id, publishedAt: { not: null } },
       orderBy: { createdAt: "asc" },
       select: {
         id: true,
@@ -71,13 +101,19 @@ export async function VideoDetail({
         authorUsername: true,
         body: true,
         createdAt: true,
+        timestampSec: true,
+        publishedAt: true,
       },
     }),
-    getVideoReport(video.id),
+    delivered && !published ? getReviewingCoachNames(video.playerId) : Promise.resolve([]),
   ]);
 
   // Value + own-range + last-session rows for the report, from prior reports.
-  const derived = await getDerivedMeasurements(video, report);
+  // Nothing derived from an unpublished payload leaves the server — not the
+  // rows, not the moments list (a shot list would give the report away).
+  const derived = published ? await getDerivedMeasurements(video, report) : null;
+  const moments = published ? deriveMoments(report?.payload) : [];
+  const fps = published ? deriveVideoFps(report?.payload) : null;
 
   const uploadedAt = (video.uploadedAt ?? video.createdAt).toLocaleDateString("en-US", {
     year: "numeric",
@@ -116,21 +152,24 @@ export async function VideoDetail({
           ) : null}
         </div>
       </header>
-      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="grid gap-8">
-          <video
-            className="aspect-video w-full rounded-lg bg-olive-950"
-            controls
-            preload="metadata"
-            src={data.signedUrl}
-          />
-          <VideoComments
-            comments={comments}
-            footnote="Only connected coaches can leave feedback here."
+      {/* One clock for the clip, the report's timestamps and the comments. */}
+      <VideoTimeProvider>
+        <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
+          <div className="grid gap-8">
+            <ClipPlayer fps={fps} initialTime={initialTime} moments={moments} src={data.signedUrl} />
+            <VideoComments
+              comments={comments}
+              footnote="Only connected coaches can leave feedback here."
+            />
+          </div>
+          <ReportPanel
+            audience="player"
+            coachNames={coachNames}
+            derived={derived}
+            report={redactReportForPlayer(report)}
           />
         </div>
-        <ReportPanel derived={derived} report={report} />
-      </div>
+      </VideoTimeProvider>
     </PageShell>
   );
 }

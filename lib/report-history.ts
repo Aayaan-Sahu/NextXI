@@ -14,6 +14,7 @@ import {
   type DerivedReport,
   type OccasionValues,
 } from "@/lib/report-measurements";
+import { publishedReportWhere } from "@/lib/report-review.server";
 import { deriveScores, occasionScores, type OccasionScores } from "@/lib/report-scores";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -42,6 +43,9 @@ export async function getDerivedMeasurements(
   video: VideoForHistory,
   report: Pick<VideoReport, "status" | "payload"> | null,
 ): Promise<DerivedReport | null> {
+  // The current report only needs to be delivered (a coach previews it before
+  // approving); the history it is compared against is published-only below,
+  // so the rows the coach signs off are the rows the player gets.
   if (report?.status !== ReportStatus.READY) return null;
   const shape = reportShape(report.payload);
   if (!shape) return null;
@@ -62,7 +66,7 @@ export async function getDerivedMeasurements(
       ...(video.sessionId
         ? { OR: [{ sessionId: null }, { sessionId: { not: video.sessionId } }] }
         : {}),
-      report: { is: { status: ReportStatus.READY } },
+      report: { is: publishedReportWhere },
     },
     orderBy: { createdAt: "desc" },
     take: HISTORY_VIDEO_CAP,

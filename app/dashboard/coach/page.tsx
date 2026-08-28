@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
+import { ApprovalQueue } from "@/components/approval-queue";
 import { CoachPlayers } from "@/components/coach-players";
 import { GatePanel, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
 import { VideoFilterBar } from "@/components/video-filter-bar";
@@ -7,7 +8,9 @@ import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
 import { describeUsers, getAcceptedCounterpartIds } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
-import { effectiveReportStatus, getThumbnailUrlByPath } from "@/lib/videos.server";
+import { reportDisplayStatus } from "@/lib/report-review";
+import { getAwaitingReviewForCoach } from "@/lib/report-review.server";
+import { getThumbnailUrlByPath } from "@/lib/videos.server";
 import { formatVideoTags, isHandedness, isVideoDiscipline } from "@/lib/videos";
 
 export default async function CoachDashboardPage({
@@ -69,35 +72,40 @@ export default async function CoachDashboardPage({
     roles: rolesById.get(id) ?? [],
   }));
 
-  const videos = await prisma.playerVideo.findMany({
-    where: {
-      status: PlayerVideoStatus.READY,
-      playerId: { in: players.map((player) => player.id) },
-      views: { none: { viewerId: user.id } },
-      ...(isVideoDiscipline(discipline) ? { category: discipline } : {}),
-      ...(variation ? { variation } : {}),
-      ...(isHandedness(handedness) ? { handedness } : {}),
-    },
-    orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
-    select: {
-      category: true,
-      createdAt: true,
-      handedness: true,
-      id: true,
-      originalFilename: true,
-      sizeBytes: true,
-      thumbnailPath: true,
-      uploadedAt: true,
-      variation: true,
-      player: {
-        select: {
-          name: true,
-        },
+  const [{ awaiting, held }, videos] = await Promise.all([
+    // Reports the player can't see until this coach signs them off.
+    getAwaitingReviewForCoach(user.id),
+    prisma.playerVideo.findMany({
+      where: {
+        status: PlayerVideoStatus.READY,
+        playerId: { in: players.map((player) => player.id) },
+        views: { none: { viewerId: user.id } },
+        ...(isVideoDiscipline(discipline) ? { category: discipline } : {}),
+        ...(variation ? { variation } : {}),
+        ...(isHandedness(handedness) ? { handedness } : {}),
       },
-      report: { select: { status: true, error: true } },
-      _count: { select: { comments: true } },
-    },
-  });
+      orderBy: [{ uploadedAt: "desc" }, { createdAt: "desc" }],
+      select: {
+        category: true,
+        createdAt: true,
+        handedness: true,
+        id: true,
+        originalFilename: true,
+        sizeBytes: true,
+        thumbnailPath: true,
+        uploadedAt: true,
+        variation: true,
+        player: {
+          select: {
+            name: true,
+          },
+        },
+        report: { select: { status: true, error: true, reviewStatus: true } },
+        _count: { select: { comments: true } },
+      },
+    }),
+  ]);
+  const queue = [...awaiting, ...held];
 
   const thumbnailUrlByPath = await getThumbnailUrlByPath(
     videos.flatMap((video) => video.thumbnailPath ?? []),
@@ -105,23 +113,39 @@ export default async function CoachDashboardPage({
 
   const stats = [
     `${players.length} player${players.length === 1 ? "" : "s"}`,
-    `${videos.length} in queue`,
+    `${awaiting.length} awaiting approval`,
+    `${videos.length} new`,
   ];
 
   return (
     <PageShell>
       <PageHeader
         action={
-          <p className="text-ui text-ink-600">Opening a video marks it reviewed.</p>
+          <p className="text-ui text-ink-600">
+            Opening a clip marks it seen. Approving a report releases it to the player.
+          </p>
         }
         subtitle={stats.join(" · ")}
         title={profile.coach.name}
       />
       <div className="mt-8 grid gap-7">
+        <div>
+          <SectionHeading>
+            Awaiting your approval{queue.length ? ` · ${queue.length}` : ""}
+          </SectionHeading>
+          {queue.length ? (
+            <p className="mt-1.5 text-caption text-ink-600">
+              Players can&apos;t see these reports until you sign them off.
+            </p>
+          ) : null}
+          <div className="mt-4">
+            <ApprovalQueue items={queue} />
+          </div>
+        </div>
         <CoachPlayers players={players} />
         <VideoFilterBar unviewedCount={videos.length} />
         <div>
-          <SectionHeading>Review queue</SectionHeading>
+          <SectionHeading>New from your players</SectionHeading>
           <div className="mt-4">
             <VideoGrid
               className="grid-cols-4 max-lg:grid-cols-3 max-md:grid-cols-2 max-sm:grid-cols-1"
@@ -131,7 +155,7 @@ export default async function CoachDashboardPage({
                 ...video,
                 commentCount: _count.comments,
                 playerName: video.player.name,
-                reportStatus: effectiveReportStatus(report),
+                reportStatus: reportDisplayStatus(report, "coach"),
                 tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
                 thumbnailUrl: video.thumbnailPath
                   ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)

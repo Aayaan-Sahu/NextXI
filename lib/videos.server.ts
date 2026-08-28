@@ -1,25 +1,18 @@
 import "server-only";
 import type { Prisma } from "@/app/generated/prisma/client";
-import { PlayerVideoStatus, ReportStatus } from "@/app/generated/prisma/enums";
-import { isFinalReportFailure } from "@/lib/report-errors";
+import {
+  PlayerVideoStatus,
+  ReportReviewStatus,
+  ReportStatus,
+} from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { reportDisplayStatus, type ReportViewer } from "@/lib/report-review";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { formatVideoTags, VIDEO_BUCKET } from "@/lib/videos";
 
-/**
- * The status a player should see: a FAILED report that still has retries left
- * is presented as PROCESSING, because the failure copy promises an automatic
- * retry — only dead-lettered failures read as failed.
- */
-export function effectiveReportStatus(
-  report: { status: ReportStatus; error: string | null } | null,
-): ReportStatus | null {
-  if (!report) return null;
-  if (report.status === ReportStatus.FAILED && !isFinalReportFailure(report.error)) {
-    return ReportStatus.PROCESSING;
-  }
-  return report.status;
-}
+// Moved to the pure module so client components and tests can share it;
+// re-exported here for the callers that always imported it from this file.
+export { effectiveReportStatus } from "@/lib/report-review";
 
 const THUMBNAIL_URL_TTL_SECONDS = 60 * 60;
 
@@ -31,11 +24,21 @@ export type VideoReport = {
   error: string | null;
   modelVersion: string | null;
   updatedAt: Date;
+  // Coach review (lib/report-review.ts). The stamp reads the denormalised
+  // name; `reviewerCredential` is the approving coach's first certification
+  // or their club, looked up by id — the app never joins auth.users.
+  reviewStatus: ReportReviewStatus;
+  reviewedById: string | null;
+  reviewedByName: string | null;
+  reviewedAt: Date | null;
+  coachNote: string | null;
+  holdReason: string | null;
+  reviewerCredential: string | null;
 };
 
 /** The AI coaching report for a video, or null if no slot has been created yet. */
 export async function getVideoReport(videoId: string): Promise<VideoReport | null> {
-  return prisma.report.findUnique({
+  const report = await prisma.report.findUnique({
     where: { videoId },
     select: {
       status: true,
@@ -44,16 +47,41 @@ export async function getVideoReport(videoId: string): Promise<VideoReport | nul
       error: true,
       modelVersion: true,
       updatedAt: true,
+      reviewStatus: true,
+      reviewedById: true,
+      reviewedByName: true,
+      reviewedAt: true,
+      coachNote: true,
+      holdReason: true,
     },
   });
+  if (!report) return null;
+
+  const reviewer =
+    report.reviewStatus === ReportReviewStatus.APPROVED && report.reviewedById
+      ? await prisma.coach.findUnique({
+          where: { id: report.reviewedById },
+          select: { certifications: true, club: true },
+        })
+      : null;
+
+  return {
+    ...report,
+    reviewerCredential: reviewer?.certifications[0] ?? reviewer?.club ?? null,
+  };
 }
 
 /**
  * A player's standalone ready videos with signed thumbnail URLs, shaped for
  * VideoGrid. Videos filed under a practice session are shown on the session
  * page instead, so they're excluded here.
+ *
+ * `viewer` decides what the card says about the report and which comments
+ * count: a player (or guardian) sees "With your coach" and only published
+ * comments while a report awaits review; a connected coach sees the review
+ * state itself. Defaults to the player's view — the restrictive one.
  */
-export async function getReadyVideoGridItems(playerId: string) {
+export async function getReadyVideoGridItems(playerId: string, viewer: ReportViewer = "player") {
   const videos = await prisma.playerVideo.findMany({
     where: {
       playerId,
@@ -71,8 +99,8 @@ export async function getReadyVideoGridItems(playerId: string) {
       thumbnailPath: true,
       uploadedAt: true,
       variation: true,
-      report: { select: { status: true, error: true } },
-      _count: { select: { comments: true } },
+      report: { select: { status: true, error: true, reviewStatus: true } },
+      _count: { select: { comments: publishedCommentCount(viewer) } },
     },
   });
 
@@ -83,7 +111,7 @@ export async function getReadyVideoGridItems(playerId: string) {
   return videos.map(({ _count, report, ...video }) => ({
     ...video,
     commentCount: _count.comments,
-    reportStatus: effectiveReportStatus(report),
+    reportStatus: reportDisplayStatus(report, viewer),
     tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
     thumbnailUrl: video.thumbnailPath
       ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
@@ -117,11 +145,11 @@ export async function getPlayerVideoPulse(playerId: string) {
     select: {
       createdAt: true,
       uploadedAt: true,
-      report: { select: { status: true, error: true } },
+      report: { select: { status: true, error: true, reviewStatus: true } },
     },
   });
 
-  const statuses = videos.map((video) => effectiveReportStatus(video.report));
+  const statuses = videos.map((video) => reportDisplayStatus(video.report, "player"));
 
   // Streak: consecutive London weeks with at least one upload, anchored on
   // this week when it has one, else last week (a streak still extendable);
@@ -144,12 +172,23 @@ export async function getPlayerVideoPulse(playerId: string) {
   return {
     totalVideos: videos.length,
     latestUploadAt: videos[0] ? (videos[0].uploadedAt ?? videos[0].createdAt) : null,
+    // READY here means published: an approved or released report.
     reportsReady: statuses.filter((status) => status === ReportStatus.READY).length,
+    // Delivered but not yet signed off by the player's coach.
+    withCoach: statuses.filter((status) => status === "WITH_COACH").length,
     analysing: statuses.some(
       (status) => status === ReportStatus.PENDING || status === ReportStatus.PROCESSING,
     ),
     streakWeeks,
   };
+}
+
+/**
+ * The relation-count argument for a video's comments: a player only counts
+ * what they can read, a coach counts the whole thread (held ones included).
+ */
+export function publishedCommentCount(viewer: ReportViewer) {
+  return viewer === "player" ? { where: { publishedAt: { not: null } } } : true;
 }
 
 /** Batch-signs thumbnail storage paths, returning a path → signed URL map. */

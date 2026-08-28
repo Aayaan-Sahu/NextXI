@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { ReportStatus } from "@/app/generated/prisma/enums";
+import { ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import {
   BattingReport,
   battingConsistency,
@@ -13,17 +13,20 @@ import {
   parseMeasuredReport,
 } from "@/components/measured-report";
 import { ReportAutoRefresh } from "@/components/report-auto-refresh";
+import { ReportSignoff } from "@/components/report-signoff";
 import { Scoreboard, VERDICT_WORDS } from "@/components/scoreboard";
+import { SeekButton } from "@/components/seek-button";
 import { Kicker, Meter, SectionHeading } from "@/components/ui";
 import { isFinalReportFailure } from "@/lib/report-errors";
 import type { DerivedReport } from "@/lib/report-measurements";
+import { readAnnotations } from "@/lib/report-moments";
+import { isReportPublished } from "@/lib/report-review";
 import type { VideoReport } from "@/lib/videos.server";
 
 const KNOWN_PAYLOAD_KEYS = ["overall_score", "metrics", "feedback", "annotations"];
 const LOW_SCORE_THRESHOLD = 60;
 
 type Metric = { name: string; score: number; comment?: string };
-type Annotation = { timestamp_s: number; note: string };
 
 export function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -51,29 +54,10 @@ function readMetrics(payload: Record<string, unknown>): Metric[] {
   });
 }
 
-function readAnnotations(payload: Record<string, unknown>): Annotation[] {
-  if (!Array.isArray(payload.annotations)) return [];
-  return payload.annotations.flatMap((item) => {
-    if (!isRecord(item)) return [];
-    const { timestamp_s, note } = item;
-    if (typeof timestamp_s !== "number" || !Number.isFinite(timestamp_s) || typeof note !== "string") {
-      return [];
-    }
-    return [{ timestamp_s, note }];
-  });
-}
-
 export function readFeedback(payload: Record<string, unknown>): string | null {
   return typeof payload.feedback === "string" && payload.feedback.trim()
     ? payload.feedback
     : null;
-}
-
-export function formatTimestamp(seconds: number) {
-  const total = Math.max(0, Math.floor(seconds));
-  const mins = Math.floor(total / 60);
-  const secs = total % 60;
-  return `${mins}:${secs.toString().padStart(2, "0")}`;
 }
 
 function hasExtraKeys(payload: Record<string, unknown>) {
@@ -213,7 +197,7 @@ function ReadyReport({ report }: { report: VideoReport }) {
 
       {feedback && (
         <div className="mt-6">
-          <SectionHeading as="h3">Coach feedback</SectionHeading>
+          <SectionHeading as="h3">Model notes</SectionHeading>
           <p className="mt-2 text-ui leading-relaxed whitespace-pre-wrap text-ink-800">
             {feedback}
           </p>
@@ -226,9 +210,7 @@ function ReadyReport({ report }: { report: VideoReport }) {
           <div className="mt-2.5 grid gap-2 text-ui">
             {annotations.map((annotation, index) => (
               <div className="flex gap-3" key={`${annotation.timestamp_s}-${index}`}>
-                <span className="shrink-0 text-caption font-semibold text-rust-600 tabular-nums">
-                  {formatTimestamp(annotation.timestamp_s)}
-                </span>
+                <SeekButton className="shrink-0" t={annotation.timestamp_s} />
                 <span className="text-ink-800">{annotation.note}</span>
               </div>
             ))}
@@ -251,10 +233,13 @@ function ReadyReport({ report }: { report: VideoReport }) {
 function ReportShell({
   children,
   figure,
+  footer,
   headline,
 }: {
   children: ReactNode;
   figure?: ReactNode;
+  /** After the body on every shape — the coach's sign-off. */
+  footer?: ReactNode;
   headline: string;
 }) {
   return (
@@ -268,9 +253,18 @@ function ReportShell({
         </div>
         {figure}
       </div>
-      <div className="px-6 pt-5 pb-6">{children}</div>
+      <div className="px-6 pt-5 pb-6">
+        {children}
+        {footer}
+      </div>
     </section>
   );
+}
+
+/** "Sam Carter", "Sam Carter and Priya Nair", "A, B and C". */
+function joinNames(names: string[]) {
+  if (names.length <= 1) return names[0] ?? "";
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 function HeadlineFigure({ caption, value }: { caption: string; value: string }) {
@@ -289,6 +283,9 @@ function HeadlineFigure({ caption, value }: { caption: string; value: string }) 
 export function ReportPanel({
   report,
   derived,
+  audience = "player",
+  coachNames = [],
+  viewerId,
 }: {
   report: VideoReport | null;
   /**
@@ -297,9 +294,24 @@ export function ReportPanel({
    * it; the panel renders fine without, so a v3 payload never depends on it.
    */
   derived?: DerivedReport | null;
+  /**
+   * Who is reading. A player (or their guardian) sees "With your coach" until
+   * a connected coach signs the report off; that coach — the reviewer — sees
+   * the body regardless; a coach browsing a public player they aren't
+   * connected to (an observer) waits like the player does.
+   */
+  audience?: "player" | "reviewer" | "observer";
+  /** The player's connected coaches, for the waiting copy. */
+  coachNames?: string[];
+  /** The signed-in user, so a coach's own stamp reads "You signed this off". */
+  viewerId?: string;
 }) {
-  const ready = report?.status === ReportStatus.READY;
-  const payload = ready && isRecord(report.payload) ? report.payload : null;
+  const delivered = report?.status === ReportStatus.READY;
+  const published = isReportPublished(report);
+  // Everything below reads `payload` — an unpublished report's never reaches
+  // a player through this component, whatever the caller passed in.
+  const visible = delivered && (published || audience === "reviewer");
+  const payload = visible && report && isRecord(report.payload) ? report.payload : null;
   // Prefer v3 measurements (same data the landing demo draws), then batting /
   // bowling shapes, then legacy 0-100 scores — see reports-contract.md.
   const measured = payload ? parseMeasuredReport(payload) : null;
@@ -365,10 +377,41 @@ export function ReportPanel({
     );
   }
 
+  if (delivered && !visible) {
+    const waiting =
+      audience === "observer"
+        ? "A connected coach is checking this report before it's released."
+        : coachNames.length === 0
+          ? "A coach is checking this report before it's released to you."
+          : `${joinNames(coachNames)} ${coachNames.length === 1 ? "is" : "are"} reviewing this report. You'll see it here once it's signed off.`;
+    return (
+      <ReportShell headline={audience === "observer" ? "With the player's coach" : "With your coach"}>
+        {/* A human wait, not a machine one — no pulsing dot, no progress bar. */}
+        <p className="text-body leading-relaxed text-ink-800">{waiting}</p>
+        <p className="mt-2.5 text-caption text-ink-600">
+          This page updates itself — no need to reload.
+        </p>
+        <ReportAutoRefresh intervalMs={60_000} />
+      </ReportShell>
+    );
+  }
+
+  const signoff =
+    report.reviewStatus === ReportReviewStatus.APPROVED && report.reviewedByName && report.reviewedAt ? (
+      <ReportSignoff
+        at={report.reviewedAt}
+        credential={report.reviewerCredential}
+        name={report.reviewedByName}
+        note={report.coachNote}
+        self={viewerId !== undefined && viewerId === report.reviewedById}
+      />
+    ) : null;
+
   if (measured) {
     const declined = !measured.scored || measured.metrics.length === 0;
     return (
       <ReportShell
+        footer={signoff}
         figure={
           consistency === null ? undefined : (
             <HeadlineFigure caption="Consistency" value={`${consistency}%`} />
@@ -394,6 +437,7 @@ export function ReportPanel({
     const rows = derived.metrics.length;
     return (
       <ReportShell
+        footer={signoff}
         figure={
           scores ? (
             <HeadlineFigure caption="of 100" value={String(scores.score)} />
@@ -435,6 +479,7 @@ export function ReportPanel({
     const shots = batting.shots.length;
     return (
       <ReportShell
+        footer={signoff}
         figure={
           consistency === null ? undefined : (
             <HeadlineFigure caption="Consistency" value={`${consistency}%`} />
@@ -449,7 +494,7 @@ export function ReportPanel({
 
   if (bowling) {
     return (
-      <ReportShell headline="One delivery measured">
+      <ReportShell footer={signoff} headline="One delivery measured">
         <BowlingReport parsed={bowling} report={report} />
       </ReportShell>
     );
@@ -457,6 +502,7 @@ export function ReportPanel({
 
   return (
     <ReportShell
+      footer={signoff}
       figure={
         legacyScore === null ? undefined : (
           <HeadlineFigure caption="Overall" value={`${legacyScore} / 100`} />

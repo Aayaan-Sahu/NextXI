@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { EmptyState, SectionHeading } from "@/components/ui";
+import { formatTimestamp, relativeTime } from "@/lib/format-time";
 
 export type CoachFeedbackItem = {
   id: string;
@@ -9,26 +10,9 @@ export type CoachFeedbackItem = {
   createdAt: Date;
   videoId: string;
   videoFilename: string;
+  /** The moment the note points at; the link opens the clip there. */
+  timestampSec: number | null;
 };
-
-const RELATIVE_UNITS: [Intl.RelativeTimeFormatUnit, number][] = [
-  ["year", 365 * 24 * 60 * 60],
-  ["month", 30 * 24 * 60 * 60],
-  ["week", 7 * 24 * 60 * 60],
-  ["day", 24 * 60 * 60],
-  ["hour", 60 * 60],
-  ["minute", 60],
-];
-
-function relativeTime(date: Date) {
-  const seconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
-  for (const [unit, size] of RELATIVE_UNITS) {
-    if (seconds >= size) {
-      return new Intl.RelativeTimeFormat("en").format(-Math.floor(seconds / size), unit);
-    }
-  }
-  return "just now";
-}
 
 /** The player home's digest of the latest coach comments on their videos. */
 export function CoachFeedback({ items }: { items: CoachFeedbackItem[] }) {
@@ -47,11 +31,18 @@ export function CoachFeedback({ items }: { items: CoachFeedbackItem[] }) {
                 <span className="text-caption text-ink-600">{relativeTime(item.createdAt)}</span>
               </div>
               <p className="mt-1 line-clamp-2 text-ui leading-relaxed text-ink-800">
+                {item.timestampSec !== null ? (
+                  <span className="mr-2 text-caption text-ink-600 tabular-nums">
+                    {formatTimestamp(item.timestampSec)}
+                  </span>
+                ) : null}
                 {item.body}
               </p>
               <Link
                 className="mt-1.5 inline-block text-caption font-semibold text-rust-600 no-underline hover:text-rust-700"
-                href={`/dashboard/player/videos/${item.videoId}`}
+                href={`/dashboard/player/videos/${item.videoId}${
+                  item.timestampSec !== null ? `?t=${item.timestampSec}` : ""
+                }`}
               >
                 {item.videoFilename} →
               </Link>

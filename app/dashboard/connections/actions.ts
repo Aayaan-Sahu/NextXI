@@ -6,6 +6,7 @@ import { CoachStatus, ConnectionStatus, PlayerStatus } from "@/app/generated/pri
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
 import { orderedPair } from "@/lib/connections";
+import { releaseOrphanedReports } from "@/lib/report-review.server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
 
@@ -225,6 +226,14 @@ export async function revokeConnection(formData: FormData) {
     where: { id: connectionId },
     data: { status: ConnectionStatus.REVOKED },
   });
+
+  // A player whose last reviewing coach just left must not wait on a report
+  // forever: release anything of theirs still awaiting review. A no-op for
+  // whichever side isn't a player, and for players who still have a coach.
+  await Promise.all([
+    releaseOrphanedReports(connection.userAId),
+    releaseOrphanedReports(connection.userBId),
+  ]);
 
   // Revoking drops the pair's access to messaging immediately; refresh the
   // messages route too so a stale conversation doesn't linger in the sidebar.

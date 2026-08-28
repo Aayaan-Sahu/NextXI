@@ -1,12 +1,12 @@
 import { SubmitButton } from "@/components/submit-button";
 import { signOut } from "@/app/auth/actions";
-import { CoachStatus, ReportStatus } from "@/app/generated/prisma/enums";
+import { CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { Notice, SectionHeading, Wordmark } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
 import { isVideoDiscipline, VIDEO_DISCIPLINES } from "@/lib/videos";
-import { approveCoach, rejectCoach } from "./actions";
+import { approveCoach, rejectCoach, releaseHeldReport, rerunHeldReport } from "./actions";
 
 type SearchParams = Promise<{
   error?: string | string[];
@@ -37,17 +37,23 @@ export default async function AdminDashboardPage({
     orderBy: { createdAt: "asc" },
     select: { id: true, name: true, accomplishments: true, createdAt: true },
   });
-  // Reports the AI worker still owes us — the ops queue for the pilot.
+  // Reports the AI worker still owes us, plus the ones a coach has held —
+  // the ops queue for the pilot.
   const queuedReports = await prisma.report.findMany({
     where: {
-      status: {
-        in: [ReportStatus.PENDING, ReportStatus.PROCESSING, ReportStatus.FAILED],
-      },
+      OR: [
+        { status: { in: [ReportStatus.PENDING, ReportStatus.PROCESSING, ReportStatus.FAILED] } },
+        { status: ReportStatus.READY, reviewStatus: ReportReviewStatus.HELD },
+      ],
     },
     orderBy: { createdAt: "asc" },
     select: {
       id: true,
+      videoId: true,
       status: true,
+      reviewStatus: true,
+      holdReason: true,
+      reviewedByName: true,
       attempts: true,
       claimedAt: true,
       createdAt: true,
@@ -186,7 +192,8 @@ export default async function AdminDashboardPage({
           <section>
             <SectionHeading>Report queue · {queuedReports.length}</SectionHeading>
             <p className="mt-1.5 text-caption text-ink-600">
-              Pipeline telemetry, display only.
+              Pipeline telemetry. A report a coach has held can be released to the player or run
+              again.
             </p>
             {queuedReports.length ? (
               <div className="mt-4">
@@ -218,14 +225,42 @@ export default async function AdminDashboardPage({
                       </span>
                       <span
                         className={
-                          report.status === ReportStatus.FAILED
+                          report.status === ReportStatus.FAILED ||
+                          report.reviewStatus === ReportReviewStatus.HELD
                             ? "font-semibold text-rust-600"
                             : undefined
                         }
                       >
-                        {report.status.toLowerCase()}
+                        {report.reviewStatus === ReportReviewStatus.HELD
+                          ? "held"
+                          : report.status.toLowerCase()}
                       </span>
                       <span className="tabular-nums">{report.attempts}</span>
+                      {report.reviewStatus === ReportReviewStatus.HELD ? (
+                        <div className="col-span-full flex flex-wrap items-center justify-between gap-3 pt-1">
+                          <p className="min-w-0 text-caption text-ink-800">
+                            {report.reviewedByName ? `Held by ${report.reviewedByName}: ` : "Held: "}
+                            {report.holdReason}
+                          </p>
+                          <div className="flex shrink-0 gap-2">
+                            <form action={releaseHeldReport}>
+                              <input name="videoId" type="hidden" value={report.videoId} />
+                              <SubmitButton className="!px-4 !py-[7px] !text-caption">
+                                Release to player
+                              </SubmitButton>
+                            </form>
+                            <form action={rerunHeldReport}>
+                              <input name="videoId" type="hidden" value={report.videoId} />
+                              <SubmitButton
+                                className="!px-4 !py-[7px] !text-caption"
+                                variant="secondary"
+                              >
+                                Re-run analysis
+                              </SubmitButton>
+                            </form>
+                          </div>
+                        </div>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

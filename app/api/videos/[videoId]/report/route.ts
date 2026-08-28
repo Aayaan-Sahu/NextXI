@@ -1,8 +1,14 @@
 import { Prisma } from "@/app/generated/prisma/client";
-import { ReportStatus } from "@/app/generated/prisma/enums";
+import { ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { requireIngestAuth } from "@/app/api/reports/utils";
 import { isUuid, jsonError } from "@/app/api/videos/utils";
 import { prisma } from "@/lib/prisma";
+import { nextReviewStatusOnIngest } from "@/lib/report-review";
+import {
+  countApprovers,
+  publishReport,
+  revalidateReportSurfaces,
+} from "@/lib/report-review.server";
 
 export const runtime = "nodejs";
 
@@ -53,7 +59,7 @@ export async function PUT(
 
   const video = await prisma.playerVideo.findUnique({
     where: { id: videoId },
-    select: { id: true },
+    select: { id: true, playerId: true, sessionId: true },
   });
   if (!video) return jsonError("Video not found.", 404);
 
@@ -67,16 +73,63 @@ export async function PUT(
     modelVersion: (model_version as string | undefined) ?? null,
   };
 
-  const report = await prisma.report.upsert({
-    where: { videoId },
-    update: data,
-    create: { videoId, ...data },
-    select: {
-      status: true,
-      schemaVersion: true,
-      modelVersion: true,
-      updatedAt: true,
-    },
+  // Coach review: a delivered report waits for a connected coach when the
+  // player has one, is released at once when they don't, and stays published
+  // if it already was (a re-delivery never hides a report the player has).
+  // See lib/report-review.ts for the transition table.
+  const [existing, approvers] = await Promise.all([
+    prisma.report.findUnique({ where: { videoId }, select: { reviewStatus: true } }),
+    isReady ? countApprovers(video.playerId) : Promise.resolve(0),
+  ]);
+  const nextReview = nextReviewStatusOnIngest(existing?.reviewStatus ?? null, isReady, approvers);
+
+  const report = await prisma.$transaction(async (tx) => {
+    await tx.report.upsert({
+      where: { videoId },
+      update: data,
+      create: { videoId, ...data },
+      select: { id: true },
+    });
+
+    if (nextReview === ReportReviewStatus.RELEASED) {
+      // Conditional inside: a no-op when the report was already published.
+      await publishReport(tx, {
+        videoId,
+        reviewStatus: ReportReviewStatus.RELEASED,
+        reviewedById: null,
+        reviewedByName: null,
+      });
+    } else if (existing?.reviewStatus === ReportReviewStatus.HELD) {
+      // The pipeline re-ran a held report: back to the coach's queue, clean.
+      await tx.report.updateMany({
+        where: { videoId, reviewStatus: ReportReviewStatus.HELD },
+        data: {
+          reviewStatus: ReportReviewStatus.AWAITING_REVIEW,
+          reviewedById: null,
+          reviewedByName: null,
+          reviewedAt: null,
+          holdReason: null,
+          coachNote: null,
+        },
+      });
+    }
+
+    return tx.report.findUniqueOrThrow({
+      where: { videoId },
+      select: {
+        status: true,
+        reviewStatus: true,
+        schemaVersion: true,
+        modelVersion: true,
+        updatedAt: true,
+      },
+    });
+  });
+
+  revalidateReportSurfaces({
+    videoId,
+    playerId: video.playerId,
+    sessionId: video.sessionId,
   });
 
   return Response.json({
@@ -84,6 +137,7 @@ export async function PUT(
     report: {
       videoId,
       status: report.status,
+      reviewStatus: report.reviewStatus,
       schemaVersion: report.schemaVersion,
       modelVersion: report.modelVersion,
       updatedAt: report.updatedAt.toISOString(),
