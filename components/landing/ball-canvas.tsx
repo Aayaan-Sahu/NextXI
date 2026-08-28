@@ -101,6 +101,13 @@ export default function BallCanvas(props: BallProps) {
       camera={{ position: [0, 0, 4.2], fov: 45 }}
       gl={{ alpha: true, antialias: true }}
       dpr={[1, 2]}
+      // The hero scales this canvas's wrapper 0.94 → 1 as the ball fades in.
+      // Fiber sizes the canvas from getBoundingClientRect(), which reports the
+      // *transformed* box — measured mid-entrance, the canvas came out at 94 %
+      // of the frame, pinned top-left, and the ball sat up and to the left of
+      // centre until the first scroll made the container re-measure.
+      // offsetWidth/offsetHeight ignore transforms.
+      resize={{ offsetSize: true }}
     >
       <ambientLight intensity={0.7} />
       <directionalLight position={[4, 4, 5]} intensity={2} />
