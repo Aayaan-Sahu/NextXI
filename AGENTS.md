@@ -85,10 +85,15 @@ shared code.
   folder **in the same commit as the code that needs it**. A schema edit
   without a committed migration silently never reaches production — this
   caused a prod outage (pages 500ing on missing columns).
-- **Merging to main is the deploy step.** The Vercel build runs
-  `prisma migrate deploy` before `next build` (the `vercel-build` script), so
-  pending migrations apply automatically on deploy. Nobody runs SQL by hand,
-  and local `bun run build` deliberately does not touch the DB.
+- **Merging to main is the deploy step.** The Vercel build
+  (`scripts/vercel-build.sh`, the `vercel-build` script) runs
+  `prisma migrate deploy` before `next build` **on production deploys only**,
+  so pending migrations apply automatically on merge. Preview deploys skip the
+  migration — they share the production database, and an unguarded deploy once
+  applied a PR's migration to production from its preview build — so a preview
+  of a migration PR builds against the current schema and may not exercise the
+  new columns. Nobody runs SQL by hand, and local `bun run build` deliberately
+  does not touch the DB.
 - **Never delete or rename an applied migration folder.** A migration the DB
   records as applied but that is missing from the tree fails every
   deploy/`migrate` command with P3015 (also happened once — restore the file
