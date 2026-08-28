@@ -1,4 +1,5 @@
 import type { MeasuredMetric, MetricReference } from "@/components/measured-metric";
+import type { ReportScores } from "@/lib/report-scores";
 import { battingShots, median, readPath } from "@/lib/session-consistency";
 
 /**
@@ -203,10 +204,13 @@ export type OccasionValues = Record<string, number>;
  * chart, and the focus block. Assembled by lib/report-history.ts.
  */
 export type DerivedReport = {
+  /** Empty when nothing in the clip measured in real units (uncalibrated). */
   metrics: MeasuredMetric[];
   /** Previous occasions' headline consistency, oldest first. */
   consistencyHistory: { date: Date; value: number }[];
   focus: FocusArea | null;
+  /** The scoreboard numbers (lib/report-scores.ts); null when nothing was judged. */
+  scores: ReportScores | null;
 };
 
 /**
@@ -264,7 +268,7 @@ function majorityShotLabel(
 
 /** Bold lead word for a row, from the worker's own labels only. */
 const SHOT_LABEL_LEADS: Record<string, string> = {
-  good: "Solid.",
+  good: "Good.",
   ok: "Okay.",
   "needs work": "Needs work.",
 };
@@ -304,14 +308,15 @@ function progressNote(def: MetricDef, value: number, previous: number | null): s
   return `${last} — ${withUnit(Math.abs(delta), def)} ${word} this time.`;
 }
 
-function sessionReference(history: number[], value: number): MetricReference {
+/**
+ * The player's own range, or — on a first analysis — no band at all. A first
+ * report used to invent a "last session" at 94 % of today's value so the row
+ * had something to draw against; that is a fabricated number on the one
+ * surface whose promise is that nothing is fabricated.
+ */
+function sessionReference(history: number[]): MetricReference {
   if (history.length === 0) {
-    const previous = value * 0.94;
-    return {
-      kind: "session",
-      label: "Last 2 sessions",
-      band: [Math.min(previous, value), Math.max(previous, value)],
-    };
+    return { kind: "none", label: "First analysis" };
   }
   if (history.length === 1) {
     return { kind: "session", label: "Last session", band: [history[0], history[0]] };
@@ -362,7 +367,7 @@ export function deriveMeasurements(
       unit: def.unit,
       decimals: def.decimals,
       direction: "none",
-      reference: sessionReference(metricHistory, value),
+      reference: sessionReference(metricHistory),
       note: progressNote(def, value, previous),
     };
     const lead = metricLead(payload, def.key);
@@ -377,11 +382,6 @@ export function deriveMeasurements(
               text: `${delta > 0 ? "▲" : "▼"} ${withUnit(Math.abs(delta), def)}`,
               dir: delta > 0 ? "up" : "down",
             };
-    } else {
-      const fakePrev = Number((value * 0.94).toFixed(def.decimals));
-      row.previous = { value: fakePrev, label: "Last session" };
-      row.deltaPill = { text: `▲ ${withUnit(Math.abs(value - fakePrev), def)}`, dir: "up" };
-      row.note = progressNote(def, value, fakePrev);
     }
     return [row];
   });

@@ -34,7 +34,7 @@ Hero flow — read left to right:
 5. **Review, "Good clip"** — looping clip, coverage fact line, tag row, "Send for analysis". New (replaces the dropzone in `video-upload.tsx`).
 6. **Home, analysing** — in-flight strip (Analysing / Sending 42 %), clip tiles with `ReportChip` states. Replaces `getPlayerVideoPulse.analysing` + `ReportAutoRefresh`.
 7. **Lock-screen push** — "Report ready — Cover drive" and a coach message. New (no notification path exists on web).
-8. **Report, top** — the home page's scoreboard on a phone: masthead and facts line, the 0–100 dial with the verdict and delta pill, "Your 3 scores" against the elite mark, "Last 6 sessions". Port of `components/landing/report-variants/variant-scoreboard.tsx`; replaces `components/report-panel.tsx` + `measured-report.tsx`.
+8. **Report, top** — the home page's scoreboard on a phone: masthead and facts line, the 0–100 dial with the verdict and delta pill, "Your 3 scores", "Last 6 sessions". Port of `components/landing/report-variants/variant-scoreboard.tsx`; replaces `components/report-panel.tsx` + `measured-report.tsx`.
 9. **Report, "Fix this one thing" + moments** — the fix, the drill flash, the coach stamp, then the clip with rate/frame-step words and "Shot 2 · 0:14" seeking the player. Replaces the inert timestamps in `batting-report.tsx`.
 10. **Share report card** — the scoreboard card at 300 pt (dial, verdict, the three score bars, wordmark), share targets.
 
@@ -290,9 +290,11 @@ panel: the report is the only Panel, and on a phone the whole screen is it.
 3. **Your 3 scores** — kicker, then one `TileRow` per score: name (body,
    semibold) · delta mark (▲ 4 in moss / ▼ 3 in rust, on the tinted 18 pt
    square) · the score (`text-figure`, moss at ≥ 70, rust below) · a 12 pt
-   rounded bar filled to the score with the elite mark at 95 as a 1 pt ink
-   line · the note with its verdict sentence bold ("Needs work. Bat comes down
-   4.1 cm off straight — costs you most."). Hairline between rows.
+   rounded bar filled to the score · the note with its verdict sentence bold
+   ("Needs work. Bat came down 4.1 cm off straight on a typical ball.").
+   Hairline between rows. No elite mark: the mock's tick at 95 was a
+   placeholder, and the product draws none until the NextXI pro reference set
+   exists (`docs/BENCHMARKS.md`).
 4. **Last 6 sessions** — six bars with their scores, today's in amber,
    "6 weeks ago" / "today" beneath.
 5. **Fix this one thing** — kicker, "Your bat swing" (`text-title` bold), the
@@ -316,16 +318,18 @@ without their notes, wordmark) to a 1080×1350 image. Never the clip, never a
 face crop. For a minor, Share is enabled only when the guardian's "Allow report
 sharing" switch is on (`Player.allowReportSharing`, default off).
 
-**What the platform has to add.** The web app's own report renders
-`measurements[]` (`docs/reports-contract.md` v3); there is no 0–100 score
-anywhere in the pipeline or the payload, and `report-data.ts` is explicit that
-a composite "technique score" has no defensible basis today. For the app's
-report to be the scoreboard, the platform needs a scoring function that turns
-each measurement into a 0–100 score and the three into the session number,
-with the elite mark defined per score; the delta pill and "Last 6 sessions"
-then come from `lib/report-history.ts`. That is Phase 0 backend work (see
-"Fixes before the app renders a report") and an open product question. Until
-it exists the app renders the web's measurement rows.
+**Where the numbers come from.** `lib/report-scores.ts` (see "Scores" in
+`docs/reports-contract.md`). The worker never sends a score; the platform
+derives each tile from a judgement the worker already makes — its
+`good` / `ok` / `needs work` thresholds — on a continuous curve, so a score
+can never disagree with the ball-by-ball verdicts. Batting tiles are **Head
+movement**, **Bat swing** and **Balance** (not the landing mock's "Front
+elbow": the pipeline measures no elbow angle and has no defensible threshold
+for one); bowling has one, **Front-knee brace**. The session number is the
+mean of the tiles; the change pill and "Last 6 sessions" come from the same
+occasion history as the measurement rows (`lib/report-history.ts`), and the
+web report already renders all of it (`components/scoreboard.tsx`). The app
+reads the same `DerivedReport.scores` through `GET /api/videos/{id}`.
 
 `scored: false` reports render the web "Not measured" header and copy plus
 **Film again**.
@@ -494,7 +498,7 @@ has already caused a production outage).
 
 - `lib/report-measurements.ts:380-385` fabricates a previous value at `value * 0.94` (and `sessionReference([])` a "Last 2 sessions" band) when a player has no history. Return `previous: null` and use the existing "First time we've measured this — your progress starts here." copy.
 - `components/video-grid.tsx:120` reveals Delete only on hover, so mobile-web users cannot delete a clip from the grid.
-- **Scores.** `GET /api/videos/{id}` has to return the scoreboard's numbers — `score`, `previousScore`, three `tiles[{name, score, delta}]`, `history[6]` — which means a scoring function over the v3 measurements (`lib/report-scores.ts`, new) shared with the web so the home page and the app never disagree. Decide the mapping (which measurements feed which score, what 100 means, where the elite mark sits) before Phase 1.
+- **Scores.** Done on the web: `lib/report-scores.ts` derives `score`, `previousScore`, `verdict`, `tiles[{key, name, score, band, delta, note}]` and `history[6]` (`DerivedReport.scores`), and `GET /api/videos/{id}` returns that object verbatim so the home page and the app never disagree. The worker now emits `balance.worst_base_offset_norm` and `swing.swing_deviation_cm` (cricket-ai-model); reports stored before that score balance from the label band. Open: the thresholds' provenance (`MODEL-STATUS.md` Q7) — the demo cover drive scores 45 because a drive's forward head travel breaks the 0.15-stance-width "good" limit.
 
 ### Rate limiting
 
@@ -591,4 +595,4 @@ Store submission checklist specific to this app:
 - Sign in with Apple + Google in Phase 2 as planned, or v1 (they are the fastest onboarding for a 13-year-old, but email/password ships without App Store rule 4.8 exposure)?
 - Hindi UI: wait for the pipeline to report in Hindi, or ship the interface first?
 - Guardian "Allow report sharing": default off for every minor (as specced), or off only under 16?
-- The scoreboard's scoring function: what maps a measurement to 0–100, and where does the elite mark sit per score? The landing page's numbers are staged; the app makes them real.
+- The scoring thresholds: the mapping is decided (`lib/report-scores.ts`), but the worker's `good` / `ok` limits were hand-picked with no coach sign-off, and on a front-foot drive the head-movement limit reads every drive as "needs work". Who calibrates them, on what clips, before the first real player sees a 45?

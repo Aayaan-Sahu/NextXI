@@ -13,6 +13,7 @@ import {
   parseMeasuredReport,
 } from "@/components/measured-report";
 import { ReportAutoRefresh } from "@/components/report-auto-refresh";
+import { Scoreboard, VERDICT_WORDS } from "@/components/scoreboard";
 import { Kicker, Meter, SectionHeading } from "@/components/ui";
 import { isFinalReportFailure } from "@/lib/report-errors";
 import type { DerivedReport } from "@/lib/report-measurements";
@@ -384,24 +385,48 @@ export function ReportPanel({
     );
   }
 
-  // A v2 payload the platform could measure server-side reads as the same
-  // object as a v3 one — same rows, same shell — rather than dropping to the
-  // shot-list renderer. Only reached when the worker sent no `measurements`.
-  if (derived && derived.metrics.length > 0 && payload) {
+  // A v2 payload the platform could score and measure server-side reads as
+  // the home page's report: the session number and verdict in the header,
+  // the scoreboard, then the measurement rows. Only reached when the worker
+  // sent no `measurements`.
+  if (derived && (derived.scores || derived.metrics.length > 0) && payload) {
+    const scores = derived.scores;
+    const rows = derived.metrics.length;
     return (
       <ReportShell
         figure={
-          consistency === null ? undefined : (
+          scores ? (
+            <HeadlineFigure caption="of 100" value={String(scores.score)} />
+          ) : consistency === null ? undefined : (
             <HeadlineFigure caption="Consistency" value={`${consistency}%`} />
           )
         }
-        headline={`${derived.metrics.length} measurement${derived.metrics.length === 1 ? "" : "s"}`}
+        headline={
+          scores ? VERDICT_WORDS[scores.verdict] : `${rows} measurement${rows === 1 ? "" : "s"}`
+        }
       >
-        <DerivedMeasurements
-          metaParts={[report.modelVersion]}
-          metrics={derived.metrics}
-          payload={report.payload}
-        />
+        {scores ? (
+          <Scoreboard consistency={consistency} focus={derived.focus} scores={scores} />
+        ) : null}
+        {rows > 0 ? (
+          <>
+            {scores ? (
+              <div className="mt-5">
+                <SectionHeading as="h3">Measurements</SectionHeading>
+              </div>
+            ) : null}
+            <DerivedMeasurements
+              metaParts={[report.modelVersion]}
+              metrics={derived.metrics}
+              payload={report.payload}
+            />
+          </>
+        ) : (
+          <>
+            <RawDetails payload={report.payload} />
+            <ReportMeta parts={[report.modelVersion]} />
+          </>
+        )}
       </ReportShell>
     );
   }

@@ -26,6 +26,7 @@ import { GuardianHandoff } from "@/components/guardian-handoff";
 import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
+import { getDerivedMeasurements } from "@/lib/report-history";
 import { formatVideoTags } from "@/lib/videos";
 import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
 
@@ -129,8 +130,10 @@ export default async function PlayerDashboardPage() {
           select: {
             id: true,
             category: true,
+            createdAt: true,
             handedness: true,
             originalFilename: true,
+            sessionId: true,
             variation: true,
           },
         },
@@ -142,6 +145,19 @@ export default async function PlayerDashboardPage() {
     }),
   ]);
   const guardianName = guardianRow?.guardian?.name ?? null;
+
+  // The latest report's scoreboard numbers need the player's history.
+  const latestDerived = latestReport
+    ? await getDerivedMeasurements(
+        {
+          playerId: user.id,
+          category: latestReport.video.category,
+          sessionId: latestReport.video.sessionId,
+          createdAt: latestReport.video.createdAt,
+        },
+        { status: ReportStatus.READY, payload: latestReport.payload },
+      )
+    : null;
 
   // Header numbers come from the account-wide pulse (sessions included), so
   // they always agree with the latest-report card; the grid below is
@@ -182,6 +198,7 @@ export default async function PlayerDashboardPage() {
             <LatestReportCard
               href={`/dashboard/player/videos/${latestReport.video.id}`}
               payload={latestReport.payload}
+              scores={latestDerived?.scores}
               tagLabel={formatVideoTags(
                 latestReport.video.category,
                 latestReport.video.variation,

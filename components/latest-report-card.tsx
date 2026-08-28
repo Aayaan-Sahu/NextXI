@@ -3,7 +3,9 @@ import { battingConsistency, parseBattingReport } from "@/components/batting-rep
 import { parseBowlingReport } from "@/components/bowling-report";
 import { measuredCardStats, parseMeasuredReport } from "@/components/measured-report";
 import { isRecord, readFeedback, readOverallScore } from "@/components/report-panel";
+import { VERDICT_WORDS } from "@/components/scoreboard";
 import { Kicker } from "@/components/ui";
+import { changeKind, type ReportScores } from "@/lib/report-scores";
 
 type CardStat = { label: string; value: string };
 
@@ -27,7 +29,33 @@ function firstSentence(prose: string) {
  * measurements first, then batting, bowling, v1 legacy, then a bare
  * "Report ready".
  */
-function deriveCard(payload: unknown): CardData {
+function deriveCard(payload: unknown, scores: ReportScores | null | undefined): CardData {
+  // The scoreboard numbers, when the page could derive them (they need the
+  // player's history, so only pages that load it pass them).
+  if (scores) {
+    const change =
+      scores.previousScore === null
+        ? []
+        : [
+            {
+              label: "vs last session",
+              value: (() => {
+                const delta = scores.score - scores.previousScore;
+                const kind = changeKind(delta);
+                return kind === "same" ? "same" : `${kind === "up" ? "▲" : "▼"} ${Math.abs(delta)}`;
+              })(),
+            },
+          ];
+    return {
+      headline: VERDICT_WORDS[scores.verdict],
+      stats: [
+        { label: VERDICT_WORDS[scores.verdict], value: `${scores.score} / 100` },
+        ...change,
+        ...scores.tiles.slice(0, 1).map((tile) => ({ label: tile.name, value: String(tile.score) })),
+      ],
+    };
+  }
+
   const measured = parseMeasuredReport(payload);
   if (measured) return measuredCardStats(measured);
 
@@ -98,17 +126,19 @@ function formatShortDate(date: Date) {
 export function LatestReportCard({
   href,
   payload,
+  scores,
   tagLabel,
   title,
   updatedAt,
 }: {
   href: string;
   payload: unknown;
+  scores?: ReportScores | null;
   tagLabel: string;
   title: string;
   updatedAt: Date;
 }) {
-  const card = deriveCard(payload);
+  const card = deriveCard(payload, scores);
 
   return (
     <section className="rounded-[10px] bg-pitch-900 px-7 py-6 text-cream-200">
