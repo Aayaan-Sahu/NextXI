@@ -1,4 +1,5 @@
 import { RawDetails, ReportMeta } from "@/components/report-panel";
+import { SeekButton } from "@/components/seek-button";
 import { SectionHeading } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -105,11 +106,6 @@ export function parseBowlingReport(payload: unknown): ParsedBowlingReport | null
   };
 }
 
-function formatTimestamp(seconds: number) {
-  const total = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
-}
-
 function braceColor(label: BraceLabel) {
   if (label === "braced") return "text-moss-600";
   if (label === "collapsing") return "text-rust-600";
@@ -191,9 +187,8 @@ export function BowlingReport({
           <div className="mt-3 grid gap-2.5 text-ui">
             {parsed.events.map((event) => (
               <div className="flex items-center gap-3" key={event.label}>
-                <span className="shrink-0 text-caption font-semibold text-rust-600 tabular-nums">
-                  {formatTimestamp(event.timeSec)}
-                </span>
+                {/* Live when the page has a player: jumps the clip to the event. */}
+                <SeekButton className="shrink-0" t={event.timeSec} />
                 <span>{event.label}</span>
               </div>
             ))}
