@@ -226,9 +226,11 @@ score. Every field is optional/nullable — missing values are simply omitted.
       "head":   { "max_head_movement_cm": 3.1, "head_movement_label": "good", "head_over_knee_label": "ok", ... },
       "front_foot_stride": { "stride_length_cm": 62.0, ... },
       "back_foot_depth":   { "depth_cm": 8.0, ... },
-      "balance": { "head_inside_base": true, "hip_inside_base": true, "balance_label": "good" },
+      "balance": { "head_inside_base": true, "hip_inside_base": true,
+                   "head_base_offset_norm": 0.12, "hip_base_offset_norm": 0.08,
+                   "worst_base_offset_norm": 0.12, "balance_label": "good" },
       "trigger": { "duration_sec": 0.30, "gap_to_swing_sec": 0.20, ... },
-      "swing":   { "swing_straightness_mean": 0.09, "swing_label": "good", ... }
+      "swing":   { "swing_straightness_mean": 0.09, "swing_deviation_cm": 2.6, "swing_label": "good", ... }
     }
   ],
   "consistency": { "stride_length_cv": 0.12, "backlift_height_cv": 0.18, "swing_straightness_mean_cv": 0.10, ... }
@@ -274,6 +276,52 @@ Like the cm fields, they are present only when `calibration` is present.
 `delivery.follow_through.distance_frac_height` are referenced by the session
 panel but have **no producer** — the pipeline measures neither run-up nor
 follow-through yet, so those rows simply stay empty.
+
+### Scores — platform-derived (`lib/report-scores.ts`)
+
+The home page's report card is a scoreboard: a session number out of 100, a
+verdict, the change on last session, and three scores. The worker never sends
+a score — the platform derives them from the v2 judgements, on one rule:
+
+> A score is a judgement the worker already makes, at finer grain.
+
+Each `*_label` the worker emits is `score_label(value, good, ok)` over one
+scalar. The platform maps that same scalar through a continuous, monotone
+curve anchored on the same two thresholds — 0 deviation → 100, `good` → 70,
+`ok` → 60, then a hyperbolic tail (twice the `ok` limit reads 30, never 0) —
+so a score band can never contradict the label the ball-by-ball detail shows:
+
+| Band | Score | Label |
+| --- | --- | --- |
+| good | ≥ 70 | `good` |
+| ok | 60–69 | `ok` |
+| needs work | < 60 | `needs work` |
+
+Tiles (fixed order, so history lines up): batting **Head movement**
+(`head.max_head_movement_norm`, 0.15 / 0.30), **Bat swing**
+(`swing.swing_straightness_mean`, 0.10 / 0.20), **Balance**
+(`balance.worst_base_offset_norm`, 0.25 / 0.40); bowling **Front-knee brace**
+(the weaker of landing angle ≥ 155 / 140 → 180° and give ≤ 5 / 15°, exactly
+how `front_leg_brace_label` composes them). Per occasion the median across
+shots is scored; a payload carrying only the label (reports stored before
+the offset fields existed) scores the band's midpoint and says so. The
+session number is the rounded mean of the tiles. Descriptive measurements
+(stride, back foot, trigger, release) have no evidence-backed direction and
+never get a score.
+
+The verdicts use the landing thresholds (≥ 85 great · ≥ 70 good · ≥ 60 solid
+· else keep building), and "Last 6 sessions" / the change pill come from the
+same occasion grouping as the measurement rows (`lib/report-history.ts`).
+
+Two things this deliberately is not: a comparison against any population
+(no elite mark until the NextXI pro reference set exists — `BENCHMARKS.md`),
+and a defence of the thresholds themselves, whose provenance is still open
+(`MODEL-STATUS.md` Q7). Re-calibrating a threshold is a two-number change in
+the worker and in `THRESHOLDS` — keep them in lockstep and record the source.
+The first real run (the landing clip, one cover drive) scored head movement
+29 / bat swing 76 / balance 30 → 45, "Keep building": a front-foot drive
+carries the head 41 cm forward, and the 0.15-stance-width "good" limit was
+never tuned for drives. The score surfaces that; it does not hide it.
 
 ## Measurements — schema_version 3
 

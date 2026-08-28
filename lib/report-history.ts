@@ -14,6 +14,7 @@ import {
   type DerivedReport,
   type OccasionValues,
 } from "@/lib/report-measurements";
+import { deriveScores, occasionScores, type OccasionScores } from "@/lib/report-scores";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -39,7 +40,7 @@ type VideoForHistory = {
 
 export async function getDerivedMeasurements(
   video: VideoForHistory,
-  report: VideoReport | null,
+  report: Pick<VideoReport, "status" | "payload"> | null,
 ): Promise<DerivedReport | null> {
   if (report?.status !== ReportStatus.READY) return null;
   const shape = reportShape(report.payload);
@@ -94,8 +95,19 @@ export async function getDerivedMeasurements(
     .map((occasion) => occasionMetricValues(shape, occasion.payloads))
     .filter((values) => Object.keys(values).length > 0);
 
-  const metrics = deriveMeasurements(report.payload, history);
-  if (!metrics) return null;
+  // The rows need real units (a calibrated clip); the scores need only the
+  // normalised judgements, so an uncalibrated clip can still score.
+  const metrics = deriveMeasurements(report.payload, history) ?? [];
+
+  const scoreHistory: { date: Date; scores: OccasionScores }[] = ordered.flatMap(
+    ({ date, payloads }) => {
+      const scores = occasionScores(shape, payloads);
+      return scores ? [{ date, scores }] : [];
+    },
+  );
+  const scores = deriveScores(report.payload, scoreHistory, video.createdAt);
+
+  if (metrics.length === 0 && !scores) return null;
 
   // One headline-consistency point per occasion (mean of its videos'), for
   // the hero's Last session / Your best cells and the sessions chart.
@@ -114,5 +126,5 @@ export async function getDerivedMeasurements(
     ];
   });
 
-  return { metrics, consistencyHistory, focus: deriveFocus(report.payload) };
+  return { metrics, consistencyHistory, focus: deriveFocus(report.payload), scores };
 }
