@@ -1,6 +1,6 @@
 "use client";
 
-import { useLayoutEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   motion,
   useMotionValue,
@@ -146,20 +146,59 @@ export function HeroScrubVideo({
   // would rewind through eight seconds of footage in a blur.
   const seek = useTransform(scrollYProgress, seekFractionAt);
   const smooth = useSpring(seek, { stiffness: 120, damping: 30 });
+  // Only a discontinuity in the *target* is a cut — the replay's cut from the
+  // end of the clip back to the trigger, either way through it. Everything
+  // else is the spring's: reaching either end of the scrub, and falling behind
+  // a brisk flick. It used to snap whenever it lagged the target by 0.2 (2.8 s
+  // of footage) and at both ends, which is what made an ordinary scroll leap
+  // through the shot in three-second chunks and cut to the last frame.
+  const lastTarget = useRef(seek.get());
   useMotionValueEvent(seek, "change", (fraction) => {
-    if (fraction === 0 || fraction === 1 || Math.abs(fraction - smooth.get()) > 0.2) {
-      smooth.jump(fraction);
-    }
+    const cut = Math.abs(fraction - lastTarget.current) > 0.2;
+    lastTarget.current = fraction;
+    if (cut) smooth.jump(fraction);
   });
 
+  // One seek in flight at a time. Setting currentTime while the previous seek
+  // is still decoding aborts it, so under a scrub many of the frames asked for
+  // never reached the screen. Hold the latest target and issue it on `seeked`
+  // (or after 250 ms, should a seek stall on the network).
+  const pendingTime = useRef<number | null>(null);
+  const seekIssuedAt = useRef(0);
+  const flushSeek = useCallback(() => {
+    const video = videoRef.current;
+    const time = pendingTime.current;
+    if (!video || time === null) return;
+    if (video.seeking && performance.now() - seekIssuedAt.current < 250) return;
+    pendingTime.current = null;
+    if (Math.abs(time - video.currentTime) > 1 / 30) {
+      seekIssuedAt.current = performance.now();
+      video.currentTime = time;
+    }
+  }, []);
   useMotionValueEvent(smooth, "change", (progress) => {
     const video = videoRef.current;
     if (!scrub || !video || !Number.isFinite(video.duration)) return;
-    const time = progress * video.duration;
-    if (Math.abs(time - video.currentTime) > 1 / 30) {
-      video.currentTime = time;
-    }
+    pendingTime.current = progress * video.duration;
+    flushSeek();
   });
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !scrub) return;
+    // Catch up if the scroll moved before the metadata (and so the duration)
+    // had arrived — otherwise the frame stays on the poster until the next scroll.
+    const onMetadata = () => {
+      pendingTime.current = smooth.get() * video.duration;
+      flushSeek();
+    };
+    video.addEventListener("seeked", flushSeek);
+    video.addEventListener("loadedmetadata", onMetadata);
+    return () => {
+      video.removeEventListener("seeked", flushSeek);
+      video.removeEventListener("loadedmetadata", onMetadata);
+    };
+    // The element is keyed on `scrub`, so re-bind when it is recreated.
+  }, [flushSeek, scrub, smooth]);
 
   // Hand-off from the ball section's red wipe: the frame starts inside the
   // same leather-red vignette and the batter emerges over the first few percent.
