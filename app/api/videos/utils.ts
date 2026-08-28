@@ -1,33 +1,20 @@
-import { NextResponse } from "next/server";
-import { PlayerStatus } from "@/app/generated/prisma/enums";
-import { prisma } from "@/lib/prisma";
-import { getCurrentUser } from "@/lib/auth";
+import { ApiError, jsonError, resolveApiAuth } from "@/lib/api";
 
-export function jsonError(message: string, status: number) {
-  return NextResponse.json({ error: message }, { status });
-}
+export { jsonError };
 
+/**
+ * The upload routes' caller check, now the same rule `apiHandler({ auth:
+ * "player" })` applies — kept as a helper so those routes' early-return
+ * shape didn't have to change in the same commit.
+ */
 export async function getApiPlayer() {
-  const user = await getCurrentUser();
-
-  if (!user) {
-    return { response: jsonError("Authentication required.", 401) };
+  try {
+    const { player, user } = await resolveApiAuth("player");
+    return { player, user };
+  } catch (error) {
+    if (error instanceof ApiError) return { response: jsonError(error.message, error.status) };
+    throw error;
   }
-
-  const player = await prisma.player.findUnique({
-    where: { id: user.id },
-    select: { id: true, status: true },
-  });
-
-  if (!player) {
-    return { response: jsonError("Player account required.", 403) };
-  }
-
-  if (player.status !== PlayerStatus.ACTIVE) {
-    return { response: jsonError("Account pending guardian approval.", 403) };
-  }
-
-  return { player, user };
 }
 
 export function isUuid(value: unknown): value is string {

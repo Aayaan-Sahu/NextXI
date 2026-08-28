@@ -107,7 +107,12 @@ shared code.
 
 - Gate routes with `requireUser()` / `requireAdmin()` from `@/lib/auth`; resolve
   the signed-in user with `getCurrentUser()` and role with `getOnboardingStatus`.
-  Admins are the emails in `ADMIN_EMAILS`.
+  Admins are the emails in `ADMIN_EMAILS`. `getCurrentUser()` accepts either
+  the browser's cookie session or a native app's `Authorization: Bearer
+  <access token>` — see `docs/api.md`.
+- JSON routes for the native apps are written with `apiHandler` from
+  `@/lib/api` (auth, zod validation, the `{ error }` wire shape); the rule a
+  route enforces lives in a `lib/*` function its Server Action twin calls too.
 - Three Supabase clients — pick the right one:
   - `@/lib/supabase/server` — server components/actions (cookie-based session)
   - `@/lib/supabase/client` — browser
