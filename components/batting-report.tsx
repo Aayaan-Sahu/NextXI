@@ -6,6 +6,7 @@ import {
   ShotStat,
   VerdictRow,
 } from "@/components/report-panel";
+import { SeekButton } from "@/components/seek-button";
 import { SectionHeading } from "@/components/ui";
 import type { VideoReport } from "@/lib/videos.server";
 
@@ -39,7 +40,13 @@ const CONSISTENCY_FIELDS: { field: string; label: string }[] = [
 
 type ShotMetric = { label: string; value: Label };
 type ShotStat = { label: string; value: string };
-type Shot = { timeSec: number | null; metrics: ShotMetric[]; stats: ShotStat[] };
+type Shot = {
+  /** Position in the payload's `shots[]` — the number the row and the player's moments rail share. */
+  index: number;
+  timeSec: number | null;
+  metrics: ShotMetric[];
+  stats: ShotStat[];
+};
 
 export type ParsedBattingReport = {
   shots: Shot[];
@@ -73,7 +80,7 @@ function formatSeconds(value: number | null): string | null {
   return value === null ? null : `${value.toFixed(2)}s`;
 }
 
-function parseShot(raw: unknown, fps: number | null): Shot | null {
+function parseShot(raw: unknown, fps: number | null, index: number): Shot | null {
   if (!isRecord(raw)) return null;
 
   const frames = section(raw, "frames");
@@ -100,7 +107,7 @@ function parseShot(raw: unknown, fps: number | null): Shot | null {
 
   // A shot with neither a judgement nor a measurement isn't worth a row.
   if (metrics.length === 0 && stats.length === 0) return null;
-  return { timeSec, metrics, stats };
+  return { index, timeSec, metrics, stats };
 }
 
 /**
@@ -111,7 +118,7 @@ export function parseBattingReport(payload: unknown): ParsedBattingReport | null
   if (!isRecord(payload) || !Array.isArray(payload.shots)) return null;
 
   const fps = num(section(payload, "video").fps);
-  const shots = payload.shots.flatMap((raw) => parseShot(raw, fps) ?? []);
+  const shots = payload.shots.flatMap((raw, index) => parseShot(raw, fps, index) ?? []);
 
   // Consistency only means something with more than one shot to compare.
   const consistency: ConsistencyItem[] =
@@ -155,30 +162,22 @@ export function battingConsistency(parsed: ParsedBattingReport): number | null {
   return Math.round(values.reduce((sum, value) => sum + value, 0) / values.length);
 }
 
-function formatTimestamp(seconds: number) {
-  const total = Math.max(0, Math.floor(seconds));
-  return `${Math.floor(total / 60)}:${(total % 60).toString().padStart(2, "0")}`;
-}
-
 /**
  * One analysed shot. The measurements lead, in the units the analyser emits,
  * because "Stride 62 cm" tells a player what to change and a score does not.
  * The qualitative judgements still render, but as words rather than converted
  * into a percentage they cannot support.
  */
-function ShotRow({ shot, index, variation }: { shot: Shot; index: number; variation?: string }) {
+function ShotRow({ shot, variation }: { shot: Shot; variation?: string }) {
   return (
     <div className="border-t border-cream-300 py-[18px]">
       <div className="flex items-baseline justify-between gap-3">
         <h3 className="font-display text-title font-semibold tracking-[.02em] uppercase">
-          Shot {index + 1}
+          Shot {shot.index + 1}
           {variation ? ` · ${variation}` : ""}
         </h3>
-        {shot.timeSec !== null && (
-          <span className="text-caption text-ink-600 tabular-nums">
-            {formatTimestamp(shot.timeSec)}
-          </span>
-        )}
+        {/* Live when the page has a player: jumps the clip to the swing. */}
+        {shot.timeSec !== null && <SeekButton t={shot.timeSec} />}
       </div>
 
       {shot.stats.length > 0 && (
@@ -229,8 +228,8 @@ export function BattingReport({
 
   return (
     <>
-      {parsed.shots.map((shot, index) => (
-        <ShotRow index={index} key={index} shot={shot} />
+      {parsed.shots.map((shot) => (
+        <ShotRow key={shot.index} shot={shot} />
       ))}
 
       {parsed.consistency.length > 0 && (

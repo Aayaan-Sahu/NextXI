@@ -11,12 +11,15 @@ export function DashboardNav({
   homeHref,
   initial,
   limited = false,
+  pendingReviews = 0,
   unreadMessages = 0,
 }: {
   avatarUrl?: string | null;
   homeHref: string;
   initial: string;
   limited?: boolean;
+  /** Reports awaiting a coach's sign-off — badged on their Home link. */
+  pendingReviews?: number;
   unreadMessages?: number;
 }) {
   const pathname = usePathname();
@@ -42,8 +45,12 @@ export function DashboardNav({
         { href: "/dashboard/messages", label: "Messages" },
       ];
 
-  const badgeCount = unreadMessages > 99 ? "99+" : unreadMessages;
-  const showBadge = (href: string) => href === "/dashboard/messages" && unreadMessages > 0;
+  // Messages carries unread DMs; a coach's Home carries reports awaiting
+  // their sign-off. Anything else is quiet.
+  const badgeFor = (href: string) =>
+    href === "/dashboard/messages" ? unreadMessages : href === homeHref ? pendingReviews : 0;
+  const badgeText = (count: number) => (count > 99 ? "99+" : count);
+  const showBadge = (href: string) => badgeFor(href) > 0;
 
   // Most-specific match wins, so "Sessions" (not "Home") lights up under
   // /dashboard/player/sessions even though "Home" is a path prefix.
@@ -87,7 +94,7 @@ export function DashboardNav({
             )}
           </svg>
           {/* The unread dot rides the closed hamburger. */}
-          {unreadMessages > 0 && !navOpen ? (
+          {(unreadMessages > 0 || pendingReviews > 0) && !navOpen ? (
             <span className="absolute top-3 right-1.5 size-[7px] rounded-full bg-amber-500" />
           ) : null}
         </button>
@@ -114,7 +121,7 @@ export function DashboardNav({
                   {link.label}
                   {showBadge(link.href) ? (
                     <span className="rounded-[9px] bg-amber-500 px-1.5 py-px text-micro font-bold text-ink-900">
-                      {badgeCount}
+                      {badgeText(badgeFor(link.href))}
                     </span>
                   ) : null}
                 </Link>
@@ -158,7 +165,7 @@ export function DashboardNav({
               {link.label}
               {showBadge(link.href) ? (
                 <span className="rounded-[9px] bg-amber-500 px-1.5 py-px text-micro font-bold text-ink-900">
-                  {badgeCount}
+                  {badgeText(badgeFor(link.href))}
                 </span>
               ) : null}
             </Link>

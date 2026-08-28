@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import { SubmitButton } from "@/components/submit-button";
 import { addVideoComment } from "@/app/dashboard/coach/videos/actions";
+import { SeekButton } from "@/components/seek-button";
+import { TimestampField } from "@/components/timestamp-field";
 import { Form, Notice, SectionHeading, TextArea } from "@/components/ui";
 
 export type VideoCommentItem = {
@@ -9,7 +11,14 @@ export type VideoCommentItem = {
   authorUsername: string;
   body: string;
   createdAt: Date;
+  /** Where in the clip the note points, when the coach pinned a moment. */
+  timestampSec: number | null;
+  /** Null while held for the report's sign-off — only a coach's view lists those. */
+  publishedAt: Date | null;
 };
+
+export const COMMENT_HINT_PUBLISHED =
+  "Up to 2000 characters · the player sees this on their own report page.";
 
 function formatDate(date: Date) {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -48,9 +57,20 @@ export function VideoComments({
                 <span className="text-ui font-semibold text-ink-900">{comment.authorName}</span>
                 <span className="text-caption text-ink-600">
                   @{comment.authorUsername} · {formatDate(comment.createdAt)}
+                  {/* A fact in the meta line, not a badge: during a review every
+                      note is held, and the thread shouldn't be about privacy. */}
+                  {comment.publishedAt === null ? (
+                    <>
+                      {" · "}
+                      <span className="font-semibold">Hidden until you approve</span>
+                    </>
+                  ) : null}
                 </span>
               </div>
               <p className="mt-1 text-body leading-relaxed whitespace-pre-wrap text-ink-800">
+                {comment.timestampSec !== null ? (
+                  <SeekButton className="mr-2" t={comment.timestampSec} />
+                ) : null}
                 {comment.body}
               </p>
             </li>
@@ -64,7 +84,16 @@ export function VideoComments({
   );
 }
 
-export function CommentForm({ error, videoId }: { error?: string; videoId: string }) {
+export function CommentForm({
+  error,
+  hint = COMMENT_HINT_PUBLISHED,
+  videoId,
+}: {
+  error?: string;
+  /** What happens to the note — differs while the report awaits sign-off. */
+  hint?: string;
+  videoId: string;
+}) {
   return (
     <div className="mt-3.5">
       <Form action={addVideoComment}>
@@ -77,10 +106,10 @@ export function CommentForm({ error, videoId }: { error?: string; videoId: strin
           required
           rows={4}
         />
+        {/* Renders only once the clip's metadata has loaded. */}
+        <TimestampField name="timestampSec" />
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <span className="text-caption text-ink-600">
-            Up to 2000 characters · the player sees this on their own report page.
-          </span>
+          <span className="text-caption text-ink-600">{hint}</span>
           <SubmitButton>Post feedback</SubmitButton>
         </div>
       </Form>

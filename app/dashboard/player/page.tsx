@@ -27,6 +27,7 @@ import { formatGuardianCode } from "@/lib/guardian-code";
 import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { getDerivedMeasurements } from "@/lib/report-history";
+import { publishedReportWhere } from "@/lib/report-review.server";
 import { formatVideoTags } from "@/lib/videos";
 import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
 
@@ -97,12 +98,13 @@ export default async function PlayerDashboardPage() {
   }
 
   // Latest coach comments across the player's videos, so feedback isn't only
-  // discoverable by reopening each video. Comments are coach-authored only.
+  // discoverable by reopening each video. Comments are coach-authored only;
+  // notes held for a report's sign-off stay out until it's approved.
   const [videos, pulse, feedback, latestReport, guardianRow] = await Promise.all([
-    getReadyVideoGridItems(user.id),
+    getReadyVideoGridItems(user.id, "player"),
     getPlayerVideoPulse(user.id),
     prisma.videoComment.findMany({
-      where: { video: { playerId: user.id } },
+      where: { video: { playerId: user.id }, publishedAt: { not: null } },
       orderBy: { createdAt: "desc" },
       take: 5,
       select: {
@@ -111,15 +113,17 @@ export default async function PlayerDashboardPage() {
         authorUsername: true,
         body: true,
         createdAt: true,
+        timestampSec: true,
         videoId: true,
         video: { select: { originalFilename: true } },
       },
     }),
     // Newest READY report across all videos (session-filed ones included —
     // the grid excludes those, but the video detail page renders them fine).
+    // Published only: a report the coach hasn't signed off isn't the player's yet.
     prisma.report.findFirst({
       where: {
-        status: ReportStatus.READY,
+        ...publishedReportWhere,
         video: { playerId: user.id, status: PlayerVideoStatus.READY },
       },
       orderBy: { updatedAt: "desc" },
@@ -167,6 +171,7 @@ export default async function PlayerDashboardPage() {
   const stats = [
     `${pulse.totalVideos} video${pulse.totalVideos === 1 ? "" : "s"}`,
     `${pulse.reportsReady} report${pulse.reportsReady === 1 ? "" : "s"} ready`,
+    ...(pulse.withCoach ? [`${pulse.withCoach} with your coach`] : []),
     latestUpload ? `Latest ${latestUpload}` : "No uploads yet",
     `${feedback.length} recent note${feedback.length === 1 ? "" : "s"}`,
     ...(pulse.streakWeeks >= 2 ? [`${pulse.streakWeeks}-week upload streak`] : []),
@@ -175,7 +180,10 @@ export default async function PlayerDashboardPage() {
 
   return (
     <PageShell>
-      {pulse.analysing ? <ReportAutoRefresh /> : null}
+      {/* The pipeline takes minutes; a coach's sign-off takes hours. */}
+      {pulse.analysing || pulse.withCoach ? (
+        <ReportAutoRefresh intervalMs={pulse.analysing ? 10_000 : 60_000} />
+      ) : null}
       <DashboardReveal className="grid gap-6">
         <DashboardRevealItem index={0}>
           <div className="flex flex-wrap items-baseline justify-between gap-4">
@@ -238,6 +246,7 @@ export default async function PlayerDashboardPage() {
               id: comment.id,
               authorName: comment.authorName,
               authorUsername: comment.authorUsername,
+              timestampSec: comment.timestampSec,
               body: comment.body,
               createdAt: comment.createdAt,
               videoId: comment.videoId,

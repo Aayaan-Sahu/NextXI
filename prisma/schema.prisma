@@ -40,6 +40,20 @@ enum ReportStatus {
   @@schema("public")
 }
 
+// Coach review of a READY report. A player sees a report only once it is
+// APPROVED (a connected coach signed it off — the report carries their stamp)
+// or RELEASED (published with no stamp: nobody to wait for, released by an
+// admin, or grandfathered at migration). See lib/report-review.ts.
+enum ReportReviewStatus {
+  AWAITING_REVIEW @map("awaiting_review")
+  HELD            @map("held")
+  APPROVED        @map("approved")
+  RELEASED        @map("released")
+
+  @@map("report_review_status")
+  @@schema("public")
+}
+
 enum PlayerRole {
   BATTER       @map("batter")
   PACE         @map("pace")
@@ -280,10 +294,22 @@ model Report {
   // MAX_REPORT_ATTEMPTS is dead-lettered as FAILED.
   attempts      Int          @default(0)
   claimedAt     DateTime?    @map("claimed_at") @db.Timestamptz(6)
+  // Coach review — only meaningful while status = READY. AWAITING_REVIEW rows
+  // carry null review columns; HELD rows the holder and holdReason; APPROVED
+  // rows the approver and coachNote. reviewedByName is denormalised at write
+  // (like VideoComment.authorName) because the app never joins auth.users.
+  reviewStatus   ReportReviewStatus @default(AWAITING_REVIEW) @map("review_status")
+  reviewedById   String?            @map("reviewed_by_id") @db.Uuid
+  reviewedBy     AuthUser?          @relation("ReportReviewer", fields: [reviewedById], references: [id], onDelete: SetNull, onUpdate: NoAction)
+  reviewedByName String?            @map("reviewed_by_name")
+  reviewedAt     DateTime?          @map("reviewed_at") @db.Timestamptz(6)
+  coachNote      String?            @map("coach_note")
+  holdReason     String?            @map("hold_reason")
   createdAt     DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@index([status, createdAt], map: "reports_status_created_at_idx")
+  @@index([reviewStatus, updatedAt], map: "reports_review_status_updated_at_idx")
   @@map("reports")
   @@schema("public")
 }
@@ -351,6 +377,11 @@ model VideoComment {
   authorUsername String      @map("author_username")
   authorName     String      @map("author_name")
   body           String
+  // Optional position in the clip the note refers to, in seconds.
+  timestampSec   Float?      @map("timestamp_sec")
+  // Null while held: a comment posted while the video's report awaits coach
+  // review stays invisible to the player until the report is published.
+  publishedAt    DateTime?   @map("published_at") @db.Timestamptz(6)
   createdAt      DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
 
   @@index([videoId, createdAt], map: "video_comments_video_created_at_idx")
@@ -392,6 +423,7 @@ model AuthUser {
   sentMessages         Message[]      @relation("MessageSender")
   videoComments        VideoComment[] @relation("VideoCommentAuthor")
   videoViews           VideoView[]    @relation("VideoViewViewer")
+  reviewedReports      Report[]       @relation("ReportReviewer")
 
   @@map("users")
   @@schema("auth")

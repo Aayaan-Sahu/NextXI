@@ -1,7 +1,7 @@
 import Link from "next/link";
-import type { ReportStatus } from "@/app/generated/prisma/enums";
 import { ConfirmDeleteButton } from "@/components/confirm-delete-button";
 import { EmptyState } from "@/components/ui";
+import type { ReportDisplayStatus } from "@/lib/report-review";
 import { formatVideoSize } from "@/lib/videos";
 
 type GridVideo = {
@@ -13,18 +13,32 @@ type GridVideo = {
   createdAt: Date;
   playerName?: string;
   tagLabel?: string;
-  /** When set, the card carries a coaching-report status chip. */
-  reportStatus?: ReportStatus | null;
+  /** When set, the card carries a coaching-report status chip (lib/report-review.ts). */
+  reportStatus?: ReportDisplayStatus | null;
   commentCount?: number;
 };
 
-/** Report chip per status — a card overlay, top-left. */
-export function ReportChip({ status }: { status: ReportStatus }) {
+/**
+ * Report chip per status — a card overlay, top-left. READY is a published
+ * report; the review states read differently per viewer (see
+ * reportDisplayStatus): a player is told it's with their coach, a coach that
+ * it needs their sign-off or is on hold.
+ */
+export function ReportChip({ status }: { status: ReportDisplayStatus }) {
   const chipStyles =
     "pointer-events-none absolute top-2 left-2 inline-flex items-center gap-1.5 rounded px-[7px] py-[3px] text-micro font-semibold";
 
   if (status === "READY") {
     return <span className={`${chipStyles} bg-pitch-900/[.82] text-amber-500`}>Report ready</span>;
+  }
+  if (status === "WITH_COACH") {
+    return <span className={`${chipStyles} bg-pitch-900/60 text-cream-200`}>With your coach</span>;
+  }
+  if (status === "AWAITING_REVIEW") {
+    return <span className={`${chipStyles} bg-pitch-900/[.82] text-amber-500`}>Needs sign-off</span>;
+  }
+  if (status === "HELD") {
+    return <span className={`${chipStyles} bg-rust-600 text-cream-50`}>On hold</span>;
   }
   if (status === "FAILED") {
     return <span className={`${chipStyles} bg-rust-600 text-cream-50`}>Analysis failed</span>;

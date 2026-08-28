@@ -1,8 +1,9 @@
 import "server-only";
-import { PlayerVideoStatus, ReportStatus, VideoCategory } from "@/app/generated/prisma/enums";
+import { PlayerVideoStatus, VideoCategory } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { isReportPublished, reportDisplayStatus, type ReportViewer } from "@/lib/report-review";
 import { formatVideoTags } from "@/lib/videos";
-import { effectiveReportStatus, getThumbnailUrlByPath } from "@/lib/videos.server";
+import { getThumbnailUrlByPath, publishedCommentCount } from "@/lib/videos.server";
 
 /** A player's practice sessions with a cover thumbnail + video count, for the index. */
 export async function getPlayerSessions(playerId: string) {
@@ -41,12 +42,17 @@ export async function getPlayerSessions(playerId: string) {
 }
 
 /**
- * One session with its ready videos shaped for VideoGrid, plus the ready
+ * One session with its ready videos shaped for VideoGrid, plus the published
  * reports' payloads for the consistency calc, and the owner's identity. Pass
  * `playerId` to scope to the owner (player view); omit it for a viewer (coach)
  * who authorizes via the returned `playerId`. Null if not found.
+ *
+ * The player's view hides what a coach hasn't signed off yet ("With your
+ * coach" chips, published comments only); the coach sees the review state.
+ * The consistency pool is published-only for both, so the two agree.
  */
 export async function getSessionWithVideos(sessionId: string, playerId?: string) {
+  const viewer: ReportViewer = playerId ? "player" : "coach";
   const session = await prisma.practiceSession.findFirst({
     where: { id: sessionId, ...(playerId ? { playerId } : {}) },
     select: {
@@ -69,8 +75,8 @@ export async function getSessionWithVideos(sessionId: string, playerId?: string)
           thumbnailPath: true,
           uploadedAt: true,
           variation: true,
-          report: { select: { status: true, error: true, payload: true } },
-          _count: { select: { comments: true } },
+          report: { select: { status: true, error: true, reviewStatus: true, payload: true } },
+          _count: { select: { comments: publishedCommentCount(viewer) } },
         },
       },
     },
@@ -89,7 +95,7 @@ export async function getSessionWithVideos(sessionId: string, playerId?: string)
     createdAt: video.createdAt,
     uploadedAt: video.uploadedAt,
     commentCount: video._count.comments,
-    reportStatus: effectiveReportStatus(video.report),
+    reportStatus: reportDisplayStatus(video.report, viewer),
     tagLabel: formatVideoTags(video.category, video.variation, video.handedness),
     thumbnailUrl: video.thumbnailPath
       ? (thumbnailUrlByPath.get(video.thumbnailPath) ?? null)
@@ -97,7 +103,7 @@ export async function getSessionWithVideos(sessionId: string, playerId?: string)
   }));
 
   const readyPayloads = session.videos.flatMap((video) =>
-    video.report && video.report.status === ReportStatus.READY && video.report.payload != null
+    isReportPublished(video.report) && video.report?.payload != null
       ? [video.report.payload]
       : [],
   );

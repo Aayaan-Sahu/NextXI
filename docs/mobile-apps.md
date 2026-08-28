@@ -301,8 +301,12 @@ panel: the report is the only Panel, and on a phone the whole screen is it.
    short sentence, then the drill as the info flash: `rust-500` left rule on
    `rust-50`, "**Your drill ·** …". Plain text on the panel, never a card in a
    card.
-6. **Coach stamp** — the moss tick, "Approved by an ECB Level 3 coach", the
-   quote in italic caption.
+6. **Coach stamp** — the moss tick, "Signed off by {reviewedByName} ·
+   {reviewerCredential}", the date, the `coachNote` quote in italic caption —
+   from `Report.reviewStatus = approved` (web: `components/report-signoff.tsx`).
+   Nothing for a `released` report. Until a report is `approved` or `released`
+   the whole screen is the **With your coach** state: the clip, the coach
+   name(s), "You'll see it here once it's signed off", no numbers, no moments.
 7. **The clip** — 16:9 player with custom controls: play/pause, scrubber, "½×" /
    "¼×" rate words, "‹ frame" / "frame ›" step words (`currentTime += 1/fps`).
    Beneath it the **moments list**: "Shot 1 · 0:04", "Shot 2 · 0:14" (from
@@ -344,7 +348,7 @@ reads the same `DerivedReport.scores` through `GET /api/videos/{id}`.
 - **Profile** — avatar (Take photo / Choose from library / Remove → `removeAvatar`); Visibility `Switch` with the public-directory sentence; fields as `components/edit-profile.tsx`; DOB shown, not editable, with the safeguarding sentence; stats link; Set/Change password; "Delete account" at the bottom in `ink-600` → sheet requiring the typed word DELETE (`deleteAccount` re-checks it).
 - **Settings** (new) — Notifications: Reports ready · Messages · Connection requests · Coach feedback (four switches). Uploads: "Send on mobile data" (off), "Keep original in Photos" (on). Camera: default fps (only values `capture-policy` allows), "Show framing coach". Guide: "Watch the 20-second guide again". Language: English / हिंदी (later; the product still reports in English). Legal: Terms, Privacy, Safeguarding. Sign out.
 - **Coach — Queue** — filter chips (discipline, variation, hand, "Clear"), caption "6 unviewed · opening a clip marks it reviewed", one-column rows (thumbnail, player name, tags, age). Opening upserts `VideoView` when connected, as `app/dashboard/coach/videos/[videoId]/page.tsx`.
-- **Coach — Review** — the clip with the same moments controls, the report, then the **Feedback** composer pinned at the bottom (2000 chars, "Post feedback"; `addVideoComment` rules).
+- **Coach — Review** — the clip with the same moments controls, the report, then the **Feedback** composer pinned at the bottom (2000 chars, "Post feedback", "Pin to 0:04"; `addVideoComment` rules). Above the report, for a connected coach on an unpublished report, the **Sign-off** panel from web (`components/review-actions.tsx`): approve with an optional note (≤ 500) after an inline confirm, or hold with a reason (≤ 500). Notes posted during review are held and released with the approval; the composer says so.
 - **Coach — Player** — header facts, role chips, "Request to connect" + the lock notice when not connected (visibility gate: accepted connection OR `PUBLIC` + `ACTIVE`); sessions list; clips grid. Sessions read-only.
 - **Guardian — Child** — segmented child switcher when ≥ 2 (`GuardianChildSwitcher`); facts list (club, country, DOB, height, weight); "Allow report sharing" switch + sentence; library grid → read-only clip + report; connections with dates; "Link another child" sheet (`linkChild`). Empty (no child): the `GatePanel` + code form.
 - **Onboarding** — three role rows (player / coach / parent or guardian), one sentence each. Player form: name, username with live "@handle is free" in moss (`checkUsername`), native date wheel (ages 8–100), club, country picker (`COUNTRY_OPTIONS`), height required with "Reports are calibrated to your height.", weight optional, role chips. Under-18 → straight to the guardian gate. Coach: name, username, accomplishments (one per line). Guardian: name, username, child's code auto-formatted `ABCD-2345`, **Scan code** (QR from the player's gate), consent checkbox; deep link `nextxi.pro/g/ABCD2345` pre-fills the code.
@@ -464,7 +468,7 @@ call — one implementation of every rule.
 | `GET /api/messages` · `GET /api/messages/{connectionId}?before=&limit=50` · `POST /api/messages/{connectionId}` · `POST /api/messages/{connectionId}/read` | user | `getConversations`, `getThread` (+ new `{ before, limit }`, `lib/messages.ts:131`), `sendMessage`, `markConversationRead` | `sendMessage` already returns `{ ok, message }` |
 | `GET/PATCH /api/profile` · `DELETE /api/profile/avatar` · `POST /api/account/password` · `POST /api/account/delete` | user | `updateProfile`, `removeAvatar`, `setAccountPassword`, `deleteAccount` | delete requires `confirm: "DELETE"` |
 | **Phase 3** | | | |
-| `GET /api/coach/queue?category=&variation=&handedness=` · `GET /api/coach/players/{id}` · `GET /api/coach/videos/{id}` · `GET /api/coach/sessions/{id}` · `POST /api/videos/{id}/comments` | coach APPROVED | coach page queries, `addVideoComment` | `coach/videos/{id}` upserts `VideoView` when connected — same side effect as the page |
+| `GET /api/coach/queue?category=&variation=&handedness=` · `GET /api/coach/approvals` · `GET /api/coach/players/{id}` · `GET /api/coach/videos/{id}` · `GET /api/coach/sessions/{id}` · `POST /api/videos/{id}/comments` · `POST /api/videos/{id}/review` (`{ action: "approve", note? } \| { action: "hold", reason }`) | coach APPROVED | coach page queries, `getAwaitingReviewForCoach`, `addVideoComment`, `approveReport` / `holdReport` | `coach/videos/{id}` upserts `VideoView` when connected — same side effect as the page. Review actions share `publishReport` with web (`lib/report-review.server.ts`), so a report publishes the same way from either client |
 | `GET /api/guardian/children` · `POST /api/guardian/children` · `GET /api/guardian/children/{id}/{videos,connections,messages}` · `GET …/messages/{connectionId}` · `PATCH /api/guardian/children/{id}` (`allowReportSharing`) | guardian | `lib/guardian.ts`, `linkChild` | |
 | **Phase 4** | | | |
 | `POST /api/report-content` · `POST/DELETE /api/blocks/{userId}` | user | new | Store UGC rules; nothing exists on web today |
@@ -483,7 +487,7 @@ has already caused a production outage).
 ### Push
 
 - `lib/push.ts` on `expo-server-sdk`: `sendToUser(userId, { title, body, data: { url } })`, chunked, receipts checked asynchronously, tokens pruned on `DeviceNotRegistered`. Fire-and-forget like `notifyTeam`.
-- Triggers → deep links: report READY in `PUT /api/videos/[videoId]/report` → `nextxi://video/{id}`; `sendMessage` → `nextxi://messages/{connectionId}` (skipped when the recipient has that thread open); connection request / accept → `nextxi://connections?tab=pending`; `approveCoach` → `nextxi://coach`; `linkChild` / guardian onboarding → `nextxi://home`.
+- Triggers → deep links: report **published** (approved by a coach, or released — `publishReport` in `lib/report-review.server.ts`, not the worker's `ready` write, which the player can't see yet) → `nextxi://video/{id}`; report awaiting review → the connected coach(es), `nextxi://coach/videos/{id}`; `sendMessage` → `nextxi://messages/{connectionId}` (skipped when the recipient has that thread open); connection request / accept → `nextxi://connections?tab=pending`; `approveCoach` → `nextxi://coach`; `linkChild` / guardian onboarding → `nextxi://home`.
 - Universal links: `public/.well-known/apple-app-site-association` (paths `/auth/confirm`, `/dashboard/*`, `/g/*`) and `public/.well-known/assetlinks.json`, plus a `headers()` rule in `next.config.ts` for the AASA content-type. Expo: `scheme: "nextxi"`, `ios.associatedDomains: ["applinks:www.nextxi.pro"]`, Android `intentFilters` with `autoVerify`.
 - Supabase → Authentication → URL Configuration: add `nextxi://**` to Redirect URLs (the same panel `docs/aayaan-ops-handoff.md` describes).
 

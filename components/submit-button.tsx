@@ -24,10 +24,13 @@ export type SubmitVariant = keyof typeof VARIANT_STYLES;
  * button inside a destructive dialog.
  */
 export function SubmitButton({
+  autoFocus = false,
   children,
   className = "",
   variant = "primary",
 }: {
+  /** For a confirming step that replaces the button that opened it. */
+  autoFocus?: boolean;
   children: ReactNode;
   className?: string;
   variant?: SubmitVariant;
@@ -37,6 +40,7 @@ export function SubmitButton({
   return (
     <button
       aria-busy={pending}
+      autoFocus={autoFocus}
       className={`relative inline-flex cursor-pointer items-center justify-center rounded-md px-5 py-2.5 text-ui font-semibold disabled:cursor-default ${VARIANT_STYLES[variant]} ${className}`}
       disabled={pending}
       type="submit"

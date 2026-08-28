@@ -67,8 +67,11 @@ export default async function CoachPlayerVideosPage({
 
   if (!viewable) notFound();
 
+  // A coach who isn't connected browses a public player as the player's own
+  // audience would: a report their coach hasn't signed off reads "With your
+  // coach", and held notes stay out of the counts.
   const [videos, sessions] = await Promise.all([
-    getReadyVideoGridItems(playerId),
+    getReadyVideoGridItems(playerId, connected ? "coach" : "player"),
     getPlayerSessions(playerId),
   ]);
 

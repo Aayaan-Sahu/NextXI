@@ -1,6 +1,7 @@
 import "server-only";
-import { PlayerVideoStatus, ReportStatus, VideoCategory } from "@/app/generated/prisma/enums";
+import { PlayerVideoStatus, VideoCategory } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { isReportPublished } from "@/lib/report-review";
 import {
   battingShots,
   median,
@@ -72,14 +73,16 @@ export async function getTechniqueTrends(playerId: string): Promise<TechniqueTre
       createdAt: true,
       videos: {
         where: { status: PlayerVideoStatus.READY },
-        select: { report: { select: { status: true, payload: true } } },
+        select: { report: { select: { status: true, reviewStatus: true, payload: true } } },
       },
     },
   });
 
+  // Only reports the player can see feed their trends: a delivered report a
+  // coach hasn't signed off yet would leak its numbers through the chart.
   const analysed = sessions.flatMap((session) => {
     const payloads = session.videos.flatMap((video) =>
-      video.report && video.report.status === ReportStatus.READY && video.report.payload != null
+      isReportPublished(video.report) && video.report?.payload != null
         ? [video.report.payload]
         : [],
     );

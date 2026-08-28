@@ -120,12 +120,16 @@ Success body:
   "report": {
     "videoId": "8f0b1c2d-3e4f-4a5b-8c6d-7e8f9a0b1c2d",
     "status": "ready",
+    "reviewStatus": "awaiting_review",
     "schemaVersion": 1,
     "modelVersion": "technique-v1.4.2",
     "updatedAt": "2026-07-03T10:15:00.000Z"
   }
 }
 ```
+
+`reviewStatus` is the platform's coach-review state (below); it is informational
+for the worker.
 
 ## Lifecycle
 
@@ -138,6 +142,32 @@ pending --(PUT status:"ready")--> ready
 A report is `pending` from upload completion until you write a terminal state.
 You may overwrite a terminal state (e.g. move `failed` -> `ready` on a re-run, or
 re-deliver an updated `ready` report).
+
+### Coach review — what `ready` does and doesn't mean
+
+`ready` means you delivered a payload. It does **not** mean the player can see
+it. Every `ready` report also carries a review state the platform owns:
+
+```
+ready ──► awaiting_review ──(coach approves)──► approved   (stamped with the coach)
+              │                                    ▲
+              │──(coach holds)──► held ──(admin releases)──► released (no stamp)
+              │                    │
+              │                    └──(admin re-runs: status back to pending;
+              │                        your next "ready" lands here again)
+              └──(no connected coach)──► released
+```
+
+- A player sees the report only when it is `approved` or `released`.
+- On a `ready` write the platform decides the review state: a report that is
+  already `approved`/`released` **stays published** (the stamp stands, the
+  payload is replaced); one that is `held` goes back to `awaiting_review`
+  (the re-run resolved the hold); otherwise it waits for a connected coach or,
+  when the player has none, is released at once.
+- A `ready` row is never re-claimed, so nothing you do can undo an approval.
+- Comments a coach leaves during review are released together with the report.
+
+The rules are in `lib/report-review.ts`; the admin queue lists held reports.
 
 ## Idempotency
 
