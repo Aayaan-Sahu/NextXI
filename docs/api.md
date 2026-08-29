@@ -23,7 +23,8 @@ against the project's JWKS (`lib/auth.ts` `getCurrentUser`), exactly as it
 verifies the browser's cookie session — the same function serves both, so
 every Server Component, Server Action and route that calls `requireUser()`
 accepts a bearer with no further change. A bearer takes precedence over any
-cookie on the request; an invalid one is simply "not signed in".
+cookie on the request; an invalid token or an unparseable Authorization
+header is simply "not signed in" and never falls back to a cookie.
 
 Sign-up and password reset are the two flows that cannot ride a bearer
 (there is no account yet / no session); they get their own routes below.

@@ -420,9 +420,12 @@ Actions, which a native client cannot call.
 
 ```ts
 export const getCurrentUser = cache(async () => {
-  const bearer = (await headers()).get("authorization")?.match(/^Bearer (.+)$/i)?.[1];
   const supabase = await createSupabaseServerClient();
-  const { data, error } = await supabase.auth.getClaims(bearer); // undefined → cookie session
+  const resolved = resolveAuthorization((await headers()).get("authorization"));
+  if (resolved.source === "none") return null; // junk header, no cookie fallback
+  const { data, error } = await supabase.auth.getClaims(
+    resolved.source === "bearer" ? resolved.token : undefined,
+  );
   if (error || !data) return null;
   return { id: data.claims.sub, email: data.claims.email };
 });

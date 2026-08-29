@@ -2,7 +2,7 @@ import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
-import { parseBearer } from "@/lib/bearer";
+import { resolveAuthorization } from "@/lib/bearer";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -31,13 +31,17 @@ export type SessionUser = { id: string; email?: string };
  *
  * Both verify the JWT locally (asymmetric keys + process-wide JWKS cache)
  * rather than a network round-trip to the auth server per request. A bearer
- * takes precedence when present; a bad bearer is simply "not signed in" —
- * it never falls back to whatever cookie happens to be on the request.
+ * takes precedence when present; a bad or unparseable Authorization header
+ * is simply "not signed in" — it never falls back to whatever cookie happens
+ * to be on the request.
  */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createSupabaseServerClient();
-  const bearer = parseBearer((await headers()).get("authorization"));
-  const { data, error } = await supabase.auth.getClaims(bearer);
+  const resolved = resolveAuthorization((await headers()).get("authorization"));
+  if (resolved.source === "none") return null;
+  const { data, error } = await supabase.auth.getClaims(
+    resolved.source === "bearer" ? resolved.token : undefined,
+  );
 
   if (error || !data) return null;
   return { id: data.claims.sub, email: data.claims.email };
