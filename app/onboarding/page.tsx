@@ -31,7 +31,9 @@ export default async function OnboardingPage({
   ]);
   const roleParam = firstParam(params.role);
   const role =
-    roleParam === "coach" || roleParam === "guardian" ? roleParam : "player";
+    roleParam === "coach" || roleParam === "guardian" || roleParam === "club"
+      ? roleParam
+      : "player";
 
   return (
     <OnboardingPanel

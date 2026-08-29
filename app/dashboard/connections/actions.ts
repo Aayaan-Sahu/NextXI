@@ -2,10 +2,10 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { CoachStatus, ConnectionStatus, PlayerStatus } from "@/app/generated/prisma/enums";
+import { ClubStatus, CoachStatus, ConnectionStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { orderedPair } from "@/lib/connections";
+import { createConnectionRequest, type ConnectionRequestOutcome } from "@/lib/connections";
 import { releaseOrphanedReports } from "@/lib/report-review.server";
 
 const usernamePattern = /^[a-z0-9_]{3,30}$/;
@@ -16,19 +16,25 @@ function text(formData: FormData, name: string) {
 }
 
 async function accountStatusFor(userId: string) {
-  const [player, coach] = await Promise.all([
+  const [player, coach, club] = await Promise.all([
     prisma.player.findUnique({ where: { id: userId }, select: { status: true } }),
     prisma.coach.findUnique({ where: { id: userId }, select: { id: true, status: true } }),
+    prisma.club.findUnique({ where: { id: userId }, select: { status: true } }),
   ]);
 
-  if (player) return { coachStatus: null, playerStatus: player.status };
-  if (coach) return { coachStatus: coach.status, playerStatus: null };
+  if (player) return { clubStatus: null, coachStatus: null, playerStatus: player.status };
+  if (coach) return { clubStatus: null, coachStatus: coach.status, playerStatus: null };
+  if (club) return { clubStatus: club.status, coachStatus: null, playerStatus: null };
   redirect("/onboarding");
 }
 
 function requireActiveAccount(status: Awaited<ReturnType<typeof accountStatusFor>>) {
   if (status.coachStatus && status.coachStatus !== CoachStatus.APPROVED) {
     done("connectionError", "Your coach account is still under review.");
+  }
+
+  if (status.clubStatus && status.clubStatus !== ClubStatus.APPROVED) {
+    done("connectionError", "Your club is still under review.");
   }
 
   if (status.playerStatus === PlayerStatus.PENDING_GUARDIAN) {
@@ -39,77 +45,6 @@ function requireActiveAccount(status: Awaited<ReturnType<typeof accountStatusFor
 function done(key: "connectionError" | "connectionMessage", message: string): never {
   revalidatePath("/dashboard/connections");
   redirect(`/dashboard/connections?${key}=${encodeURIComponent(message)}`);
-}
-
-type ConnectionRequestOutcome = { message: string } | { error: string };
-
-/**
- * Shared core for every "connect with this person" entry point (username
- * lookup, coach directory). Validates eligibility, then either creates a new
- * pending connection or, if the pair was previously revoked, reopens the
- * existing row — the `[userAId, userBId]` unique constraint means a revoked
- * pair can never be re-inserted.
- */
-async function requestConnection(
-  requesterId: string,
-  targetId: string,
-): Promise<ConnectionRequestOutcome> {
-  if (targetId === requesterId) {
-    return { error: "You can't connect with yourself." };
-  }
-
-  const [targetCoach, targetPlayer] = await Promise.all([
-    prisma.coach.findUnique({
-      where: { id: targetId },
-      select: { status: true },
-    }),
-    prisma.player.findUnique({
-      where: { id: targetId },
-      select: { status: true },
-    }),
-  ]);
-
-  if (targetCoach && targetCoach.status !== CoachStatus.APPROVED) {
-    return { error: "That coach is not available to connect yet." };
-  }
-
-  // Child safety: unapproved minors are unreachable until a guardian signs off.
-  if (targetPlayer && targetPlayer.status !== PlayerStatus.ACTIVE) {
-    return { error: "That player is not available to connect yet." };
-  }
-
-  const [userAId, userBId] = orderedPair(requesterId, targetId);
-  const existing = await prisma.connection.findUnique({
-    where: { userAId_userBId: { userAId, userBId } },
-    select: { id: true, status: true },
-  });
-
-  if (existing?.status === ConnectionStatus.ACCEPTED) {
-    return { error: "You are already connected." };
-  }
-
-  if (existing?.status === ConnectionStatus.PENDING) {
-    return { error: "That request is already pending." };
-  }
-
-  if (existing) {
-    // Previously revoked: reopen the same row instead of inserting a new one.
-    await prisma.connection.update({
-      where: { id: existing.id },
-      data: { status: ConnectionStatus.PENDING, requestedById: requesterId },
-    });
-  } else {
-    await prisma.connection.create({
-      data: {
-        userAId,
-        userBId,
-        requestedById: requesterId,
-        status: ConnectionStatus.PENDING,
-      },
-    });
-  }
-
-  return { message: "Request sent." };
 }
 
 function finishConnectionRequest(outcome: ConnectionRequestOutcome): never {
@@ -132,7 +67,7 @@ export async function sendConnectionRequest(formData: FormData) {
       select: { id: true },
     });
     if (byUsername && byUsername.id !== user.id) {
-      finishConnectionRequest(await requestConnection(user.id, byUsername.id));
+      finishConnectionRequest(await createConnectionRequest(user.id, byUsername.id));
     }
   }
 
@@ -150,7 +85,7 @@ export async function sendConnectionRequest(formData: FormData) {
   const matches = [...players, ...coaches].filter((person) => person.id !== user.id);
 
   if (matches.length === 1) {
-    finishConnectionRequest(await requestConnection(user.id, matches[0].id));
+    finishConnectionRequest(await createConnectionRequest(user.id, matches[0].id));
   }
 
   if (matches.length > 1) {
@@ -184,7 +119,7 @@ export async function requestConnectionToCoach(formData: FormData) {
     done("connectionError", "Coach not found.");
   }
 
-  finishConnectionRequest(await requestConnection(user.id, coachId));
+  finishConnectionRequest(await createConnectionRequest(user.id, coachId));
 }
 
 /** Connect action for the player directory — same core as `sendConnectionRequest`. */
@@ -198,7 +133,17 @@ export async function requestConnectionToPlayer(formData: FormData) {
     done("connectionError", "Player not found.");
   }
 
-  finishConnectionRequest(await requestConnection(user.id, playerId));
+  finishConnectionRequest(await createConnectionRequest(user.id, playerId));
+}
+
+export async function requestConnectionToClub(formData: FormData) {
+  const user = await requireUser();
+  requireActiveAccount(await accountStatusFor(user.id));
+
+  const clubId = text(formData, "clubId");
+  if (!clubId) done("connectionError", "Invalid request.");
+
+  finishConnectionRequest(await createConnectionRequest(user.id, clubId));
 }
 
 export async function revokeConnection(formData: FormData) {

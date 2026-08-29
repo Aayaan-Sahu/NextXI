@@ -7,7 +7,7 @@ This document catalogs **every piece of functionality** in the app, organized by
 ## 0. Global Structure & Cross-Cutting Patterns
 
 ### Roles
-Four roles: **Player**, **Coach**, **Guardian**, **Admin** (admin is an email allowlist, not an onboarded role). Every dashboard page is server-guarded:
+Five roles: **Player**, **Coach**, **Guardian**, **Club**, **Admin** (admin is an email allowlist, not an onboarded role). Coaches and clubs are both admin-verified before they can reach anyone. Every dashboard page is server-guarded:
 
 - Unauthenticated → `/auth`
 - Admin email → `/dashboard/admin` (admins never see the normal dashboard)
@@ -295,7 +295,7 @@ List (open first, then soonest due, nulls last). Empty: "No reminders yet." Each
 
 Header: "Connections" / "Find players and coaches by username and manage your requests." Error + info banners from query params.
 
-**Role differences:** Players see the "Find a coach" directory **plus** the Connections panel. Coaches and guardians see only the Connections panel.
+**Role differences:** Players see the **coach directory and the club directory** (one search box filters both) plus the Connections panel. Coaches, guardians and clubs see only the Connections panel — a club reaches players by claiming the ones who named it, or by username.
 
 ### 5.1 "Find a coach" directory (players only)
 - **Search form** (GET): search input "Search coaches by name" + "Search" button; case-insensitive name substring filter, persisted in `?q=`.
@@ -316,8 +316,8 @@ Header: "Connections" / "Find players and coaches by username and manage your re
 3. **Accepted connections** — rows with a "**Revoke**" button that opens the app's only confirmation modal (alertdialog): heading "Revoke this connection?", warning "This coach will lose access to your videos." (coach counterpart) or "You will lose access to this person's videos and messages.", buttons **Cancel** / **Revoke**. Revoking also removes the conversation from Messages immediately.
 
 ### 5.3 Rules & exact messages
-- Eligibility gates (sending/responding): unapproved coach → "Your coach account is still under review."; pending-guardian player → "Your account needs guardian approval first."
-- Request outcomes: "You can't connect with yourself." · "No user found for that username." · "That coach is not available to connect yet." · "That player is not available to connect yet." (child-safety: can't connect to unapproved minors) · "You are already connected." · "That request is already pending." · success "Request sent." (a revoked pair is re-opened to pending)
+- Eligibility gates (sending/responding): unapproved coach → "Your coach account is still under review."; unverified club → "Your club is still under review."; pending-guardian player → "Your account needs guardian approval first."
+- Request outcomes: "You can't connect with yourself." · "No user found for that username." · "That coach is not available to connect yet." · "That club is not available to connect yet." · "That player is not available to connect yet." (child-safety: can't connect to unapproved minors) · "You are already connected." · "That request is already pending." · success "Request sent." (a revoked pair is re-opened to pending)
 - Respond: only the recipient can act ("Only the recipient can respond."); accept → "Request accepted."; decline → "Request declined."
 - Revoke: success "Connection revoked."; stale → "Connection not found."
 - Statuses: PENDING / ACCEPTED / REVOKED, one row per user pair, initiator recorded.
@@ -437,12 +437,36 @@ Only their own child's READY videos (else 404). Back link "← All videos". Sing
 
 ---
 
+## 9b. Club View
+
+A club is its own account (a fifth onboarding role, admin-verified like a coach) **and** a workspace its coaches can open from their own logins. `/dashboard/club` is a router: the club's own account goes to its dashboard, a coach to the club they run.
+
+### 9b.1 Approval gate
+Same shape as the coach gate: "Under review" until an admin verifies the club, or "This club wasn't approved" with a contact link.
+
+### 9b.2 Club dashboard (`/dashboard/club/[clubId]`)
+Openable by the club's own account **or** a coach with an accepted membership whose own coach account is approved (`getClubAccess`); anything else 404s. A member coach sees the line "You're here as a coach of {club}, signed in as yourself" — there is no impersonation, no "act as" session.
+
+Header: club name, "{country} · {n} players · {n} coaches". Stack:
+1. **Players who list this club** (only when non-empty) — every ACTIVE player whose free-text `club` matches this club's name exactly after trimming and collapsing whitespace, and whom the club has never asked. Tick and submit to send each a **connection request**; the player (not the club) decides. Match is deliberately not fuzzy: a near-match is a stranger asking a fourteen-year-old to connect.
+2. **Players** — the accepted roster: name, "aged {n} · {n} clips · latest report {relative}", role chips, linking to that player's clips.
+3. **Coaches** — accepted members and open invitations ("Invited"), each with **Remove**/**Cancel** for the club or an OWNER, plus an invite-by-username form. Only approved coaches can be invited; they accept from their own home.
+
+### 9b.3 Club → player and video pages
+`/dashboard/club/[clubId]/players/[playerId]` and `/dashboard/club/[clubId]/videos/[videoId]`, both gated on the **club's** accepted connection — a member coach's own separate connection is not a key. The video page is the player's own page with `audience="observer"`: published reports only, an unpublished one reads "With the player's coach", the feedback thread is read-only ("Feedback is between the player and their coaches"), and there is no sign-off panel.
+
+### 9b.4 What a club cannot do
+Approve a report (`countApprovers` counts `Coach` rows, so a club can never be one), leave feedback, see a player's physical stats, or see anything at all before the player accepts. A player whose only connection is a club has their reports **released** on delivery, exactly as if they had no coach.
+
+---
+
 ## 10. Admin View (`/dashboard/admin`)
 
 A single-purpose **coach review console**. Admin is determined by email allowlist; admins are redirected here from everywhere else.
 
 - Header: "Admin — coach review", subtitle = admin email, header action = **Sign out** button.
 - Error/info banners from query params.
+- **Pending clubs panel** — under the coaches panel, same shape: name + "@username", country and submission date, the club's description (or "No description given."), **Approve** / **Reject**. Outcomes "Club approved." / "Club rejected." · stale → "That club is no longer pending." A club reaching no player until it is verified is the point; its coaches are approved separately as coaches.
 - **Pending coaches panel** — title with live count "Pending coaches ({n})", oldest first.
   - Empty: "No coaches awaiting review."
   - Each row: coach name + "@username", a bulleted list of accomplishments (or "No accomplishments listed."), and two buttons: **Approve** (primary) / **Reject** (secondary).

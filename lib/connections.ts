@@ -1,4 +1,5 @@
 import {
+  ClubStatus,
   CoachStatus,
   ConnectionStatus,
   PlayerRole,
@@ -7,7 +8,7 @@ import {
 } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 
-export type PersonRole = "player" | "coach" | null;
+export type PersonRole = "player" | "coach" | "club" | null;
 
 export type ConnectionPerson = {
   connectionId: string;
@@ -38,27 +39,110 @@ export async function describeUsers(ids: string[]): Promise<Map<string, PersonIn
   const unique = [...new Set(ids)];
   if (!unique.length) return new Map();
 
-  const [profiles, players, coaches] = await Promise.all([
+  const [profiles, players, coaches, clubs] = await Promise.all([
     prisma.profile.findMany({ where: { id: { in: unique } }, select: { id: true, username: true } }),
     prisma.player.findMany({ where: { id: { in: unique } }, select: { id: true, name: true } }),
     prisma.coach.findMany({ where: { id: { in: unique } }, select: { id: true, name: true } }),
+    prisma.club.findMany({ where: { id: { in: unique } }, select: { id: true, name: true } }),
   ]);
 
   const usernames = new Map(profiles.map((p) => [p.id, p.username]));
   const playerNames = new Map(players.map((p) => [p.id, p.name]));
   const coachNames = new Map(coaches.map((c) => [c.id, c.name]));
+  const clubNames = new Map(clubs.map((c) => [c.id, c.name]));
 
   const result = new Map<string, PersonInfo>();
   for (const id of unique) {
-    const role: PersonRole = playerNames.has(id) ? "player" : coachNames.has(id) ? "coach" : null;
+    const role: PersonRole = playerNames.has(id)
+      ? "player"
+      : coachNames.has(id)
+        ? "coach"
+        : clubNames.has(id)
+          ? "club"
+          : null;
     result.set(id, {
-      name: playerNames.get(id) ?? coachNames.get(id) ?? "Unknown",
+      name: playerNames.get(id) ?? coachNames.get(id) ?? clubNames.get(id) ?? "Unknown",
       role,
       username: usernames.get(id) ?? null,
     });
   }
 
   return result;
+}
+
+export type ConnectionRequestOutcome = { message: string } | { error: string };
+
+/**
+ * The shared core of every "connect with this person" entry point: the
+ * username form, the directories, and a club claiming the players who named
+ * it. Validates eligibility, then either opens a new pending connection or
+ * reopens a revoked one — the `[userAId, userBId]` unique constraint means a
+ * revoked pair can never be re-inserted.
+ *
+ * It lives here rather than beside the server actions because a file marked
+ * "use server" turns every export into a callable endpoint, and this is
+ * internal machinery, not an action.
+ */
+export async function createConnectionRequest(
+  requesterId: string,
+  targetId: string,
+): Promise<ConnectionRequestOutcome> {
+  if (targetId === requesterId) {
+    return { error: "You can't connect with yourself." };
+  }
+
+  const [targetCoach, targetPlayer, targetClub] = await Promise.all([
+    prisma.coach.findUnique({ where: { id: targetId }, select: { status: true } }),
+    prisma.player.findUnique({ where: { id: targetId }, select: { status: true } }),
+    prisma.club.findUnique({ where: { id: targetId }, select: { status: true } }),
+  ]);
+
+  if (targetCoach && targetCoach.status !== CoachStatus.APPROVED) {
+    return { error: "That coach is not available to connect yet." };
+  }
+
+  // A club is verified before it can reach a player, exactly as a coach is.
+  if (targetClub && targetClub.status !== ClubStatus.APPROVED) {
+    return { error: "That club is not available to connect yet." };
+  }
+
+  // Child safety: unapproved minors are unreachable until a guardian signs off.
+  if (targetPlayer && targetPlayer.status !== PlayerStatus.ACTIVE) {
+    return { error: "That player is not available to connect yet." };
+  }
+
+  const [userAId, userBId] = orderedPair(requesterId, targetId);
+  const existing = await prisma.connection.findUnique({
+    where: { userAId_userBId: { userAId, userBId } },
+    select: { id: true, status: true },
+  });
+
+  if (existing?.status === ConnectionStatus.ACCEPTED) {
+    return { error: "You are already connected." };
+  }
+
+  if (existing?.status === ConnectionStatus.PENDING) {
+    return { error: "That request is already pending." };
+  }
+
+  if (existing) {
+    // Previously revoked: reopen the same row instead of inserting a new one.
+    await prisma.connection.update({
+      where: { id: existing.id },
+      data: { status: ConnectionStatus.PENDING, requestedById: requesterId },
+    });
+  } else {
+    await prisma.connection.create({
+      data: {
+        userAId,
+        userBId,
+        requestedById: requesterId,
+        status: ConnectionStatus.PENDING,
+      },
+    });
+  }
+
+  return { message: "Request sent." };
 }
 
 /** Whether the two users have an accepted connection. */

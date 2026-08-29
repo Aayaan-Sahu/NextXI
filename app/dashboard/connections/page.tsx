@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
 import { sendConnectionRequest } from "@/app/dashboard/connections/actions";
+import { ClubDirectory } from "@/components/club-directory";
 import { CoachDirectory } from "@/components/coach-directory";
 import { ConnectionsRoster, PendingColumn } from "@/components/connections";
 import {
@@ -11,6 +12,7 @@ import { PlayerDirectory } from "@/components/player-directory";
 import { SubmitButton } from "@/components/submit-button";
 import { BarShell, Notice, SubBar, Tabs, TextInput } from "@/components/ui";
 import { isAdmin, requireUser } from "@/lib/auth";
+import { getClubDirectory } from "@/lib/clubs.server";
 import {
   getCoachDirectory,
   getConnectionPanelData,
@@ -57,9 +59,12 @@ export default async function ConnectionsPage({
 
   const canSearchPlayers = coach?.status === CoachStatus.APPROVED;
 
-  const [connectionData, coaches, players] = await Promise.all([
+  const [connectionData, coaches, clubs, players] = await Promise.all([
     getConnectionPanelData(user.id),
     player ? getCoachDirectory(user.id, query) : Promise.resolve(null),
+    // Players discover clubs the same way they discover coaches; the one
+    // search box above filters both lists.
+    player ? getClubDirectory(user.id, query) : Promise.resolve(null),
     canSearchPlayers && searched
       ? searchPlayers(user.id, {
           role: isPlayerRole(discipline) ? discipline : undefined,
@@ -143,6 +148,7 @@ export default async function ConnectionsPage({
           )}
 
           {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
+          {clubs ? <ClubDirectory clubs={clubs} query={query} /> : null}
           {canSearchPlayers ? (
             <PlayerDirectory
               country={country}

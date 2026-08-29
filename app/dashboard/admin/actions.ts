@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
-import { CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
+import { ClubStatus, CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
 import { publishReport, revalidateReportSurfaces } from "@/lib/report-review.server";
@@ -32,6 +32,32 @@ async function setCoachStatus(formData: FormData, status: CoachStatus, message: 
 
   revalidatePath("/dashboard/admin");
   done("message", message);
+}
+
+async function setClubStatus(formData: FormData, status: ClubStatus, message: string) {
+  await requireAdmin();
+
+  const clubId = text(formData, "clubId");
+  if (!isUuid(clubId)) done("error", "Invalid request.");
+
+  const result = await prisma.club.updateMany({
+    where: { id: clubId, status: ClubStatus.PENDING },
+    data: { status },
+  });
+
+  if (result.count === 0) done("error", "That club is no longer pending.");
+
+  revalidatePath("/dashboard/admin");
+  revalidatePath(`/dashboard/club/${clubId}`);
+  done("message", message);
+}
+
+export async function approveClub(formData: FormData) {
+  await setClubStatus(formData, ClubStatus.APPROVED, "Club approved.");
+}
+
+export async function rejectClub(formData: FormData) {
+  await setClubStatus(formData, ClubStatus.REJECTED, "Club rejected.");
 }
 
 export async function approveCoach(formData: FormData) {

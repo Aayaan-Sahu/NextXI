@@ -8,6 +8,7 @@ import {
   ReportStatus,
 } from "@/app/generated/prisma/enums";
 import { getAcceptedCounterpartIds } from "@/lib/connections";
+import { ageInYears } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import {
   PUBLISHED_REVIEW_STATUSES,
@@ -159,13 +160,6 @@ export async function releaseOrphanedReports(
     }
   }
   return released;
-}
-
-function ageInYears(dateOfBirth: Date, now = new Date()): number {
-  let age = now.getUTCFullYear() - dateOfBirth.getUTCFullYear();
-  const months = now.getUTCMonth() - dateOfBirth.getUTCMonth();
-  if (months < 0 || (months === 0 && now.getUTCDate() < dateOfBirth.getUTCDate())) age -= 1;
-  return age;
 }
 
 const unpublishedForCoach = (counterpartIds: string[]) =>

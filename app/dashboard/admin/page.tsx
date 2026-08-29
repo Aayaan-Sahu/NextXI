@@ -1,12 +1,19 @@
 import { SubmitButton } from "@/components/submit-button";
 import { signOut } from "@/app/auth/actions";
-import { CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
+import { ClubStatus, CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { Notice, SectionHeading, Wordmark } from "@/components/ui";
 import { requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
 import { isVideoDiscipline, VIDEO_DISCIPLINES } from "@/lib/videos";
-import { approveCoach, rejectCoach, releaseHeldReport, rerunHeldReport } from "./actions";
+import {
+  approveClub,
+  approveCoach,
+  rejectClub,
+  rejectCoach,
+  releaseHeldReport,
+  rerunHeldReport,
+} from "./actions";
 
 type SearchParams = Promise<{
   error?: string | string[];
@@ -32,11 +39,18 @@ export default async function AdminDashboardPage({
 }) {
   const user = await requireAdmin();
 
-  const pendingCoaches = await prisma.coach.findMany({
-    where: { status: CoachStatus.PENDING },
-    orderBy: { createdAt: "asc" },
-    select: { id: true, name: true, accomplishments: true, createdAt: true },
-  });
+  const [pendingCoaches, pendingClubs] = await Promise.all([
+    prisma.coach.findMany({
+      where: { status: CoachStatus.PENDING },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, accomplishments: true, createdAt: true },
+    }),
+    prisma.club.findMany({
+      where: { status: ClubStatus.PENDING },
+      orderBy: { createdAt: "asc" },
+      select: { id: true, name: true, country: true, bio: true, createdAt: true },
+    }),
+  ]);
   // Reports the AI worker still owes us, plus the ones a coach has held —
   // the ops queue for the pilot.
   const queuedReports = await prisma.report.findMany({
@@ -73,6 +87,7 @@ export default async function AdminDashboardPage({
       id: {
         in: [
           ...pendingCoaches.map((coach) => coach.id),
+          ...pendingClubs.map((club) => club.id),
           ...queuedReports.map((report) => report.video.playerId),
         ],
       },
@@ -187,6 +202,62 @@ export default async function AdminDashboardPage({
             ) : (
               <p className="mt-4 text-ui text-ink-600">No coaches awaiting review.</p>
             )}
+
+            <div className="mt-10">
+              <SectionHeading>Pending clubs · {pendingClubs.length}</SectionHeading>
+              <p className="mt-1.5 text-caption text-ink-600">
+                A club reaches no player until it is verified. Its coaches are approved separately.
+              </p>
+              {pendingClubs.length ? (
+                <ul className="mt-4 border-b border-cream-400">
+                  {pendingClubs.map((club) => (
+                    <li
+                      className="flex items-start justify-between gap-5 border-t border-cream-400 py-[18px] max-sm:flex-col"
+                      key={club.id}
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="text-body font-semibold">
+                          {club.name}
+                          {usernames.get(club.id) ? (
+                            <span className="font-normal text-ink-600">
+                              {" "}
+                              @{usernames.get(club.id)}
+                            </span>
+                          ) : null}
+                        </p>
+                        <p className="mt-[3px] text-caption text-ink-600">
+                          {club.country} · Submitted{" "}
+                          {club.createdAt.toLocaleDateString("en-GB", {
+                            day: "numeric",
+                            month: "short",
+                          })}
+                        </p>
+                        <p className="mt-2.5 text-ui text-ink-800">
+                          {club.bio || "No description given."}
+                        </p>
+                      </div>
+                      <div className="flex shrink-0 gap-2">
+                        <form action={approveClub}>
+                          <input name="clubId" type="hidden" value={club.id} />
+                          <SubmitButton className="!px-5 !py-[9px] !text-ui">Approve</SubmitButton>
+                        </form>
+                        <form action={rejectClub}>
+                          <input name="clubId" type="hidden" value={club.id} />
+                          <button
+                            className="cursor-pointer rounded-md border border-rust-300 bg-transparent px-5 py-[9px] text-ui font-semibold text-rust-600 hover:bg-rust-50"
+                            type="submit"
+                          >
+                            Reject
+                          </button>
+                        </form>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="mt-4 text-ui text-ink-600">No clubs awaiting review.</p>
+              )}
+            </div>
           </section>
 
           <section>

@@ -3,7 +3,9 @@ import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { CoachPlayers } from "@/components/coach-players";
 import { GatePanel, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
+import { CoachClubs } from "@/components/coach-clubs";
 import { TutorialLink } from "@/components/tutorial-link";
+import { getCoachClubs } from "@/lib/clubs.server";
 import { getTutorial } from "@/lib/tutorials";
 import { VideoFilterBar } from "@/components/video-filter-bar";
 import { VideoGrid } from "@/components/video-grid";
@@ -74,9 +76,10 @@ export default async function CoachDashboardPage({
     roles: rolesById.get(id) ?? [],
   }));
 
-  const [{ awaiting, held }, videos] = await Promise.all([
+  const [{ awaiting, held }, clubs, videos] = await Promise.all([
     // Reports the player can't see until this coach signs them off.
     getAwaitingReviewForCoach(user.id),
+    getCoachClubs(user.id),
     prisma.playerVideo.findMany({
       where: {
         status: PlayerVideoStatus.READY,
@@ -155,6 +158,7 @@ export default async function CoachDashboardPage({
             <ApprovalQueue items={queue} />
           </div>
         </div>
+        <CoachClubs invited={clubs.invited} member={clubs.member} />
         <CoachPlayers players={players} />
         <VideoFilterBar unviewedCount={videos.length} />
         <div>

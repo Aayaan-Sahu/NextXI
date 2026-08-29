@@ -19,9 +19,10 @@ import {
   TextInput,
 } from "@/components/ui";
 import { CountrySelect } from "@/components/country-select";
+import { MAX_CLUB_BIO_LENGTH } from "@/lib/clubs";
 import { PLAYER_ROLE_OPTIONS } from "@/lib/players";
 
-export type OnboardingRole = "player" | "coach" | "guardian";
+export type OnboardingRole = "player" | "coach" | "guardian" | "club";
 
 const emptyOnboarding: OnboardingState = {};
 
@@ -56,6 +57,11 @@ const COPY: Record<
     description: "Your child's code appears on their dashboard right after they sign up.",
     submit: "Link my child",
     title: "Guardian profile",
+  },
+  club: {
+    description: "An administrator verifies every club before it can reach a player.",
+    submit: "Submit for review",
+    title: "Club profile",
   },
 };
 
@@ -178,7 +184,13 @@ function RoleForm({
               />
             </Field>
             <UsernameSlot nameValue={name} reserved={reservedUsername} />
-            {role === "coach" ? <CoachFields /> : <GuardianFields />}
+            {role === "coach" ? (
+              <CoachFields />
+            ) : role === "club" ? (
+              <ClubFields />
+            ) : (
+              <GuardianFields />
+            )}
           </>
         )}
         <SubmitButton className="mt-2 w-full">{submit}</SubmitButton>
@@ -189,37 +201,27 @@ function RoleForm({
 
 const roleLinkClass = "font-semibold text-rust-600 underline-offset-2 hover:text-rust-700 hover:underline";
 
+const OTHER_ROLES: { href: string; label: string; role: OnboardingRole }[] = [
+  { href: "/onboarding", label: "I'm a player", role: "player" },
+  { href: "/onboarding?role=coach", label: "I'm a coach", role: "coach" },
+  { href: "/onboarding?role=guardian", label: "I'm a parent or guardian", role: "guardian" },
+  { href: "/onboarding?role=club", label: "I run a club", role: "club" },
+];
+
 function RoleSwitchLinks({ role }: { role: OnboardingRole }) {
-  if (role === "player") {
-    return (
-      <span>
-        Not a player?{" "}
-        <Link className={roleLinkClass} href="/onboarding?role=coach">
-          I&apos;m a coach
-        </Link>
-        {" · "}
-        <Link className={roleLinkClass} href="/onboarding?role=guardian">
-          I&apos;m a parent or guardian
-        </Link>
-      </span>
-    );
-  }
+  const others = OTHER_ROLES.filter((option) => option.role !== role);
 
   return (
     <span>
-      <Link className={roleLinkClass} href="/onboarding">
-        I&apos;m a player
-      </Link>
-      {" · "}
-      {role === "coach" ? (
-        <Link className={roleLinkClass} href="/onboarding?role=guardian">
-          I&apos;m a parent or guardian
-        </Link>
-      ) : (
-        <Link className={roleLinkClass} href="/onboarding?role=coach">
-          I&apos;m a coach
-        </Link>
-      )}
+      {role === "player" ? "Not a player? " : null}
+      {others.map((option, index) => (
+        <span key={option.role}>
+          {index > 0 ? " · " : null}
+          <Link className={roleLinkClass} href={option.href}>
+            {option.label}
+          </Link>
+        </span>
+      ))}
     </span>
   );
 }
@@ -297,6 +299,26 @@ function GuardianFields() {
           I am this player&apos;s parent or legal guardian and consent to their use of NextXI.
         </span>
       </label>
+    </>
+  );
+}
+
+function ClubFields() {
+  return (
+    <>
+      <CountryField />
+      <Field>
+        <span>
+          About the club <span className="font-normal text-ink-600">optional</span>
+        </span>
+        <TextArea
+          maxLength={MAX_CLUB_BIO_LENGTH}
+          name="bio"
+          placeholder="Age groups, where you train, what you're looking for."
+          rows={4}
+        />
+        <FieldHint>Players see this when they find you. Up to 500 characters.</FieldHint>
+      </Field>
     </>
   );
 }

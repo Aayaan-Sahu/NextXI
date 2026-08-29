@@ -20,6 +20,8 @@ future marketing surfaces.
   feedback and a way to get seen without personal-coach money or connections.
 - **Guardians**: parents who approve and supervise a minor's presence.
 - **Coaches & scouts**: verified adults looking for talent with evidence.
+- **Clubs**: verified organisations whose coaches already work with these
+  players, watching their own pipeline in one place.
 
 ## Brand personality
 
