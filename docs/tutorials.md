@@ -25,7 +25,7 @@ bun run video:teardown              # delete everything, and prove it
 | `scripts/seed-demo.ts` | Creates the cast through the Supabase auth admin API (pre-confirmed, so no confirmation email is ever sent), writes the rows onboarding would have written, uploads the demo clip, delivers reports, and signs everyone in — storing the `@supabase/ssr` session cookies so capture never has to film a login. Idempotent: a re-run resets the world, including report review state, so a second take starts where the first did. |
 | `scripts/capture-tutorial.mjs` | Playwright drives Chrome through a scripted walkthrough and records it, injecting a pointer overlay (the recorder draws no cursor) and logging a caption cue at each beat. |
 | `remotion/tutorials/` | Composes the capture with a title card, the lower-third captions and an end card. Duration comes from the capture manifest, so a longer take needs no code change. |
-| `scripts/render-tutorials.sh` | Renders, then encodes for the web (H.264, CRF 26, no audio track) and grabs a poster from 40% in. |
+| `scripts/render-tutorials.sh` | Renders, then encodes for the web (H.264, CRF 26, no audio track) and grabs a poster from the end of the longest-held caption — or from the one the script names for that film. |
 | `scripts/demo-teardown.ts` | Deletes the accounts (which cascades the rows), removes the storage objects that don't cascade, and prints a residue count. Non-zero exits 1. |
 
 ## Running it
@@ -51,6 +51,7 @@ sign-off:
 bun run video:seed && bun run video:capture signup
 bun run video:seed && bun run video:capture player
 bun run video:seed && bun run video:capture coach
+bun run video:seed && bun run video:capture club     # last, and then tear down
 ```
 
 ## Things that will bite
@@ -63,6 +64,11 @@ bun run video:seed && bun run video:capture coach
 - **Production has a live worker.** A clip uploaded during a capture gets a
   real report a few minutes later and appears in the coach's queue; the seeder
   prunes those on its next run.
+- **One demo player is public, and the club film is why.** A club's
+  auto-match list is public profiles only, so Ellis Nakamura is seeded
+  `visibility: public` and is briefly visible in the real coach directory
+  while the world exists. Everyone else stays `private`. Shoot the club film
+  last and tear down straight after — that window is the whole cost.
 - **Never leave the demo world in place.** `bun run video:teardown` is part of
   the job, not a cleanup you get to skip.
 - **Don't film a real sign-up.** The capture fills the form, swallows the

@@ -145,18 +145,31 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
    - `https://nextxi.pro/**`
    - `https://cricket-platform-*.vercel.app/**` (preview deploys)
    - `http://localhost:3000/**`
-3. Paste `supabase/templates/confirmation.html` into **Confirm signup** (subject:
-   `Confirm your NextXI account`), `supabase/templates/magic-link.html` into
-   **Magic Link** (subject: `Your NextXI sign-in code`), and
-   `supabase/templates/recovery.html` into **Reset password** (subject:
-   `Reset your NextXI password`). Those templates include a 6-digit
-   `{{ .Token }}` for the in-app code field plus a `token_hash` link that works
-   from any device. Confirm-signup uses `type=signup`; magic-link uses
-   `type=magiclink`. If the dashboard rejects the paste (`Email template
-   modification is not available for free tier projects using the default email
-   provider`), add custom SMTP (Resend, etc.) or upgrade the project — then paste
-   again. The in-app code field only works once `{{ .Token }}` is in the
-   template; the confirm link still works either way after Site URL is set.
+3. Push the email templates. They live in `supabase/templates/`, and **the
+   dashboard does not read the repo** — editing a file here changes nothing a
+   user receives until the HTML is in the project's auth config:
+
+   ```sh
+   SUPABASE_ACCESS_TOKEN=sbp_… bun run auth:templates
+   ```
+
+   The token is a personal access token from
+   [Account → Access Tokens](https://supabase.com/dashboard/account/tokens),
+   revocable from the same page. Not the CLI's own credential: `supabase
+   login` files a go-keyring wrapper in the keychain, not a token an API
+   client can present. The push sends only the bodies (the dashboard keeps
+   its subject lines) and reads back what it wrote. By hand it is **Authentication → Emails**:
+   `confirmation.html` → **Confirm signup** (subject: `Confirm your NextXI
+   account`), `magic-link.html` → **Magic Link** (`Your NextXI sign-in code`),
+   `recovery.html` → **Reset password** (`Reset your NextXI password`).
+
+   Every template links to `/auth/confirm?token_hash={{ .TokenHash }}` with its
+   own `type=`: `signup`, `magiclink`, `recovery`. Only the magic-link template
+   still carries a 6-digit `{{ .Token }}`; sign-up and password reset are
+   link-only. If the dashboard rejects the paste (`Email template modification
+   is not available for free tier projects using the default email provider`),
+   add custom SMTP (Resend, etc.) or upgrade the project — the push fails with
+   that same message.
 
 Then set `NEXT_PUBLIC_SITE_URL=https://www.nextxi.pro` in the **Production**
 Vercel environment (not Preview). The app also refuses to mint `*.vercel.app`
