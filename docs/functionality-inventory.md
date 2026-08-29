@@ -7,10 +7,10 @@ This document catalogs **every piece of functionality** in the app, organized by
 ## 0. Global Structure & Cross-Cutting Patterns
 
 ### Roles
-Five roles: **Player**, **Coach**, **Guardian**, **Club**, **Admin** (admin is an email allowlist, not an onboarded role). Coaches and clubs are both admin-verified before they can reach anyone. Every dashboard page is server-guarded:
+Five roles: **Player**, **Coach**, **Guardian**, **Club**, **Admin** (admin is not an onboarded role: an email in `ADMIN_EMAILS`, or `app_metadata.admin` on the account — see `lib/admins.ts`). Coaches and clubs are both admin-verified before they can reach anyone. Every dashboard page is server-guarded:
 
 - Unauthenticated → `/auth`
-- Admin email → `/dashboard/admin` (admins never see the normal dashboard)
+- Admin → `/dashboard/admin` (admins never see the normal dashboard)
 - Authenticated but no role yet → `/onboarding`
 - Has a role → `/dashboard/{role}`; visiting another role's page redirects to your own
 
