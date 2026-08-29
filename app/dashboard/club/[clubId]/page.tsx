@@ -113,8 +113,8 @@ export default async function ClubPage({
           <section>
             <SectionHeading>Players who list this club · {claimable.length}</SectionHeading>
             <p className="mt-1.5 text-caption text-ink-600">
-              They typed {club.name} when they signed up. Asking sends each of them a request —
-              they decide.
+              They typed {club.name} when they signed up and their profile is public. Asking
+              sends each of them a request — they decide.
             </p>
             <div className="mt-3.5">
               <ClubClaim clubId={clubId} players={claimable} />

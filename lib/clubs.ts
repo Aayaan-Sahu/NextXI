@@ -32,3 +32,28 @@ export function isValidClubName(raw: string): boolean {
   const trimmed = raw.trim();
   return trimmed.length >= MIN_CLUB_NAME_LENGTH && trimmed.length <= MAX_CLUB_NAME_LENGTH;
 }
+
+/**
+ * The auto-match action must only send requests to players the claim list
+ * would show. Submitted ids that are not on that list are a crafted request,
+ * not a stale checkbox — refuse the whole batch rather than sending the
+ * eligible ones and pretending the rest were ignored.
+ */
+export function partitionClaimIds(
+  submitted: string[],
+  claimableIds: Iterable<string>,
+): { eligible: string[]; rejected: string[] } {
+  const allowed = new Set(claimableIds);
+  const eligible: string[] = [];
+  const rejected: string[] = [];
+  const seen = new Set<string>();
+
+  for (const id of submitted) {
+    if (seen.has(id)) continue;
+    seen.add(id);
+    if (allowed.has(id)) eligible.push(id);
+    else rejected.push(id);
+  }
+
+  return { eligible, rejected };
+}

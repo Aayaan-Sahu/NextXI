@@ -295,7 +295,7 @@ List (open first, then soonest due, nulls last). Empty: "No reminders yet." Each
 
 Header: "Connections" / "Find players and coaches by username and manage your requests." Error + info banners from query params.
 
-**Role differences:** Players see the **coach directory and the club directory** (one search box filters both) plus the Connections panel. Coaches, guardians and clubs see only the Connections panel — a club reaches players by claiming the ones who named it, or by username.
+**Role differences:** Players see the **coach directory and the club directory** (one search box filters both) plus the Connections panel. Coaches, guardians and clubs see only the Connections panel — a club reaches players by claiming the public profiles who named it (the action re-checks that list), or by username.
 
 ### 5.1 "Find a coach" directory (players only)
 - **Search form** (GET): search input "Search coaches by name" + "Search" button; case-insensitive name substring filter, persisted in `?q=`.

@@ -5,7 +5,8 @@ import { redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { ClubCoachRole, ClubStatus, CoachStatus, ConnectionStatus } from "@/app/generated/prisma/enums";
 import { requireUser } from "@/lib/auth";
-import { getClubAccess } from "@/lib/clubs.server";
+import { partitionClaimIds } from "@/lib/clubs";
+import { getClaimablePlayers, getClubAccess } from "@/lib/clubs.server";
 import { createConnectionRequest } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
 
@@ -67,8 +68,19 @@ export async function claimPlayers(formData: FormData) {
 
   if (!playerIds.length) done(clubId, "clubError", "Select at least one player.");
 
+  // The list is exact name-match + public + never-asked. Re-check here so a
+  // crafted POST cannot ask a child who never named this club.
+  const { eligible, rejected } = partitionClaimIds(
+    playerIds,
+    (await getClaimablePlayers(clubId)).map((player) => player.id),
+  );
+  if (rejected.length) {
+    done(clubId, "clubError", "Those players are not on your list.");
+  }
+  if (!eligible.length) done(clubId, "clubError", "Select at least one player.");
+
   let sent = 0;
-  for (const playerId of playerIds) {
+  for (const playerId of eligible) {
     const outcome = await createConnectionRequest(clubId, playerId);
     if ("message" in outcome) sent += 1;
   }

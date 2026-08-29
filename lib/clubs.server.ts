@@ -140,10 +140,14 @@ export async function getClubRoster(clubId: string): Promise<ClubRosterEntry[]> 
 export type ClaimablePlayer = { id: string; name: string; age: number; roles: string[] };
 
 /**
- * Active players whose typed club name is this club's, and who the club has
- * never asked. The match is exact after trimming and collapsing whitespace
- * (lib/clubs.ts) — done in SQL because that normalisation has to happen on the
- * stored value, and Prisma's query API can't express it.
+ * Active, public players whose typed club name is this club's, and who the
+ * club has never asked. The match is exact after trimming and collapsing
+ * whitespace (lib/clubs.ts) — done in SQL because that normalisation has to
+ * happen on the stored value, and Prisma's query API can't express it.
+ *
+ * Private profiles stay off this list: visibility copy promises the directory
+ * (and this auto-match) only while the player is public. A club still reaches
+ * someone private the same way anyone does — by username, one at a time.
  *
  * Anyone with any existing connection row is excluded, revoked included: a
  * player who said no should not reappear on the club's list next week.
@@ -160,6 +164,7 @@ export async function getClaimablePlayers(clubId: string): Promise<ClaimablePlay
       select p.id
       from public.players p
       where p.status = 'active'::public.player_status
+        and p.visibility = 'public'::public.visibility
         and lower(btrim(regexp_replace(p.club, '\\s+', ' ', 'g'))) = ${normalized}
     `,
     prisma.connection.findMany({

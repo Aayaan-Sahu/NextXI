@@ -1,5 +1,10 @@
 import { describe, expect, test } from "bun:test";
-import { clubNameMatches, isValidClubName, normalizeClubName } from "@/lib/clubs";
+import {
+  clubNameMatches,
+  isValidClubName,
+  normalizeClubName,
+  partitionClaimIds,
+} from "@/lib/clubs";
 
 describe("normalizeClubName", () => {
   test("ignores case and collapses whitespace", () => {
@@ -31,5 +36,27 @@ describe("isValidClubName", () => {
     expect(isValidClubName("A")).toBe(false);
     expect(isValidClubName("CC")).toBe(true);
     expect(isValidClubName("x".repeat(121))).toBe(false);
+  });
+});
+
+describe("partitionClaimIds", () => {
+  const claimable = ["aaa", "bbb"];
+
+  test("keeps only ids that are on the claim list, once", () => {
+    expect(partitionClaimIds(["bbb", "aaa", "aaa"], claimable)).toEqual({
+      eligible: ["bbb", "aaa"],
+      rejected: [],
+    });
+  });
+
+  test("flags a crafted id so the action can refuse the whole batch", () => {
+    expect(partitionClaimIds(["aaa", "stranger"], claimable)).toEqual({
+      eligible: ["aaa"],
+      rejected: ["stranger"],
+    });
+  });
+
+  test("an empty submission is not eligible", () => {
+    expect(partitionClaimIds([], claimable)).toEqual({ eligible: [], rejected: [] });
   });
 });

@@ -525,5 +525,5 @@ export async function completeOnboarding(
     redirect("/dashboard");
   }
 
-  return onboardingError("Choose player, coach, or guardian.");
+  return onboardingError("Choose player, coach, guardian, or club.");
 }
