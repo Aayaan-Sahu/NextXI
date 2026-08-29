@@ -118,8 +118,12 @@ function makeStage(page, cues, startedAt) {
     },
 
     async goto(pathname) {
-      await page.goto(`${BASE}${pathname}`, { waitUntil: "domcontentloaded" });
-      await page.waitForLoadState("networkidle").catch(() => {});
+      // Bounded so a hung request fails as a hung request, not thirty
+      // seconds into an otherwise fine take.
+      await page.goto(`${BASE}${pathname}`, { timeout: 20000, waitUntil: "domcontentloaded" });
+      // Bounded: a dashboard holds a realtime socket open, so networkidle
+      // never arrives there and an unbounded wait costs 30s of film.
+      await page.waitForLoadState("networkidle", { timeout: 4000 }).catch(() => {});
       await page.waitForTimeout(500);
     },
 
@@ -315,6 +319,105 @@ const coachEpilogue = async (stage) => {
   await stage.dwell(3200);
 };
 
+
+// ---- the sign-up film -------------------------------------------------
+
+/**
+ * The film shows the sign-up form filled in and cuts on the click. It does
+ * not create an account, and that is deliberate: signing up sends a
+ * confirmation email, and the address on screen has to be at example.com,
+ * which is reserved and accepts no mail — so the action sits waiting on an
+ * SMTP timeout with the button spinning. Everything after the click is the
+ * same for every account anyway, and the segments that follow show it from
+ * accounts that already exist.
+ */
+const SIGNUP_EMAIL = "ava.whitmore.demo@example.com";
+const SIGNUP_PASSWORD = "riverside2026";
+
+const signupForm = async (stage, page) => {
+  await stage.goto("/auth?mode=sign-up");
+  stage.beat("One account, whoever you are here for.");
+  await stage.dwell(1400);
+
+  await stage.type('input[name="username"]', "ava_whitmore");
+  await page
+    .locator("text=Available.")
+    .first()
+    .waitFor({ timeout: 8000 })
+    .catch(() => {});
+  stage.beat("The handle you pick is checked as you type.");
+  await stage.dwell(1100);
+
+  await stage.type('input[name="email"]', SIGNUP_EMAIL);
+  await stage.type('input[name="password"]', SIGNUP_PASSWORD);
+  await stage.type('input[name="confirmPassword"]', SIGNUP_PASSWORD);
+  stage.beat("A handle, an email, a password. That is the whole account.");
+  await stage.click('input[name="consent"]', { settle: 700 });
+  await stage.click('button:has-text("Create account")', { settle: 1400 });
+};
+
+const signupPlayer = async (stage, page, shared) => {
+  await stage.goto("/onboarding");
+  stage.beat("Then say what you are. Four kinds of account, one short form each.");
+  await stage.point('a:has-text("coach")');
+  await stage.dwell(1700);
+
+  stage.beat("A player fills in the things a report needs.");
+  await stage.type('input[name="name"]', "Ava Whitmore");
+  await page.fill('input[name="dateOfBirth"]', "2010-03-14");
+  await stage.type('input[name="club"]', "Riverside CC");
+  await stage.type('input[name="heightCm"]', "168");
+  await stage.click('label:has-text("Batter")', { settle: 700 });
+
+  stage.beat("Height is required — every measurement is calibrated against it.");
+  await stage.dwell(1500);
+  await stage.click('button:has-text("Create my profile")', { settle: 3500 });
+
+  stage.beat("Under 18, so nothing opens until a guardian says yes.");
+  // The code sits directly above its own caption; anchoring on the caption
+  // beats pattern-matching the page for something that looks like a code.
+  shared.guardianCode = (
+    await page
+      .locator('p:has-text("Your guardian approval code")')
+      .locator("xpath=preceding-sibling::p[1]")
+      .innerText()
+  ).trim();
+  await stage.dwell(2800);
+};
+
+const signupGuardian = async (stage, page, shared) => {
+  await stage.goto("/onboarding");
+  stage.beat("Their guardian signs up the same way, and picks their own part.");
+  await stage.click('a:has-text("parent or guardian")', { settle: 1500 });
+
+  stage.beat("Then enters the code from the player's dashboard.");
+  await stage.type('input[name="name"]', "Rachel Whitmore");
+  if (!shared.guardianCode) {
+    throw new Error("No guardian code was carried over from the player segment.");
+  }
+  await stage.type('input[name="childCode"]', shared.guardianCode);
+  await stage.click('label:has-text("parent or legal guardian")', { settle: 800 });
+  await stage.click('button:has-text("Link my child")', { settle: 3500 });
+
+  stage.beat("Linked. A guardian sees everything the player does — all of it.");
+  await stage.dwell(2800);
+};
+
+const signupCoach = async (stage) => {
+  await stage.goto("/onboarding?role=coach");
+  stage.beat("A coach or a club signs up the same way.");
+  await stage.type('input[name="name"]', "Sam Whitlock");
+  await stage.type(
+    'textarea[name="accomplishments"]',
+    "ECB Level 2 coach\nRiverside CC U15 lead\nEight years in age-group cricket",
+  );
+  await stage.dwell(900);
+  await stage.click('button:has-text("Submit for review")', { settle: 3500 });
+
+  stage.beat("And waits: we check every one before they can reach a player.");
+  await stage.dwell(2800);
+};
+
 const FILMS = {
   player: {
     segments: [
@@ -326,6 +429,14 @@ const FILMS = {
           await playerProgress(stage);
         },
       },
+    ],
+  },
+  signup: {
+    segments: [
+      { as: null, run: signupForm },
+      { as: "newplayer", run: signupPlayer },
+      { as: "newguardian", run: signupGuardian },
+      { as: "newcomer", run: signupCoach },
     ],
   },
   coach: {
@@ -364,7 +475,7 @@ function probeDurationMs(file) {
   return Number.isFinite(seconds) ? Math.round(seconds * 1000) : null;
 }
 
-async function captureSegment(browser, role, index, segment) {
+async function captureSegment(browser, role, index, segment, shared) {
   const dir = path.join(OUT_DIR, `.raw-${role}-${index}`);
   fs.rmSync(dir, { force: true, recursive: true });
 
@@ -373,37 +484,48 @@ async function captureSegment(browser, role, index, segment) {
     viewport: VIEWPORT,
   });
   await context.addInitScript(CURSOR_SCRIPT);
-  await context.addCookies(cookiesFor(segment.as));
+  // No `as` means the segment starts signed out — which is the whole subject
+  // of the sign-up film.
+  if (segment.as) await context.addCookies(cookiesFor(segment.as));
 
   const startedAt = Date.now();
   const cues = [];
   const page = await context.newPage();
 
+  // The recording is saved either way — a take that broke halfway is the
+  // fastest way to see why — but the failure is re-thrown, never swallowed.
+  // (`return` inside `finally` silently discards the exception; it cost a
+  // whole take to learn that.)
+  let failure = null;
   try {
-    await segment.run(makeStage(page, cues, startedAt), page);
-  } finally {
-    await page.waitForTimeout(900);
-    const wallMs = Date.now() - startedAt;
-    await context.close();
-
-    const raw = fs.readdirSync(dir).find((name) => name.endsWith(".webm"));
-    if (!raw) throw new Error(`No recording written to ${dir}`);
-
-    const file = `${role}-${index}.webm`;
-    fs.renameSync(path.join(dir, raw), path.join(OUT_DIR, file));
-    fs.rmSync(dir, { force: true, recursive: true });
-
-    // Wall clock and encoder clock drift; the recording's own duration is the
-    // authority, so every cue is rescaled onto it.
-    const durationMs = probeDurationMs(path.join(OUT_DIR, file)) ?? wallMs;
-    const scale = durationMs / wallMs;
-
-    return {
-      cues: cues.map((cue) => ({ ...cue, atMs: Math.round(cue.atMs * scale) })),
-      durationMs,
-      file,
-    };
+    await segment.run(makeStage(page, cues, startedAt), page, shared);
+  } catch (error) {
+    failure = error;
   }
+
+  await page.waitForTimeout(900);
+  const wallMs = Date.now() - startedAt;
+  await context.close();
+
+  const raw = fs.readdirSync(dir).find((name) => name.endsWith(".webm"));
+  if (!raw) throw failure ?? new Error(`No recording written to ${dir}`);
+
+  const file = `${role}-${index}.webm`;
+  fs.renameSync(path.join(dir, raw), path.join(OUT_DIR, file));
+  fs.rmSync(dir, { force: true, recursive: true });
+
+  if (failure) throw failure;
+
+  // Wall clock and encoder clock drift; the recording's own duration is the
+  // authority, so every cue is rescaled onto it.
+  const durationMs = probeDurationMs(path.join(OUT_DIR, file)) ?? wallMs;
+  const scale = durationMs / wallMs;
+
+  return {
+    cues: cues.map((cue) => ({ ...cue, atMs: Math.round(cue.atMs * scale) })),
+    durationMs,
+    file,
+  };
 }
 
 async function main() {
@@ -418,10 +540,13 @@ async function main() {
   });
 
   const segments = [];
+  // Carries anything one segment has to hand the next — the guardian code the
+  // player's dashboard prints, for instance.
+  const shared = {};
   try {
     for (const [index, segment] of film.segments.entries()) {
-      console.log(`Filming ${role} segment ${index + 1} as ${segment.as} ...`);
-      segments.push(await captureSegment(browser, role, index + 1, segment));
+      console.log(`Filming ${role} segment ${index + 1} as ${segment.as ?? "a new visitor"} ...`);
+      segments.push(await captureSegment(browser, role, index + 1, segment, shared));
     }
   } finally {
     await browser.close();
