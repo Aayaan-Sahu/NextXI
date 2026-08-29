@@ -16,8 +16,12 @@
  * The token is the Supabase CLI's own — `supabase login` stores it in the
  * system keychain, so nothing new has to be issued or written to disk:
  *
- *   SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w) \
- *     bun run auth:templates
+ *   SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" \
+ *     -a access-token -w) bun run auth:templates
+ *
+ * `-a access-token` is not optional: the CLI files several secrets under that
+ * one service name, keyed by account, and a lookup without it can hand back a
+ * project's database password instead.
  *
  * The project is the one `supabase link` recorded; override it with
  * SUPABASE_PROJECT_REF.
@@ -27,6 +31,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
+
+/** The whole command, quoted in both token errors — it is the fix for either. */
+const KEYCHAIN =
+  'SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -a access-token -w) bun run auth:templates';
 
 /** Template file → the Management API field that holds its body. */
 const TEMPLATES = {
@@ -55,8 +63,14 @@ async function projectRef() {
 async function main() {
   const token = process.env.SUPABASE_ACCESS_TOKEN;
   if (!token) {
+    throw new Error(`SUPABASE_ACCESS_TOKEN is required. Use the CLI's own:\n  ${KEYCHAIN}`);
+  }
+  // Personal access tokens are `sbp_…`. Anything else here came out of the
+  // same keychain service under a different account, and the API's answer to
+  // it — "JWT could not be decoded" — says nothing about which one.
+  if (!token.startsWith("sbp_")) {
     throw new Error(
-      'SUPABASE_ACCESS_TOKEN is required. Use the CLI\'s own: SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w)',
+      `That is not a Supabase access token (they start with "sbp_"). The CLI files several secrets under one keychain service, so name the account:\n  ${KEYCHAIN}`,
     );
   }
 

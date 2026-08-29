@@ -180,8 +180,8 @@ Only after custom SMTP is on. If you paste before SMTP, the dashboard will rejec
 The dashboard does not read the repo — a template only changes when its HTML is in the project's auth config. From a checkout with the Supabase CLI logged in, that is one command:
 
 ```sh
-SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w) \
-  bun run auth:templates
+SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" \
+  -a access-token -w) bun run auth:templates
 ```
 
 It pushes the bodies only, so the subjects below still have to be set once, by hand.
