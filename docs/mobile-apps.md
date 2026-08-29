@@ -450,7 +450,7 @@ call — one implementation of every rule.
 | --- | --- | --- | --- |
 | **Phase 0** | | | |
 | `GET /api/me` | bearer | `getProfile`, `isAdmin`, `getOnboardingStatus` | + `onboardingRequired`, `limits { canUpload, canMessage, canConnect }` |
-| `POST /api/auth/signup` | none (rate-limited) | `signUp` body → `lib/signup.ts` | Keeps the admin `email_confirm` step (`app/auth/actions.ts:141`); returns `{ access_token, refresh_token }` for `setSession` |
+| `POST /api/auth/signup` | none (rate-limited) | `signUp` body → `lib/signup.ts` | No admin `email_confirm`. If Supabase withholds the session, return `{ checkEmail: true }` (no tokens) so the app shows verify-email. If a session is issued, return `{ access_token, refresh_token }` for `setSession`. |
 | `GET /api/usernames/{handle}` | none (rate-limited) | `checkUsername` | `"invalid" \| "taken" \| "free"` |
 | `POST /api/onboarding` | bearer | `completeOnboarding` | incl. guardian-code claim + `notifyTeam` |
 | `POST /api/media/sign` | bearer | `createSignedUrls` (admin client) | `{ paths }` → `{ urls: { path: { url, expiresAt } } }`, 1 h; app re-signs at < 5 min or on 403 |

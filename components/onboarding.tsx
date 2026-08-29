@@ -137,9 +137,6 @@ function RoleForm({
       </Notice>
       <Form action={action} className="mt-6">
         <input name="role" type="hidden" value={role} />
-        <p className="-mt-1 text-caption leading-relaxed text-ink-600">
-          We emailed a verification link. Click it whenever — it doesn&apos;t block you.
-        </p>
         {role === "player" ? (
           <>
             <div className="grid items-start gap-x-5 gap-y-[18px] sm:grid-cols-2">

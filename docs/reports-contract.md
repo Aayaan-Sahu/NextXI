@@ -327,9 +327,9 @@ so a score band can never contradict the label the ball-by-ball detail shows:
 
 | Band | Score | Label |
 | --- | --- | --- |
-| good | ≥ 70 | `good` |
-| ok | 60–69 | `ok` |
-| needs work | < 60 | `needs work` |
+| good | > 70 | `good` |
+| ok | 60 < score ≤ 70 | `ok` |
+| needs work | ≤ 60 | `needs work` |
 
 Tiles (fixed order, so history lines up): batting **Head movement**
 (`head.max_head_movement_norm`, 0.15 / 0.30), **Bat swing**
@@ -355,7 +355,10 @@ the worker and in `THRESHOLDS` — keep them in lockstep and record the source.
 The first real run (the landing clip, one cover drive) scored head movement
 29 / bat swing 76 / balance 30 → 45, "Keep building": a front-foot drive
 carries the head 41 cm forward, and the 0.15-stance-width "good" limit was
-never tuned for drives. The score surfaces that; it does not hide it.
+never tuned for drives. **The product scoreboard is therefore off**
+(`PRODUCT_SCORES_ENABLED` in `lib/report-scores.ts`) until a coach-calibrated
+pass; measurement rows, worker labels, and the landing marketing mock stay.
+Derivation and tests remain so flipping the flag is the re-enable.
 
 ## Measurements — schema_version 3
 

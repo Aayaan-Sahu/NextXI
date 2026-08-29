@@ -15,7 +15,12 @@ import {
   type OccasionValues,
 } from "@/lib/report-measurements";
 import { publishedReportWhere } from "@/lib/report-review.server";
-import { deriveScores, occasionScores, type OccasionScores } from "@/lib/report-scores";
+import {
+  PRODUCT_SCORES_ENABLED,
+  deriveScores,
+  occasionScores,
+  type OccasionScores,
+} from "@/lib/report-scores";
 import type { VideoReport } from "@/lib/videos.server";
 
 /**
@@ -99,17 +104,19 @@ export async function getDerivedMeasurements(
     .map((occasion) => occasionMetricValues(shape, occasion.payloads))
     .filter((values) => Object.keys(values).length > 0);
 
-  // The rows need real units (a calibrated clip); the scores need only the
-  // normalised judgements, so an uncalibrated clip can still score.
+  // The rows need real units (a calibrated clip). Scores, when the product
+  // flag is on, need only the normalised judgements.
   const metrics = deriveMeasurements(report.payload, history) ?? [];
 
-  const scoreHistory: { date: Date; scores: OccasionScores }[] = ordered.flatMap(
-    ({ date, payloads }) => {
-      const scores = occasionScores(shape, payloads);
-      return scores ? [{ date, scores }] : [];
-    },
-  );
-  const scores = deriveScores(report.payload, scoreHistory, video.createdAt);
+  const scoreHistory: { date: Date; scores: OccasionScores }[] = PRODUCT_SCORES_ENABLED
+    ? ordered.flatMap(({ date, payloads }) => {
+        const scores = occasionScores(shape, payloads);
+        return scores ? [{ date, scores }] : [];
+      })
+    : [];
+  const scores = PRODUCT_SCORES_ENABLED
+    ? deriveScores(report.payload, scoreHistory, video.createdAt)
+    : null;
 
   if (metrics.length === 0 && !scores) return null;
 

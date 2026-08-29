@@ -133,7 +133,7 @@ function SessionsChart({ history }: { history: ReportScores["history"] }) {
 }
 
 /** "Fix this one thing" — a kicker, the thing, and the drill as the info flash. */
-function FixBlock({ focus }: { focus: FocusArea }) {
+export function ReportFocus({ focus }: { focus: FocusArea }) {
   return (
     <div className="border-b border-cream-400 pt-4 pb-4">
       <Kicker>Fix this one thing</Kicker>
@@ -193,7 +193,7 @@ export function Scoreboard({
       ) : null}
 
       <SessionsChart history={scores.history} />
-      {focus ? <FixBlock focus={focus} /> : null}
+      {focus ? <ReportFocus focus={focus} /> : null}
     </div>
   );
 }

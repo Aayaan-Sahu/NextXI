@@ -54,7 +54,7 @@ export function AuthPanel({
       <AuthShell brandLine="Film it. Understand it.">
         <div className="animate-crease-fade" key={mode}>
           <AuthCard
-            description="A handle, an email, a password. We'll send a verification link you can tap whenever."
+            description="A handle, an email, a password. We'll email a link — you need that to open the account."
             footer={
               <>
                 Already have an account?{" "}
@@ -246,7 +246,7 @@ export function CheckEmailPanel({
     <AuthSheet
       description={
         address
-          ? `We sent a verification link to ${address}. Click it whenever — it doesn't block you.`
+          ? `We sent a verification link to ${address}. Click it to open your account.`
           : "Enter the email you used and we'll send a verification link."
       }
       footer={<TextLink href="/auth">← Back to sign in</TextLink>}

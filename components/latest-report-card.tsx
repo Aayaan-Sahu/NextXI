@@ -5,7 +5,7 @@ import { measuredCardStats, parseMeasuredReport } from "@/components/measured-re
 import { isRecord, readFeedback, readOverallScore } from "@/components/report-panel";
 import { VERDICT_WORDS } from "@/components/scoreboard";
 import { Kicker } from "@/components/ui";
-import { changeKind, type ReportScores } from "@/lib/report-scores";
+import { PRODUCT_SCORES_ENABLED, changeKind, type ReportScores } from "@/lib/report-scores";
 
 type CardStat = { label: string; value: string };
 
@@ -32,7 +32,7 @@ function firstSentence(prose: string) {
 function deriveCard(payload: unknown, scores: ReportScores | null | undefined): CardData {
   // The scoreboard numbers, when the page could derive them (they need the
   // player's history, so only pages that load it pass them).
-  if (scores) {
+  if (PRODUCT_SCORES_ENABLED && scores) {
     const change =
       scores.previousScore === null
         ? []
@@ -119,9 +119,10 @@ function formatShortDate(date: Date) {
 }
 
 /**
- * The player home's one primary conclusion: the newest READY report read as a
- * scoreboard. Clip name on the left, the measurements that matter across the
- * middle, the way through on the right.
+ * The player home's one primary conclusion: the newest READY report. Clip
+ * name on the left, the measurements that matter across the middle, the way
+ * through on the right. Scoreboard numbers stay off the card until the
+ * thresholds are coach-calibrated (`PRODUCT_SCORES_ENABLED`).
  */
 export function LatestReportCard({
   href,

@@ -15,16 +15,19 @@ import { reportShape, type ReportShape } from "@/lib/report-measurements";
  * good, ok)` in cricket_analysis). Every score here is a continuous, monotone
  * map of that same scalar, anchored on those same two thresholds, so:
  *
- *   - score ≥ 70  ⇔  the worker's label is "good"
- *   - 60 ≤ score < 70  ⇔  "ok"
- *   - score < 60  ⇔  "needs work"
+ *   - score > 70  ⇔  the worker's label is "good"
+ *   - 60 < score ≤ 70  ⇔  "ok"
+ *   - score ≤ 60  ⇔  "needs work"
  *
- * A tile can therefore never contradict the ball-by-ball verdicts the report
- * already shows, and the session verdict thresholds the landing page uses
- * (≥ 85 great · ≥ 70 good · ≥ 60 solid · else keep building) line up with the
- * label bands instead of cutting across them. 100 means zero deviation (a
- * perfectly still head, a perfectly straight bat path, a knee that lands
- * straight and holds) — a physical ceiling, not a benchmark.
+ * The worker uses strict inequalities (`value < good`, `value > good`). The
+ * curve still maps the good/ok thresholds onto 70/60, so `bandFor` uses the
+ * matching exclusive edges — at the threshold itself the worker's next band
+ * wins. A tile can therefore never contradict the ball-by-ball verdicts the
+ * report already shows. The session verdict thresholds the landing page uses
+ * (≥ 85 great · ≥ 70 good · ≥ 60 solid · else keep building) stay as they are;
+ * a session that lands on exactly 70 is vanishingly rare. 100 means zero
+ * deviation (a perfectly still head, a perfectly straight bat path, a knee
+ * that lands straight and holds) — a physical ceiling, not a benchmark.
  *
  * What this deliberately is NOT: a comparison against any population. No
  * "elite" mark, no published band, no youth scaling — docs/BENCHMARKS.md is
@@ -59,10 +62,17 @@ export function verdictFor(score: number): Verdict {
 }
 
 export function bandFor(score: number): ScoreBand {
-  if (score >= GOOD_FROM) return "good";
-  if (score >= OK_FROM) return "ok";
+  if (score > GOOD_FROM) return "good";
+  if (score > OK_FROM) return "ok";
   return "needs work";
 }
+
+/**
+ * The 0–100 product scoreboard stays off until a coach calibrates the
+ * thresholds (MODEL-STATUS.md Q7). Derivation and tests still run; landing
+ * marketing mocks are a different register and keep their staged numbers.
+ */
+export const PRODUCT_SCORES_ENABLED = false;
 
 /** Two scores within this many points read as "about the same". */
 export const SAME_WITHIN = 2;

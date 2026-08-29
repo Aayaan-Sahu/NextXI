@@ -67,9 +67,9 @@ One screen, two modes toggled by a **footer link** (URL param `?mode=sign-up`), 
 - Success: redirect to `/auth/check-email?email=…` (no session until email confirmed)
 
 ### 1.3 Check email (`/auth/check-email`)
-- Title: "Check your email". Description: "If this is a new account, confirm it from the verification email. If the account already exists, sign in or reset your password."
+- Title: "Verify your email". Description: "We sent a verification link to {email}. Click it to open your account."
 - Field: **Email** (required, pre-filled from query param, editable)
-- Button: "**Resend verification email**". Success info notice: "Verification email sent." Error: "Enter the email address you used." or Supabase error.
+- Button: "**Resend verification email**". Success info notice: "Verification email sent. Click the link to open your account." Error: "Enter the email address you used." or Supabase error.
 - Footer link: "Back to sign in"
 
 ### 1.4 Email confirmation (`/auth/confirm`)

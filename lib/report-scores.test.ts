@@ -54,6 +54,9 @@ describe("scoreLowerIsBetter", () => {
       [THRESHOLDS.bat_swing.good, THRESHOLDS.bat_swing.ok],
       [THRESHOLDS.balance.good, THRESHOLDS.balance.ok],
     ]) {
+      for (const x of [g, o, 0.001, 1.5]) {
+        expect(bandFor(scoreLowerIsBetter(x, g, o))).toBe(workerLabel(x, g, o));
+      }
       for (let x = 0.001; x < 1.5; x += 0.0031) {
         expect(bandFor(scoreLowerIsBetter(x, g, o))).toBe(workerLabel(x, g, o));
       }
@@ -72,6 +75,11 @@ describe("scoreHigherIsBetter", () => {
   });
 
   test("band agrees with the worker's label", () => {
+    for (const angle of [good, ok, 90, 180]) {
+      expect(bandFor(scoreHigherIsBetter(angle, good, ok, best))).toBe(
+        workerLabel(angle, good, ok, false),
+      );
+    }
     for (let angle = 90; angle <= 180; angle += 0.7) {
       expect(bandFor(scoreHigherIsBetter(angle, good, ok, best))).toBe(
         workerLabel(angle, good, ok, false),
@@ -81,6 +89,13 @@ describe("scoreHigherIsBetter", () => {
 });
 
 describe("verdicts", () => {
+  test("tile bands use exclusive edges so the worker's threshold is the next band", () => {
+    expect(bandFor(GOOD_FROM)).toBe("ok");
+    expect(bandFor(70.001)).toBe("good");
+    expect(bandFor(OK_FROM)).toBe("needs work");
+    expect(bandFor(60.001)).toBe("ok");
+  });
+
   test("session verdict thresholds match the landing page", () => {
     expect(verdictFor(85)).toBe("great");
     expect(verdictFor(84)).toBe("good");

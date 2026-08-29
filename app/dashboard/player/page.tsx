@@ -30,6 +30,7 @@ import { PLAYER_ROLE_LABELS } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { getDerivedMeasurements } from "@/lib/report-history";
 import { publishedReportWhere } from "@/lib/report-review.server";
+import { PRODUCT_SCORES_ENABLED } from "@/lib/report-scores";
 import { formatVideoTags } from "@/lib/videos";
 import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
 
@@ -152,18 +153,20 @@ export default async function PlayerDashboardPage() {
   ]);
   const guardianName = guardianRow?.guardian?.name ?? null;
 
-  // The latest report's scoreboard numbers need the player's history.
-  const latestDerived = latestReport
-    ? await getDerivedMeasurements(
-        {
-          playerId: user.id,
-          category: latestReport.video.category,
-          sessionId: latestReport.video.sessionId,
-          createdAt: latestReport.video.createdAt,
-        },
-        { status: ReportStatus.READY, payload: latestReport.payload },
-      )
-    : null;
+  // Scoreboard numbers need the player's history. Off until the thresholds
+  // are coach-calibrated; the card then reads the payload's measurements.
+  const latestDerived =
+    PRODUCT_SCORES_ENABLED && latestReport
+      ? await getDerivedMeasurements(
+          {
+            playerId: user.id,
+            category: latestReport.video.category,
+            sessionId: latestReport.video.sessionId,
+            createdAt: latestReport.video.createdAt,
+          },
+          { status: ReportStatus.READY, payload: latestReport.payload },
+        )
+      : null;
 
   // Header numbers come from the account-wide pulse (sessions included), so
   // they always agree with the latest-report card; the grid below is
