@@ -1,8 +1,7 @@
-import { redirect } from "next/navigation";
 import { ConversationSidebar } from "@/components/conversation-sidebar";
 import { MessagesShell } from "@/components/messages-shell";
 import { PageTitle } from "@/components/ui";
-import { isAdmin, requireUser } from "@/lib/auth";
+import { requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getConversations } from "@/lib/messages";
 
 export default async function MessagesLayout({
@@ -12,7 +11,7 @@ export default async function MessagesLayout({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const conversations = await getConversations(user.id);
   const unreadTotal = conversations.reduce(

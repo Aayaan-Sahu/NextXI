@@ -7,6 +7,7 @@ import { signOut } from "@/app/auth/actions";
 import { Wordmark } from "@/components/ui";
 
 export function DashboardNav({
+  adminHref,
   avatarUrl = null,
   homeHref,
   initial,
@@ -15,6 +16,8 @@ export function DashboardNav({
   pendingReviews = 0,
   unreadMessages = 0,
 }: {
+  /** Set for an administrator who also holds a role, so both are reachable. */
+  adminHref?: string;
   avatarUrl?: string | null;
   /** A club has no profile form yet; its details are set at onboarding. */
   canEditProfile?: boolean;
@@ -212,6 +215,15 @@ export function DashboardNav({
                     Edit profile
                   </Link>
                 )}
+                {adminHref ? (
+                  <Link
+                    className="block px-3.5 py-2 text-ui text-cream-200/70 no-underline hover:text-cream-50"
+                    href={adminHref}
+                    onClick={() => setAccountOpen(false)}
+                  >
+                    Admin console
+                  </Link>
+                ) : null}
                 <form action={signOut}>
                   <button
                     className="w-full cursor-pointer px-3.5 py-2 text-left text-ui font-semibold text-gold-500"

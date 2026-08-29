@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getProfile, isAdmin, requireUser } from "@/lib/auth";
+import { getProfile, requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getCoachClubs } from "@/lib/clubs.server";
 
 /**
@@ -10,7 +10,7 @@ import { getCoachClubs } from "@/lib/clubs.server";
 export default async function ClubIndexPage() {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const profile = await getProfile(user.id);
 

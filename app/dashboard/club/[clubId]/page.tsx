@@ -1,4 +1,4 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { ClubCoachRole, ClubStatus } from "@/app/generated/prisma/enums";
 import { ClubClaim } from "@/components/club-claim";
@@ -6,7 +6,7 @@ import { ClubCoaches } from "@/components/club-coaches";
 import { ClubRoster } from "@/components/club-roster";
 import { TutorialLink } from "@/components/tutorial-link";
 import { GatePanel, Notice, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
-import { isAdmin, requireUser } from "@/lib/auth";
+import { requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import {
   getClaimablePlayers,
   getClubAccess,
@@ -38,7 +38,7 @@ export default async function ClubPage({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const [{ clubId }, query] = await Promise.all([params, searchParams]);
 

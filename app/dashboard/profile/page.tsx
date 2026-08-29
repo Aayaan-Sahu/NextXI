@@ -14,7 +14,7 @@ import {
 import { SetPasswordPanel } from "@/components/set-password";
 import { Notice, PageShell, SectionHeading, PageTitle } from "@/components/ui";
 import { getAvatarUrl } from "@/lib/avatars.server";
-import { getProfile, isAdmin, requireUser } from "@/lib/auth";
+import { getProfile, requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
 
@@ -30,7 +30,7 @@ export default async function ProfilePage({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const profile = await getProfile(user.id);
 
