@@ -1,4 +1,3 @@
-import { redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
 import { sendConnectionRequest } from "@/app/dashboard/connections/actions";
 import { ClubDirectory } from "@/components/club-directory";
@@ -11,7 +10,7 @@ import {
 import { PlayerDirectory } from "@/components/player-directory";
 import { SubmitButton } from "@/components/submit-button";
 import { BarShell, Notice, SubBar, Tabs, TextInput } from "@/components/ui";
-import { isAdmin, requireUser } from "@/lib/auth";
+import { requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getClubDirectory } from "@/lib/clubs.server";
 import {
   getCoachDirectory,
@@ -39,7 +38,7 @@ export default async function ConnectionsPage({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const params = await searchParams;
   const connectionError = firstParam(params.connectionError);

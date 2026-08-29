@@ -22,12 +22,12 @@ export default async function DashboardLayout({
   // part of what there is to look at. Messages are not — a preview never
   // opens somebody else's conversations or subscribes to their channels.
   const preview = await getAdminPreview(user);
-
-  if (isAdmin(user) && !preview) return children;
-
   const subjectId = preview?.coachId ?? user.id;
   const profile = await getProfile(subjectId);
 
+  // A roleless administrator has only the console, and that brings its own
+  // bar. An administrator who also signed up as a player or a coach gets the
+  // nav for that account, with the console one click away in the menu.
   if (!profile.role) return children;
 
   const name =
@@ -73,6 +73,7 @@ export default async function DashboardLayout({
   const nav = (
     <>
       <DashboardNav
+        adminHref={isAdmin(user) ? "/dashboard/admin" : undefined}
         avatarUrl={avatarUrl}
         homeHref={`/dashboard/${profile.role}`}
         initial={name.charAt(0).toUpperCase()}

@@ -1,8 +1,8 @@
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { VideoDetail } from "@/components/video-detail";
-import { isAdmin, requireUser } from "@/lib/auth";
+import { requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getClubAccess } from "@/lib/clubs.server";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { parseClipTime } from "@/lib/format-time";
@@ -23,7 +23,7 @@ export default async function ClubVideoPage({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const [{ clubId, videoId }, { t }] = await Promise.all([params, searchParams]);
 

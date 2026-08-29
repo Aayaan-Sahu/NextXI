@@ -10,7 +10,7 @@ import { MatchLog, StatEntryForm } from "@/components/stat-entry-form";
 import { StatsLink } from "@/components/stats-link";
 import { TechniqueTrends } from "@/components/technique-trends";
 import { Notice, PageHeader, PageShell } from "@/components/ui";
-import { getProfile, isAdmin, requireUser } from "@/lib/auth";
+import { getProfile, requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getTechniqueTrends } from "@/lib/metric-trends";
 import { getProgressData } from "@/lib/progress";
 import { firstParam } from "@/lib/search-params";
@@ -27,7 +27,7 @@ export default async function ProgressPage({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const profile = await getProfile(user.id);
 

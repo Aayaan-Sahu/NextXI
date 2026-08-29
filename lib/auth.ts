@@ -59,6 +59,20 @@ export async function requireUser() {
   return user;
 }
 
+/**
+ * Admins land on the console, and a page that only makes sense for one of the
+ * roles sends them there — but only if the console is all they have. An
+ * administrator who also signed up as a player or a coach keeps that account:
+ * they are the same person, the console answers none of their own questions,
+ * and signing out to read your own messages is not a workflow.
+ */
+export async function redirectRolelessAdmin(user: SessionUser) {
+  if (!isAdmin(user)) return;
+
+  const { role } = await getOnboardingStatus(user.id);
+  if (!role) redirect("/dashboard/admin");
+}
+
 export async function requireAdmin() {
   const user = await requireUser();
 

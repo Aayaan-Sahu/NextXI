@@ -1,8 +1,9 @@
+import Link from "next/link";
 import { SubmitButton } from "@/components/submit-button";
 import { signOut } from "@/app/auth/actions";
 import { ClubStatus, CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { Notice, SectionHeading, Wordmark } from "@/components/ui";
-import { requireAdmin } from "@/lib/auth";
+import { getOnboardingStatus, requireAdmin } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { firstParam } from "@/lib/search-params";
 import { isVideoDiscipline, VIDEO_DISCIPLINES } from "@/lib/videos";
@@ -39,6 +40,9 @@ export default async function AdminDashboardPage({
   searchParams: SearchParams;
 }) {
   const user = await requireAdmin();
+  // Most administrators are only that. One who also signed up as a player or
+  // a coach keeps that account, and needs the door back to it.
+  const { role } = await getOnboardingStatus(user.id);
 
   const [pendingCoaches, pendingClubs, approvedCoaches] = await Promise.all([
     prisma.coach.findMany({
@@ -120,6 +124,14 @@ export default async function AdminDashboardPage({
           </div>
           <div className="flex items-center gap-4 text-caption text-cream-200/[.66]">
             <span className="max-sm:hidden">{user.email}</span>
+            {role ? (
+              <Link
+                className="font-semibold text-cream-200 no-underline hover:text-cream-50"
+                href={`/dashboard/${role}`}
+              >
+                Your dashboard
+              </Link>
+            ) : null}
             <form action={signOut}>
               <button
                 className="cursor-pointer font-semibold text-gold-500 hover:text-gold-600"

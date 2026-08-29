@@ -1,10 +1,10 @@
 import Link from "next/link";
-import { notFound, redirect } from "next/navigation";
+import { notFound } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { PersonAvatar } from "@/components/connections";
 import { Chip, PageShell, PageTitle, SectionHeading } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
-import { isAdmin, requireUser } from "@/lib/auth";
+import { requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getClubAccess } from "@/lib/clubs.server";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { ageInYears, PLAYER_ROLE_LABELS } from "@/lib/players";
@@ -23,7 +23,7 @@ export default async function ClubPlayerPage({
 }) {
   const user = await requireUser();
 
-  if (isAdmin(user)) redirect("/dashboard/admin");
+  await redirectRolelessAdmin(user);
 
   const { clubId, playerId } = await params;
 
