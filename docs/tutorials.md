@@ -48,6 +48,7 @@ the coach film approves a report the player film needs to still be awaiting
 sign-off:
 
 ```sh
+bun run video:seed && bun run video:capture signup
 bun run video:seed && bun run video:capture player
 bun run video:seed && bun run video:capture coach
 ```
@@ -64,14 +65,14 @@ bun run video:seed && bun run video:capture coach
   prunes those on its next run.
 - **Never leave the demo world in place.** `bun run video:teardown` is part of
   the job, not a cleanup you get to skip.
-- **Don't film a real sign-up.** Creating an account sends a confirmation
-  email, the address on screen has to be at the reserved `example.com`, and
-  nothing accepts mail there — so the server action sits on an SMTP timeout
-  with the button spinning. The sign-up film fills the form and cuts on the
-  click; the segments after it start from accounts the seeder made through the
-  admin API, which sends nothing. Those accounts (`newplayer`, `newguardian`,
-  `newcomer`) have a handle and no role, and the seeder strips any role a
-  previous take gave them.
+- **Don't film a real sign-up.** The capture fills the form, swallows the
+  Create-account submit (preventDefault + abort POSTs), and asserts the page
+  never left `/auth?mode=sign-up`. A real submit would either hang on
+  `example.com` SMTP or create an auth user now that the app no longer
+  auto-confirms. The segments after it start from accounts the seeder made
+  through the admin API, which sends nothing. Those accounts (`newplayer`,
+  `newguardian`, `newcomer`) have a handle and no role, and the seeder strips
+  any role a previous take gave them.
 
 ## Adding a film
 

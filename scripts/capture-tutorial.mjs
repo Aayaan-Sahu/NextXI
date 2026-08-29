@@ -323,13 +323,11 @@ const coachEpilogue = async (stage) => {
 // ---- the sign-up film -------------------------------------------------
 
 /**
- * The film shows the sign-up form filled in and cuts on the click. It does
- * not create an account, and that is deliberate: signing up sends a
- * confirmation email, and the address on screen has to be at example.com,
- * which is reserved and accepts no mail — so the action sits waiting on an
- * SMTP timeout with the button spinning. Everything after the click is the
- * same for every account anyway, and the segments that follow show it from
- * accounts that already exist.
+ * The film shows the sign-up form filled in and cuts on the click. It must
+ * not create an account: a real submit either hangs on example.com SMTP or
+ * — now that the app no longer auto-confirms — creates an auth user and
+ * leaves residue the teardown may not expect. Later segments start from
+ * accounts the seeder made through the admin API.
  */
 const SIGNUP_EMAIL = "ava.whitmore.demo@example.com";
 const SIGNUP_PASSWORD = "riverside2026";
@@ -353,7 +351,30 @@ const signupForm = async (stage, page) => {
   await stage.type('input[name="confirmPassword"]', SIGNUP_PASSWORD);
   stage.beat("A handle, an email, a password. That is the whole account.");
   await stage.click('input[name="consent"]', { settle: 700 });
+
+  // Username availability already POSTed. From here, swallow every submit so
+  // the filmed click cannot create an account.
+  await page.evaluate(() => {
+    document.addEventListener(
+      "submit",
+      (event) => {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      },
+      true,
+    );
+  });
+  await page.route("**/*", (route) => {
+    if (route.request().method() === "POST") return route.abort();
+    return route.continue();
+  });
+
   await stage.click('button:has-text("Create account")', { settle: 1400 });
+
+  const url = new URL(page.url());
+  if (url.pathname !== "/auth" || url.searchParams.get("mode") !== "sign-up") {
+    throw new Error(`signupForm must stay on /auth?mode=sign-up; now at ${page.url()}`);
+  }
 };
 
 const signupPlayer = async (stage, page, shared) => {
