@@ -7,8 +7,9 @@
  * config, and re-pasting three files by hand after every copy change is
  * exactly how the two drift apart. This is that paste, as a command.
  *
- * Subjects are left alone: the repo holds no subject line, so pushing one
- * would overwrite the dashboard's with a guess. Only the bodies move.
+ * Subject lines move too, from the map below. They are the ones the ops
+ * handoff has always specified, so the repo — not the dashboard — is where
+ * the whole email is decided.
  *
  * Usage:
  *   SUPABASE_ACCESS_TOKEN=… bun scripts/push-email-templates.ts [name ...]
@@ -37,11 +38,28 @@ const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const HOW =
   "Create one at https://supabase.com/dashboard/account/tokens, then:\n  SUPABASE_ACCESS_TOKEN=sbp_… bun run auth:templates";
 
-/** Template file → the Management API field that holds its body. */
+/**
+ * Template file → what it is called in the project's auth config, and the
+ * subject line it goes out under. The subject lives here rather than in the
+ * dashboard so the whole email — line and body — has one source; the values
+ * are the ones docs/aayaan-ops-handoff.md has always specified.
+ */
 const TEMPLATES = {
-  confirmation: "mailer_templates_confirmation_content",
-  "magic-link": "mailer_templates_magic_link_content",
-  recovery: "mailer_templates_recovery_content",
+  confirmation: {
+    body: "mailer_templates_confirmation_content",
+    subject: "mailer_subjects_confirmation",
+    line: "Confirm your NextXI account",
+  },
+  "magic-link": {
+    body: "mailer_templates_magic_link_content",
+    subject: "mailer_subjects_magic_link",
+    line: "Your NextXI sign-in code",
+  },
+  recovery: {
+    body: "mailer_templates_recovery_content",
+    subject: "mailer_subjects_recovery",
+    line: "Reset your NextXI password",
+  },
 } as const;
 
 type TemplateName = keyof typeof TEMPLATES;
@@ -95,16 +113,37 @@ async function main() {
 
   console.log(`Auth email templates → ${ref}`);
 
+  // Supabase locks template editing on the default email provider, and the
+  // 400 it returns arrives after the work looks done. Say it up front.
+  if (!live.smtp_host) {
+    console.warn(
+      "  ! custom SMTP is not configured, so this project cannot edit templates at all —\n" +
+        "    not here and not in the dashboard. Set SMTP first (docs/aayaan-ops-handoff.md, Task 2).",
+    );
+  }
+
   const patch: Record<string, string> = {};
   for (const name of names) {
-    const field = TEMPLATES[name];
+    const template = TEMPLATES[name];
     const html = await readFile(path.join(ROOT, "supabase", "templates", `${name}.html`), "utf8");
-    if ((live[field] ?? "") === html) {
+    const bodyMatches = (live[template.body] ?? "") === html;
+    const subjectMatches = (live[template.subject] ?? "") === template.line;
+
+    if (bodyMatches && subjectMatches) {
       console.log(`  ${name.padEnd(12)} already matches the repo`);
       continue;
     }
-    patch[field] = html;
-    console.log(`  ${name.padEnd(12)} differs — pushing ${html.length} bytes`);
+
+    if (!bodyMatches) patch[template.body] = html;
+    if (!subjectMatches) patch[template.subject] = template.line;
+    console.log(
+      `  ${name.padEnd(12)} differs — pushing ${[
+        !bodyMatches ? `${html.length} bytes` : null,
+        !subjectMatches ? `subject "${template.line}"` : null,
+      ]
+        .filter(Boolean)
+        .join(" and ")}`,
+    );
   }
 
   if (!Object.keys(patch).length) {
@@ -124,12 +163,14 @@ async function main() {
   if (!verify.ok) throw new Error(`GET config/auth failed: ${verify.status}`);
   const saved = (await verify.json()) as Record<string, string | null>;
 
-  const stale = Object.entries(patch).filter(([field, html]) => (saved[field] ?? "") !== html);
+  const stale = Object.entries(patch).filter(([field, value]) => (saved[field] ?? "") !== value);
   if (stale.length) {
-    throw new Error(`Saved, but the project still returns different HTML for: ${stale.map(([field]) => field).join(", ")}`);
+    throw new Error(
+      `Saved, but the project still returns something else for: ${stale.map(([field]) => field).join(", ")}`,
+    );
   }
 
-  console.log(`\nPushed ${Object.keys(patch).length} template(s). The project now serves the repo's HTML.`);
+  console.log(`\nPushed ${Object.keys(patch).length} field(s). The project now sends what the repo says.`);
 }
 
 await main();

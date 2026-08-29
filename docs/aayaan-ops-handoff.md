@@ -183,7 +183,7 @@ The dashboard does not read the repo — a template only changes when its HTML i
 SUPABASE_ACCESS_TOKEN=sbp_… bun run auth:templates
 ```
 
-It pushes the bodies only, so the subjects below still have to be set once, by hand.
+It sets the subject line and the body of all three, so the values below are what it writes — nothing else has to be typed.
 
 By hand for all of it: open the file in the repo, copy the **entire HTML**, paste into the matching Supabase field, set the subject, save. Supabase → **Authentication** → **Email Templates**.
 
