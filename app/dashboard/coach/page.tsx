@@ -135,7 +135,9 @@ export default async function CoachDashboardPage({
       <PageHeader
         action={
           <p className="text-ui text-ink-600">
-            Opening a clip marks it seen. Approving a report releases it to the player.
+            {preview
+              ? "Reading only — sign-off, feedback and marking a clip seen stay with this coach."
+              : "Opening a clip marks it seen. Approving a report releases it to the player."}
           </p>
         }
         subtitle={
@@ -165,7 +167,7 @@ export default async function CoachDashboardPage({
             <ApprovalQueue items={queue} />
           </div>
         </div>
-        <CoachClubs invited={clubs.invited} member={clubs.member} />
+        <CoachClubs invited={clubs.invited} member={clubs.member} readOnly={Boolean(preview)} />
         <CoachPlayers players={players} />
         <VideoFilterBar unviewedCount={videos.length} />
         <div>

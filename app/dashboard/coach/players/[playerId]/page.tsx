@@ -94,9 +94,9 @@ export default async function CoachPlayerVideosPage({
       {preview ? <AdminPreviewBar name={preview.name} /> : null}
       <Link
         className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
-        href={connected ? "/dashboard/coach" : "/dashboard/connections"}
+        href={preview || connected ? "/dashboard/coach" : "/dashboard/connections"}
       >
-        ← {connected ? "Dashboard" : "Player directory"}
+        ← {preview || connected ? "Dashboard" : "Player directory"}
       </Link>
 
       <header className="mt-3.5 flex items-center justify-between gap-6 max-md:flex-col max-md:items-start">
@@ -111,7 +111,7 @@ export default async function CoachPlayerVideosPage({
           {player.roles.map((role) => (
             <Chip key={role}>{PLAYER_ROLE_LABELS[role]}</Chip>
           ))}
-          {connected ? null : (
+          {connected || preview ? null : (
             <form action={requestConnectionToPlayer}>
               <input name="playerId" type="hidden" value={playerId} />
               <SubmitButton className="ml-1 !px-[18px] !py-2 !text-ui">
@@ -128,8 +128,9 @@ export default async function CoachPlayerVideosPage({
             🔒
           </span>
           <p className="text-ui text-ink-800">
-            This player is public, so you can watch their videos and reports. Practice sessions
-            and messaging open once they accept your request.
+            {preview
+              ? "This player is public. Practice sessions and messaging are for a connected coach."
+              : "This player is public, so you can watch their videos and reports. Practice sessions and messaging open once they accept your request."}
           </p>
         </div>
       )}
