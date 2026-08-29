@@ -14,6 +14,7 @@ import { POLICY_VERSION } from "@/lib/policy";
 import { authEmailOrigin } from "@/lib/site-url";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { USERNAME_PATTERN } from "@/lib/usernames";
+import { usernameStatus } from "@/lib/usernames.server";
 
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
@@ -197,15 +198,7 @@ export async function resendVerification(
 }
 
 export async function checkUsername(username: string) {
-  const normalized = username.trim().toLowerCase();
-  if (!USERNAME_PATTERN.test(normalized)) return "invalid" as const;
-
-  const existing = await prisma.profile.findUnique({
-    where: { username: normalized },
-    select: { id: true },
-  });
-
-  return existing ? ("taken" as const) : ("free" as const);
+  return (await usernameStatus(username)).status;
 }
 
 export async function requestPasswordReset(formData: FormData) {

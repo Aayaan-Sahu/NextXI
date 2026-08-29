@@ -30,5 +30,6 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules"]
+  // mobile/ is a separate Expo app with its own toolchain and tsconfig.
+  "exclude": ["node_modules", "mobile"]
 }

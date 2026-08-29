@@ -1,6 +1,8 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import type { User } from "@supabase/supabase-js";
+import { resolveAuthorization } from "@/lib/bearer";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
@@ -19,11 +21,27 @@ export function isAdmin(user: Pick<User, "email"> | null | undefined) {
 
 export type SessionUser = { id: string; email?: string };
 
+/**
+ * The signed-in user, from either credential the platform accepts:
+ *
+ * - the cookie session `@supabase/ssr` maintains for the browser, or
+ * - a Supabase access token sent by the native apps as
+ *   `Authorization: Bearer <jwt>` (they keep no cookies; supabase-js on the
+ *   device refreshes the token itself).
+ *
+ * Both verify the JWT locally (asymmetric keys + process-wide JWKS cache)
+ * rather than a network round-trip to the auth server per request. A bearer
+ * takes precedence when present; a bad or unparseable Authorization header
+ * is simply "not signed in" — it never falls back to whatever cookie happens
+ * to be on the request.
+ */
 export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   const supabase = await createSupabaseServerClient();
-  // Verifies the session JWT locally (asymmetric keys + process-wide JWKS
-  // cache) instead of a network round-trip to the auth server per request.
-  const { data, error } = await supabase.auth.getClaims();
+  const resolved = resolveAuthorization((await headers()).get("authorization"));
+  if (resolved.source === "none") return null;
+  const { data, error } = await supabase.auth.getClaims(
+    resolved.source === "bearer" ? resolved.token : undefined,
+  );
 
   if (error || !data) return null;
   return { id: data.claims.sub, email: data.claims.email };

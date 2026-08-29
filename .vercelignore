@@ -1,0 +1,4 @@
+# The Expo app ships to the App Store and Play Store, never to Vercel.
+# Keeping it out of the deployment upload also keeps it out of the build's
+# install and file-trace steps.
+mobile/
