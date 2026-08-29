@@ -58,7 +58,7 @@ Built with Next.js 16 (App Router), React 19, Prisma 7, and Supabase
 | **Coach**    | Chosen at onboarding, approved by an admin | Browse the player directory, view videos, comment, message players     |
 | **Guardian** | Chosen at onboarding                       | Link to child players via guardian code, oversee their videos          |
 | **Club**     | Chosen at onboarding, verified by an admin | Claim the players who named it, watch their clips and signed-off reports, invite coaches to run it |
-| **Admin**    | Email listed in `ADMIN_EMAILS`             | Approve/reject coaches and clubs from the admin dashboard               |
+| **Admin**    | `ADMIN_EMAILS`, or granted on the account  | Approve/reject coaches and clubs from the admin dashboard               |
 
 Roles resolve at request time from the signed-in Supabase user; the middleware
 (`proxy.ts`) refreshes sessions and `lib/auth.ts` gates routes.
@@ -121,7 +121,7 @@ one from each pair.
 | `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` / `..._ANON_KEY`        | ✅       | Public client key (browser + server auth)                           |
 | `SUPABASE_SECRET_KEY` / `SUPABASE_SERVICE_ROLE_KEY`            | ✅       | Server-only admin key (privileged storage/auth operations)          |
 | `NEXT_PUBLIC_SITE_URL`                                         | ⚠️       | Production canonical URL for auth emails. Production always falls back to `https://www.nextxi.pro` if this is missing or still a `*.vercel.app` host. Previews use `VERCEL_URL` so signup stays on the same host. |
-| `ADMIN_EMAILS`                                                 | ➖       | Comma-separated list of emails granted admin access                 |
+| `ADMIN_EMAILS`                                                 | ➖       | Comma-separated emails granted admin access. Optional — `bun run admin:grant <email>` sets it on the account instead, with no redeploy (see below) |
 | `REPORTS_INGEST_SECRET`                                        | ➖       | Bearer token the AI pipeline uses to submit coaching reports        |
 | `TEAM_NOTIFY_WEBHOOK_URL`                                      | ➖       | Slack-compatible webhook pinged on signups and finished uploads     |
 
@@ -189,10 +189,34 @@ the step-by-step brief in `docs/aayaan-ops-handoff.md`.
 | `bun run db:generate` | Generate the Prisma client (`prisma generate`)        |
 | `bun run db:migrate`  | Create/apply a dev migration (`prisma migrate dev`)   |
 | `bun run lint`        | Run ESLint                                             |
+| `bun run admin:grant` | Make an account an administrator (`… you@example.com`) |
+| `bun run admin:revoke` | Take it away again                                    |
 | `bun run video:seed`  | Build the demo world the tutorials are filmed against  |
 | `bun run video:capture` | Record a tutorial walkthrough (`… player`)          |
 | `bun run video:tutorials` | Render + encode the tutorial films                |
 | `bun run video:teardown` | Delete the demo world and verify it is gone        |
+
+### Making someone an administrator
+
+Two ways in, and the app accepts either.
+
+**On the account** — no hosting access, no redeploy:
+
+```sh
+NEXT_PUBLIC_SUPABASE_URL=https://<ref>.supabase.co \
+SUPABASE_SECRET_KEY=<service key> \
+  bun run admin:grant you@example.com someone.else@example.com
+```
+
+That sets `app_metadata.admin` on the Supabase auth user, which rides in the
+access token — so the app reads it with no extra query, and `bun run
+admin:revoke` takes it back. Only the service key can write `app_metadata`;
+nothing the browser holds can. It lands on the next token they are issued,
+so signing out and back in makes it immediate.
+
+**On the deployment** — `ADMIN_EMAILS`, comma-separated, in the hosting
+environment. Simple, but it needs whoever owns that account, and a redeploy
+before it takes effect.
 
 ## Project structure
 
