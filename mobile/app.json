@@ -28,6 +28,13 @@
       "expo-font",
       "expo-secure-store"
     ],
-    "scheme": "nextxi"
+    "scheme": "nextxi",
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "75fcef70-63e4-4980-999f-1d1b279ea663"
+      }
+    },
+    "owner": "nextxi"
   }
 }
