@@ -14,6 +14,13 @@ export type Film = {
 };
 
 export const FILMS: Record<string, Film> = {
+  signup: {
+    role: "signup",
+    kicker: "Getting started",
+    title: "Creating your account",
+    standfirst: "Sign up, pick what you are, and fill in one short form.",
+    endLine: "Two minutes, and you're in.",
+  },
   player: {
     role: "player",
     kicker: "For players",

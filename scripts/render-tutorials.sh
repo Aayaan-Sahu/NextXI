@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ROLES=("$@")
-if [ ${#ROLES[@]} -eq 0 ]; then ROLES=(player coach); fi
+if [ ${#ROLES[@]} -eq 0 ]; then ROLES=(signup player coach); fi
 
 mkdir -p out public/tutorials
 
@@ -30,11 +30,10 @@ for ROLE in "${ROLES[@]}"; do
     -c:v libx264 -profile:v high -crf 26 -preset slow -pix_fmt yuv420p \
     -an -movflags +faststart "public/tutorials/$ROLE.mp4"
 
-  # Poster: a frame from 40% in, which is always mid-walkthrough. The title
-  # card would only repeat the heading the page already prints above it; what
-  # a reader wants to see is the product.
-  DURATION=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$MASTER")
-  POSTER_AT=$(awk -v d="$DURATION" 'BEGIN { printf "%.2f", d * 0.4 }')
+  # Poster: a frame from the walkthrough, never the title card — that would
+  # only repeat the heading the page prints above it. See poster-frame.py for
+  # why it is picked from the caption cues rather than a fixed fraction.
+  POSTER_AT=$(python3 scripts/poster-frame.py "remotion/public/captures/$ROLE.json")
   ffmpeg -v error -y -ss "$POSTER_AT" -i "$MASTER" -frames:v 1 -q:v 3 "public/tutorials/$ROLE.jpg"
 
   SIZE=$(du -h "public/tutorials/$ROLE.mp4" | cut -f1)

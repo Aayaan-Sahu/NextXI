@@ -36,7 +36,12 @@ import {
   VIDEO_BUCKET,
   VIDEO_CACHE_CONTROL,
 } from "@/lib/videos";
-import { DEMO_EMAIL_DOMAIN, DEMO_EMAIL_PREFIX, demoEmail } from "@/scripts/demo-world";
+import {
+  DEMO_EMAIL_DOMAIN,
+  DEMO_EMAIL_PREFIX,
+  demoEmail,
+  demoPersonEmail,
+} from "@/scripts/demo-world";
 
 const ROOT = fileURLToPath(new URL("..", import.meta.url));
 const WORLD_FILE = path.join(ROOT, "scripts", ".demo-world.json");
@@ -136,7 +141,39 @@ const PEOPLE = {
     bio: "Pace bowling coach. Run-up rhythm, front arm, and landings you can repeat.",
   },
   helen: { kind: "guardian", name: "Helen Ellison", username: "helen_ellison" },
+  /**
+   * An account with a handle and no role yet — what you are for the thirty
+   * seconds between creating an account and choosing what you are. The
+   * sign-up film uses it to reach the coach form without sending another
+   * confirmation email.
+   */
+  newcomer: {
+    kind: "none",
+    name: "Sam Whitlock",
+    username: "sam_whitlock",
+    email: demoPersonEmail("sam.whitlock"),
+  },
+  newplayer: {
+    kind: "none",
+    name: "Ava Whitmore",
+    username: "ava_whitmore",
+    // The address the sign-up film types into the form. It shows again in the
+    // onboarding footer, so the two have to be the same person.
+    email: demoPersonEmail("ava.whitmore"),
+  },
+  newguardian: {
+    kind: "none",
+    name: "Rachel Whitmore",
+    username: "r_whitmore",
+    email: demoPersonEmail("rachel.whitmore"),
+  },
 } as const;
+
+/** Most of the cast is nextxi-demo-<key>@example.com; the newcomers read as people. */
+function emailFor(key: PersonKey): string {
+  const person = PEOPLE[key] as { email?: string };
+  return person.email ?? demoEmail(key);
+}
 
 /** Accepted connections. Tom sees both players; Priya only Jordan. */
 const CONNECTIONS: [PersonKey, PersonKey][] = [
@@ -336,6 +373,18 @@ async function signIn(email: string) {
 async function seedPerson(key: PersonKey, id: string) {
   const person = PEOPLE[key];
   const now = new Date().toISOString();
+
+  // A newcomer is an account that has only just been created: an auth user
+  // and nothing else, which is what the sign-up film picks up from. No
+  // profile row either, so the handle it types on the sign-up form is still
+  // free and the onboarding form suggests the same one back from the name.
+  if (person.kind === "none") {
+    for (const table of ["players", "coaches", "guardians", "profiles"]) {
+      const { error } = await admin.from(table).delete().eq("id", id);
+      if (error) throw new Error(`${table}: ${error.message}`);
+    }
+    return;
+  }
 
   await upsert("profiles", [
     {
@@ -653,7 +702,7 @@ async function main() {
   const sessions = {} as Record<PersonKey, Session>;
 
   for (const key of keys) {
-    const email = demoEmail(key);
+    const email = emailFor(key);
     ids[key] = await ensureAuthUser(email);
     await seedPerson(key, ids[key]);
     sessions[key] = await signIn(email);
@@ -697,7 +746,7 @@ async function main() {
             key,
             {
               cookies: sessionCookies(sessions[key]),
-              email: demoEmail(key),
+              email: emailFor(key),
               id: ids[key],
               name: PEOPLE[key].name,
             },

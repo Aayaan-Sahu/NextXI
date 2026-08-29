@@ -13,7 +13,7 @@ export default function TutorialsPage() {
   return (
     <InfoPage
       eyebrow="NextXI"
-      intro="Every film here is a recording of the real product — no mockups, no narration to follow. They run about a minute each and are captioned, so they work with the sound off."
+      intro="Every film here is a recording of the real product — no mockups, no narration to follow. None runs longer than two minutes, and all of them are captioned, so they work with the sound off."
       title="Tutorials"
     >
       <TutorialCatalogue tutorials={TUTORIALS} />

@@ -8,7 +8,7 @@
  */
 export type Tutorial = {
   /** Also the file stem: public/tutorials/<id>.mp4 and .jpg. */
-  id: "player" | "coach";
+  id: "signup" | "player" | "coach";
   title: string;
   /** Who it is for, as a phrase that can follow "For". */
   audience: string;
@@ -17,6 +17,14 @@ export type Tutorial = {
 };
 
 export const TUTORIALS: Tutorial[] = [
+  {
+    id: "signup",
+    title: "Creating your account",
+    audience: "everyone",
+    length: "2 min",
+    blurb:
+      "One sign-up form, then the profile for whichever kind of account you need. Includes the bit that catches people out: a player under 18 stays closed until their guardian enters the code.",
+  },
   {
     id: "player",
     title: "Your first report",
