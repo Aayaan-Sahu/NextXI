@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
 import { z } from "zod";
+import { CoachStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 
 /**
  * The handler is exercised with the auth and data layers replaced: who is
@@ -8,8 +9,8 @@ import { z } from "zod";
 type FakeUser = { id: string; email?: string } | null;
 const state: {
   user: FakeUser;
-  player: { id: string; status: string } | null;
-  coach: { id: string; status: string } | null;
+  player: { id: string; status: PlayerStatus } | null;
+  coach: { id: string; status: CoachStatus } | null;
   guardian: { id: string } | null;
 } = { user: null, player: null, coach: null, guardian: null };
 
@@ -59,18 +60,18 @@ describe("resolveApiAuth", () => {
   test("player: the upload routes' exact rules and wording", async () => {
     state.user = USER;
     await expect(resolveApiAuth("player")).rejects.toMatchObject({ status: 403, message: "Player account required." });
-    state.player = { id: USER.id, status: "PENDING_GUARDIAN" };
+    state.player = { id: USER.id, status: PlayerStatus.PENDING_GUARDIAN };
     await expect(resolveApiAuth("player")).rejects.toMatchObject({ status: 403, message: "Account pending guardian approval." });
-    state.player = { id: USER.id, status: "ACTIVE" };
+    state.player = { id: USER.id, status: PlayerStatus.ACTIVE };
     expect(await resolveApiAuth("player")).toEqual({ user: USER, player: state.player });
   });
 
   test("coach: must exist and be approved", async () => {
     state.user = USER;
     await expect(resolveApiAuth("coach")).rejects.toMatchObject({ status: 403, message: "Coach account required." });
-    state.coach = { id: USER.id, status: "PENDING" };
+    state.coach = { id: USER.id, status: CoachStatus.PENDING };
     await expect(resolveApiAuth("coach")).rejects.toMatchObject({ status: 403, message: "Coach account pending approval." });
-    state.coach = { id: USER.id, status: "APPROVED" };
+    state.coach = { id: USER.id, status: CoachStatus.APPROVED };
     expect(await resolveApiAuth("coach")).toEqual({ user: USER, coach: state.coach });
   });
 
