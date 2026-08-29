@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { VideoModal } from "@/components/video-modal";
 
 /**
  * Labelled button that opens the standardized recording-guide video in a modal.
@@ -9,15 +10,6 @@ import { useEffect, useState } from "react";
  */
 export function GuideButton({ label }: { label: string }) {
   const [open, setOpen] = useState(false);
-
-  useEffect(() => {
-    if (!open) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setOpen(false);
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open]);
 
   return (
     <>
@@ -29,23 +21,7 @@ export function GuideButton({ label }: { label: string }) {
         <span aria-hidden>▶</span> {label}
       </button>
       {open ? (
-        <div
-          aria-modal="true"
-          className="fixed inset-0 z-50 flex items-center justify-center bg-pitch-950/70 p-4"
-          onClick={() => setOpen(false)}
-          role="dialog"
-        >
-          {/* muted: the guide has no audio track, and browsers only autoplay muted video */}
-          <video
-            autoPlay
-            className="w-full max-w-[960px] rounded-[10px] border border-cream-400 bg-olive-950 shadow-float"
-            controls
-            muted
-            onClick={(event) => event.stopPropagation()}
-            playsInline
-            src="/recording-guide.mp4"
-          />
-        </div>
+        <VideoModal onClose={() => setOpen(false)} src="/recording-guide.mp4" title={label} />
       ) : null}
     </>
   );

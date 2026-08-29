@@ -2,7 +2,7 @@ import type { MetadataRoute } from "next";
 import { CANONICAL_SITE_URL } from "@/lib/site-url";
 
 export default function sitemap(): MetadataRoute.Sitemap {
-  const pages = ["", "/auth", "/safeguarding", "/privacy", "/terms", "/contact"];
+  const pages = ["", "/auth", "/tutorials", "/safeguarding", "/privacy", "/terms", "/contact"];
 
   return pages.map((path) => ({
     url: `${CANONICAL_SITE_URL}${path}`,

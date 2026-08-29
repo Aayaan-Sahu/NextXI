@@ -120,3 +120,6 @@ shared code.
   `PUT /api/videos/{videoId}/report` — contract in `docs/reports-contract.md`.
 - Env vars: see the README. Server-only secrets (`SUPABASE_SECRET_KEY`,
   `REPORTS_INGEST_SECRET`) must never reach the browser.
+- The `/tutorials` films are **recordings of the real app**, not animation —
+  changing a screen they show means re-shooting. `docs/tutorials.md` has the
+  four commands. Never leave the seeded demo world in the database.

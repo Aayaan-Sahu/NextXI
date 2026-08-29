@@ -116,6 +116,7 @@ export type LandingCopy = {
     signIn: string;
     createAccount: string;
     safeguarding: string;
+    tutorials: string;
     privacy: string;
     terms: string;
     contact: string;
@@ -294,6 +295,7 @@ const en: LandingCopy = {
     signIn: "Sign in",
     createAccount: "Create account",
     safeguarding: "Safeguarding",
+    tutorials: "Tutorials",
     privacy: "Privacy",
     terms: "Terms",
     contact: "Contact",
@@ -477,6 +479,7 @@ const hi: LandingCopy = {
     signIn: "साइन इन",
     createAccount: "अकाउंट बनाएँ",
     safeguarding: "सुरक्षा",
+    tutorials: "ट्यूटोरियल",
     privacy: "प्राइवेसी",
     terms: "शर्तें",
     contact: "संपर्क",

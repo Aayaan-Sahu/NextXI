@@ -34,6 +34,26 @@ export const VIDEO = {
   fps: 30,
 } as const;
 
+/**
+ * The product tutorials are 720p because that is exactly what the capture is:
+ * scripts/capture-tutorial.mjs films a 1280×720 browser 1:1, and Playwright
+ * only ever scales a frame down, never up. Composing at 1080p would upscale
+ * the product's own type — the one thing in these films that has to stay
+ * legible.
+ */
+export const TUTORIAL_VIDEO = {
+  width: 1280,
+  height: 720,
+  fps: 30,
+} as const;
+
+/** Title card, end card, and the longest a caption stays up (5s). */
+export const TUTORIAL = {
+  title: 90,
+  end: 75,
+  captionMax: 150,
+} as const;
+
 // Scene durations in frames (30fps).
 export const SCENES = {
   hook: 120,
