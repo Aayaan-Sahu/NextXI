@@ -1,6 +1,7 @@
 import { CoachStatus, ConnectionStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 import { DashboardNav } from "@/components/dashboard-nav";
 import { MessagesRealtime } from "@/components/messages-realtime";
+import { getAdminPreview } from "@/lib/admin-preview";
 import { getAvatarUrl } from "@/lib/avatars.server";
 import { getCurrentUser, getProfile, isAdmin } from "@/lib/auth";
 import { getUnreadMessageCount } from "@/lib/messages";
@@ -14,9 +15,18 @@ export default async function DashboardLayout({
 }) {
   const user = await getCurrentUser();
 
-  if (!user || isAdmin(user)) return children;
+  if (!user) return children;
 
-  const profile = await getProfile(user.id);
+  // An administrator reading a coach's dashboard gets that coach's chrome:
+  // the nav, and the badge counting reports waiting on their signature, are
+  // part of what there is to look at. Messages are not — a preview never
+  // opens somebody else's conversations or subscribes to their channels.
+  const preview = await getAdminPreview(user);
+
+  if (isAdmin(user) && !preview) return children;
+
+  const subjectId = preview?.coachId ?? user.id;
+  const profile = await getProfile(subjectId);
 
   if (!profile.role) return children;
 
@@ -45,11 +55,11 @@ export default async function DashboardLayout({
   // An approved coach's Home carries the reports waiting on their sign-off.
   const [avatarUrl, unreadMessages, pendingReviews, connections] = await Promise.all([
     getAvatarUrl(avatarPath),
-    limited ? Promise.resolve(0) : getUnreadMessageCount(user.id),
+    limited || preview ? Promise.resolve(0) : getUnreadMessageCount(user.id),
     profile.role === "coach" && profile.coach.status === CoachStatus.APPROVED
-      ? getAwaitingReviewCount(user.id)
+      ? getAwaitingReviewCount(subjectId)
       : Promise.resolve(0),
-    limited
+    limited || preview
       ? Promise.resolve([])
       : prisma.connection.findMany({
           where: {
@@ -75,7 +85,7 @@ export default async function DashboardLayout({
     </>
   );
 
-  if (limited) return nav;
+  if (limited || preview) return nav;
 
   return (
     <MessagesRealtime connectionIds={connections.map((connection) => connection.id)}>

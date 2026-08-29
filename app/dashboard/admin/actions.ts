@@ -1,10 +1,12 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
 import { ClubStatus, CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
+import { ADMIN_PREVIEW_COOKIE, ADMIN_PREVIEW_MAX_AGE } from "@/lib/admin-preview";
 import { requireAdmin } from "@/lib/auth";
 import { clubNameMatches } from "@/lib/clubs";
 import { publishReport, revalidateReportSurfaces } from "@/lib/report-review.server";
@@ -16,6 +18,42 @@ function text(formData: FormData, name: string) {
 
 function done(key: "error" | "message", value: string): never {
   redirect(`/dashboard/admin?${key}=${encodeURIComponent(value)}`);
+}
+
+/**
+ * Open a coach's dashboard as that coach sees it — the queue, and the review
+ * screen behind it. Nothing on those pages can be changed from here: they
+ * authorise every write against the signed-in account, which is an admin's.
+ */
+export async function previewCoach(formData: FormData) {
+  await requireAdmin();
+
+  const coachId = text(formData, "coachId");
+  if (!isUuid(coachId)) done("error", "Invalid request.");
+
+  const coach = await prisma.coach.findUnique({
+    where: { id: coachId },
+    select: { status: true },
+  });
+  if (coach?.status !== CoachStatus.APPROVED) {
+    done("error", "Only an approved coach has a dashboard to look at.");
+  }
+
+  (await cookies()).set(ADMIN_PREVIEW_COOKIE, coachId, {
+    httpOnly: true,
+    maxAge: ADMIN_PREVIEW_MAX_AGE,
+    path: "/",
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+  });
+
+  redirect("/dashboard/coach");
+}
+
+export async function stopPreviewingCoach() {
+  await requireAdmin();
+  (await cookies()).delete(ADMIN_PREVIEW_COOKIE);
+  redirect("/dashboard/admin");
 }
 
 async function setCoachStatus(formData: FormData, status: CoachStatus, message: string) {

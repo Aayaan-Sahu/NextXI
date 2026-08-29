@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
+import { AdminPreviewBar } from "@/components/admin-preview-bar";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { CoachPlayers } from "@/components/coach-players";
 import { GatePanel, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
@@ -9,6 +10,7 @@ import { getCoachClubs } from "@/lib/clubs.server";
 import { getTutorial } from "@/lib/tutorials";
 import { VideoFilterBar } from "@/components/video-filter-bar";
 import { VideoGrid } from "@/components/video-grid";
+import { getAdminPreview } from "@/lib/admin-preview";
 import { getProfile, requireUser } from "@/lib/auth";
 import { describeUsers, getAcceptedCounterpartIds } from "@/lib/connections";
 import { prisma } from "@/lib/prisma";
@@ -23,7 +25,11 @@ export default async function CoachDashboardPage({
   searchParams: Promise<{ discipline?: string; variation?: string; handedness?: string }>;
 }) {
   const user = await requireUser();
-  const profile = await getProfile(user.id);
+  // An administrator may be reading somebody else's queue (lib/admin-preview).
+  // Everything below is about that coach; nothing below writes.
+  const preview = await getAdminPreview(user);
+  const coachId = preview?.coachId ?? user.id;
+  const profile = await getProfile(coachId);
 
   if (!profile.role) redirect("/onboarding");
   if (profile.role !== "coach") redirect(`/dashboard/${profile.role}`);
@@ -62,7 +68,7 @@ export default async function CoachDashboardPage({
   }
 
   const { discipline, variation, handedness } = await searchParams;
-  const connectedIds = await getAcceptedCounterpartIds(user.id);
+  const connectedIds = await getAcceptedCounterpartIds(coachId);
   const people = await describeUsers(connectedIds);
   const playerIds = connectedIds.filter((id) => people.get(id)?.role === "player");
   const playerRoles = await prisma.player.findMany({
@@ -78,13 +84,13 @@ export default async function CoachDashboardPage({
 
   const [{ awaiting, held }, clubs, videos] = await Promise.all([
     // Reports the player can't see until this coach signs them off.
-    getAwaitingReviewForCoach(user.id),
-    getCoachClubs(user.id),
+    getAwaitingReviewForCoach(coachId),
+    getCoachClubs(coachId),
     prisma.playerVideo.findMany({
       where: {
         status: PlayerVideoStatus.READY,
         playerId: { in: players.map((player) => player.id) },
-        views: { none: { viewerId: user.id } },
+        views: { none: { viewerId: coachId } },
         ...(isVideoDiscipline(discipline) ? { category: discipline } : {}),
         ...(variation ? { variation } : {}),
         ...(isHandedness(handedness) ? { handedness } : {}),
@@ -125,10 +131,13 @@ export default async function CoachDashboardPage({
 
   return (
     <PageShell>
+      {preview ? <AdminPreviewBar name={preview.name} /> : null}
       <PageHeader
         action={
           <p className="text-ui text-ink-600">
-            Opening a clip marks it seen. Approving a report releases it to the player.
+            {preview
+              ? "Reading only — sign-off, feedback and marking a clip seen stay with this coach."
+              : "Opening a clip marks it seen. Approving a report releases it to the player."}
           </p>
         }
         subtitle={
@@ -158,7 +167,7 @@ export default async function CoachDashboardPage({
             <ApprovalQueue items={queue} />
           </div>
         </div>
-        <CoachClubs invited={clubs.invited} member={clubs.member} />
+        <CoachClubs invited={clubs.invited} member={clubs.member} readOnly={Boolean(preview)} />
         <CoachPlayers players={players} />
         <VideoFilterBar unviewedCount={videos.length} />
         <div>

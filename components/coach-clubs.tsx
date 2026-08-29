@@ -11,7 +11,16 @@ import { countryWithFlag } from "@/lib/players";
  * coach who runs no club should not be told a club feature exists every time
  * they sign in.
  */
-export function CoachClubs({ invited, member }: { invited: CoachClub[]; member: CoachClub[] }) {
+export function CoachClubs({
+  invited,
+  member,
+  readOnly = false,
+}: {
+  invited: CoachClub[];
+  member: CoachClub[];
+  /** An administrator reading this coach's home — show the invites, not the buttons. */
+  readOnly?: boolean;
+}) {
   if (!member.length && !invited.length) return null;
 
   return (
@@ -47,18 +56,22 @@ export function CoachClubs({ invited, member }: { invited: CoachClub[]; member: 
                 {countryWithFlag(club.country)} · Invited you to help run this club
               </p>
             </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <form action={respondToClubInvite}>
-                <input name="clubId" type="hidden" value={club.id} />
-                <input name="intent" type="hidden" value="accept" />
-                <SubmitButton className="!px-[18px] !py-2 !text-ui">Accept</SubmitButton>
-              </form>
-              <form action={respondToClubInvite}>
-                <input name="clubId" type="hidden" value={club.id} />
-                <input name="intent" type="hidden" value="decline" />
-                <SubmitButton variant="quiet">Decline</SubmitButton>
-              </form>
-            </div>
+            {readOnly ? (
+              <p className="shrink-0 text-caption text-ink-600">Invitation pending</p>
+            ) : (
+              <div className="flex shrink-0 items-center gap-3">
+                <form action={respondToClubInvite}>
+                  <input name="clubId" type="hidden" value={club.id} />
+                  <input name="intent" type="hidden" value="accept" />
+                  <SubmitButton className="!px-[18px] !py-2 !text-ui">Accept</SubmitButton>
+                </form>
+                <form action={respondToClubInvite}>
+                  <input name="clubId" type="hidden" value={club.id} />
+                  <input name="intent" type="hidden" value="decline" />
+                  <SubmitButton variant="quiet">Decline</SubmitButton>
+                </form>
+              </div>
+            )}
           </li>
         ))}
       </ul>
