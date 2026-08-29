@@ -14,13 +14,14 @@ import {
 } from "@/components/measured-report";
 import { ReportAutoRefresh } from "@/components/report-auto-refresh";
 import { ReportSignoff } from "@/components/report-signoff";
-import { Scoreboard, VERDICT_WORDS } from "@/components/scoreboard";
+import { ReportFocus, Scoreboard, VERDICT_WORDS } from "@/components/scoreboard";
 import { SeekButton } from "@/components/seek-button";
 import { Kicker, Meter, SectionHeading } from "@/components/ui";
 import { isFinalReportFailure } from "@/lib/report-errors";
 import type { DerivedReport } from "@/lib/report-measurements";
 import { readAnnotations } from "@/lib/report-moments";
 import { isReportPublished } from "@/lib/report-review";
+import { PRODUCT_SCORES_ENABLED } from "@/lib/report-scores";
 import type { VideoReport } from "@/lib/videos.server";
 
 const KNOWN_PAYLOAD_KEYS = ["overall_score", "metrics", "feedback", "annotations"];
@@ -428,12 +429,10 @@ export function ReportPanel({
     );
   }
 
-  // A v2 payload the platform could score and measure server-side reads as
-  // the home page's report: the session number and verdict in the header,
-  // the scoreboard, then the measurement rows. Only reached when the worker
-  // sent no `measurements`.
+  // A v2 payload the platform could measure (and, when the flag is on, score)
+  // server-side. Only reached when the worker sent no `measurements`.
   if (derived && (derived.scores || derived.metrics.length > 0) && payload) {
-    const scores = derived.scores;
+    const scores = PRODUCT_SCORES_ENABLED ? derived.scores : null;
     const rows = derived.metrics.length;
     return (
       <ReportShell
@@ -451,6 +450,8 @@ export function ReportPanel({
       >
         {scores ? (
           <Scoreboard consistency={consistency} focus={derived.focus} scores={scores} />
+        ) : derived.focus ? (
+          <ReportFocus focus={derived.focus} />
         ) : null}
         {rows > 0 ? (
           <>
