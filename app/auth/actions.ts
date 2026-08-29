@@ -12,7 +12,6 @@ import { isValidClubName, MAX_CLUB_BIO_LENGTH } from "@/lib/clubs";
 import { ageInYears, isCountry, parsePlayerRoles } from "@/lib/players";
 import { POLICY_VERSION } from "@/lib/policy";
 import { authEmailOrigin } from "@/lib/site-url";
-import { createSupabaseAdminClient } from "@/lib/supabase/admin";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 import { USERNAME_PATTERN } from "@/lib/usernames";
 
@@ -125,21 +124,6 @@ export async function signUp(
     return { error: "That account already exists. Sign in or reset your password." };
   }
 
-  // Confirm-email may be on in Supabase, which withholds the session until
-  // they click the mail. Open the session now so onboarding isn't blocked;
-  // the verification link still works whenever they tap it.
-  if (!data.session) {
-    const admin = createSupabaseAdminClient();
-    const confirmed = await admin.auth.admin.updateUserById(data.user.id, {
-      email_confirm: true,
-    });
-    if (confirmed.error) return { error: confirmed.error.message };
-
-    const signedIn = await supabase.auth.signInWithPassword({ email, password });
-    if (signedIn.error) return { error: signedIn.error.message };
-    if (!signedIn.data.user) return { error: "Account created, but sign-in failed." };
-  }
-
   try {
     await prisma.profile.create({
       data: {
@@ -152,6 +136,12 @@ export async function signUp(
   } catch (createError) {
     if (!isUniqueError(createError)) throw createError;
     // Auth user exists; they can pick another handle on onboarding.
+  }
+
+  // Confirm-email withholds the session until they click the mail. Do not
+  // confirm them from here — that would let anyone register as any address.
+  if (!data.session) {
+    redirect(`/auth/check-email?email=${encodeURIComponent(email)}`);
   }
 
   return afterSignIn(data.user.id);
@@ -203,7 +193,7 @@ export async function resendVerification(
 
   if (error) return { error: error.message };
 
-  return { message: "Verification email sent. Click the link whenever you're ready." };
+  return { message: "Verification email sent. Click the link to open your account." };
 }
 
 export async function checkUsername(username: string) {
