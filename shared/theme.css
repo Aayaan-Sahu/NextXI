@@ -1,0 +1,105 @@
+/*
+ * The Crease tokens — the seven colours and the nine type roles.
+ *
+ * Imported by BOTH clients, so there is exactly one definition of each:
+ * `app/globals.css` (Tailwind v4) and `mobile/global.css` (NativeWind 5,
+ * which is Tailwind v4 for React Native). A token added here reaches the
+ * web and the apps at once; one defined anywhere else reaches only one of
+ * them, which is how two clients drift apart.
+ *
+ * What deliberately stays out, because the two runtimes disagree about it:
+ * font families (Next injects `--font-*` variables; Expo registers loaded
+ * font names) and shadows (CSS box-shadow has no React Native equivalent).
+ * Each client defines those next to its own import.
+ *
+ * The rules these tokens serve — amber measures, peach acts, maroon brands;
+ * one hairline; nine roles and no arbitrary sizes — are in STYLE-GUIDE.md.
+ */
+
+@theme {
+
+  /* ── Dark surfaces ────────────────────────────────────────────────── */
+  /* pitch-900 is the dark panel: report header, scoreboard band, admin bar. */
+  --color-pitch-950: #171310;
+  --color-pitch-900: #241c15;
+  --color-pitch-800: #2c2620;
+  --color-pitch-700: #38312a;
+
+  /* Olive video greens — thumbnail placeholders and the player avatar. The
+     product's only non-neutral dark, so a clip well never reads as a panel. */
+  --color-olive-950: #1b2118;
+  --color-olive-800: #2e3b2a;
+  --color-olive-700: #374332;
+
+  /* ── Cream ramp, light → dark ─────────────────────────────────────── */
+  --color-cream-50: #fffcf5; /* card + field surface */
+  --color-cream-100: #f8f2e7; /* tint band, empty-state fill */
+  --color-cream-200: #f3ebdd; /* page ground */
+  --color-cream-250: #efead9; /* info flash, meter track, quiet chip */
+  --color-cream-300: #ede4d4; /* secondary button, faint inner rule */
+  --color-cream-350: #e4dac6; /* skeleton block */
+  --color-cream-400: #e0d6c3; /* hairline */
+  --color-cream-450: #dcd3c0; /* benchmark band, muted data bar */
+  --color-cream-500: #cfc3aa; /* dashed border, strong rule */
+
+  /* ── Maroon — brand and negative ──────────────────────────────────── */
+  --color-rust-50: #f7e2de; /* error surface */
+  --color-rust-100: #fdf6f4; /* error field fill */
+  --color-rust-300: #c68c84; /* error border, destructive outline */
+  --color-rust-500: #c2503f;
+  --color-rust-600: #8a2116; /* brand */
+  --color-rust-700: #6f1b1b; /* pressed */
+  --color-rust-800: #5e1710; /* copy on the error surface */
+
+  /* ── Amber — data emphasis. Never a button. ───────────────────────── */
+  --color-amber-500: #e8a92e;
+
+  /* ── Peach — primary action, and only that. ───────────────────────── */
+  --color-gold-500: #f2c79b;
+  --color-gold-600: #e5b482;
+
+  /* ── Ink ──────────────────────────────────────────────────────────── */
+  --color-ink-900: #241c15; /* headings */
+  --color-ink-800: #3b332b; /* body copy */
+  --color-ink-600: #6b6155; /* muted, labels, captions */
+  --color-ink-400: #a2937c; /* disabled */
+
+  /* The one green: a positive verdict in a report. Not a UI accent. */
+  --color-moss-600: #2f6b3e;
+
+  /* ── The type scale ───────────────────────────────────────────────────
+   *
+   * Nine roles. Every piece of text in the product is one of them; there is
+   * no arbitrary `text-[13.5px]`. The small end deliberately steps 15 → 14 →
+   * 13 rather than 14.5 → 13.5 → 12.5 — a half-pixel is not a hierarchy, it
+   * is noise, and it reads as several designs assembled together.
+   *
+   *   display   page title (Saira Condensed, uppercase)
+   *   title     dialog and subsection titles
+   *   lead      the one introductory paragraph on a reading page
+   *   body      prose, inputs, primary list rows
+   *   ui        labels, buttons, descriptions, secondary rows — the workhorse
+   *   caption   metadata, hints, table headers
+   *   micro     chips and badges, where the box is the constraint
+   *   figure    a measured number
+   *   figure-sm a measured number inside a row
+   */
+  --text-display: 30px;
+  --text-display--line-height: 1.05;
+  --text-title: 20px;
+  --text-title--line-height: 1.25;
+  --text-lead: 17px;
+  --text-lead--line-height: 1.6;
+  --text-body: 15px;
+  --text-body--line-height: 1.6;
+  --text-ui: 14px;
+  --text-ui--line-height: 1.5;
+  --text-caption: 13px;
+  --text-caption--line-height: 1.45;
+  --text-micro: 11px;
+  --text-micro--line-height: 1.3;
+  --text-figure: 28px;
+  --text-figure--line-height: 1;
+  --text-figure-sm: 20px;
+  --text-figure-sm--line-height: 1;
+}
