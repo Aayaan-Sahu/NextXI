@@ -4,6 +4,7 @@ import { ClubCoachRole, ClubStatus } from "@/app/generated/prisma/enums";
 import { ClubClaim } from "@/components/club-claim";
 import { ClubCoaches } from "@/components/club-coaches";
 import { ClubRoster } from "@/components/club-roster";
+import { TutorialLink } from "@/components/tutorial-link";
 import { GatePanel, Notice, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
 import { isAdmin, requireUser } from "@/lib/auth";
 import {
@@ -14,6 +15,7 @@ import {
 } from "@/lib/clubs.server";
 import { countryWithFlag } from "@/lib/players";
 import { firstParam } from "@/lib/search-params";
+import { getTutorial } from "@/lib/tutorials";
 
 type SearchParams = Promise<{
   clubError?: string | string[];
@@ -90,6 +92,7 @@ export default async function ClubPage({
     `${roster.length} ${roster.length === 1 ? "player" : "players"}`,
     `${coaches.length} ${coaches.length === 1 ? "coach" : "coaches"}`,
   ].join(" · ");
+  const clubTutorial = getTutorial("club");
 
   return (
     <PageShell>
@@ -101,7 +104,17 @@ export default async function ClubPage({
             </p>
           ) : null
         }
-        subtitle={stats}
+        subtitle={
+          <>
+            {stats}
+            {clubTutorial ? (
+              <>
+                {" · "}
+                <TutorialLink tutorial={clubTutorial} />
+              </>
+            ) : null}
+          </>
+        }
         title={club.name}
       />
 

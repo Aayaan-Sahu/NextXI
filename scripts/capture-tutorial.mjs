@@ -247,7 +247,7 @@ const playerReport = async (stage) => {
   await stage.click('button:has-text("Shot 2")', { settle: 1800 });
   await stage.dwell(1500);
 
-  stage.beat("Three scores, and the measurements behind them.");
+  stage.beat("One thing to fix, and every measurement it was read from.");
   await stage.reveal('text="Coaching report"');
   await stage.dwell(2800);
 
@@ -439,6 +439,92 @@ const signupCoach = async (stage) => {
   await stage.dwell(2800);
 };
 
+// ---- the club film ----------------------------------------------------
+
+/**
+ * Four segments across three logins, because that is the claim: a club is an
+ * account of its own, the player still decides, and the coaches who run it
+ * reach it as themselves. Nothing here is impersonation — every segment is a
+ * real session for a different person.
+ */
+/**
+ * /dashboard bounces twice to reach the club's own page, and that page fans
+ * out four queries behind a skeleton. Without this the first caption plays
+ * over a loading state — which is a screen, but not the one being described.
+ */
+const clubLoaded = (stage) =>
+  stage.locator('h1:has-text("Riverside CC")').waitFor({ state: "visible", timeout: 20000 });
+
+const clubClaim = async (stage) => {
+  await stage.goto("/dashboard");
+  await clubLoaded(stage);
+  stage.beat("A club gets an account of its own. This is what it opens on.");
+  await stage.dwell(2400);
+
+  stage.beat("Players who typed your club's name when they signed up.");
+  await stage.reveal("text=/Players who list this club/i");
+  await stage.dwell(2400);
+
+  stage.beat("A name in a text field grants nothing. The club asks.");
+  await stage.click('button:has-text("to connect")', { settle: 3500 });
+  await stage.reveal("text=/Request sent/i");
+  await stage.dwell(2400);
+};
+
+const clubAccept = async (stage) => {
+  // Searched, because an unsearched coach directory lists real approved
+  // coaches and no real person's name belongs in a published film. "rhodes"
+  // matches one of the demo coaches and nobody else.
+  await stage.goto("/dashboard/connections?tab=pending&q=rhodes");
+  stage.beat("It reaches the player as a request, like one from a coach.");
+  await stage.dwell(2400);
+
+  stage.beat("Their answer is the whole gate. One tap, and the club is in.");
+  await stage.click('button:has-text("Accept")', { settle: 3500 });
+  await stage.dwell(2200);
+};
+
+const clubRoster = async (stage) => {
+  await stage.goto("/dashboard");
+  await clubLoaded(stage);
+  stage.beat("The roster is everyone who said yes.");
+  await stage.reveal('text="Players"');
+  await stage.dwell(2400);
+
+  stage.beat("Open a player and you get what they have filmed.");
+  await stage.click('a:has-text("Maya Ellison")', { settle: 3200 });
+  await stage.dwell(1600);
+  await stage.click(`a[href$="${world.videos["maya-cover-drive"]}"]`, { settle: 3200 });
+
+  stage.beat("The report their coach signed off — and nothing that isn't signed off.");
+  await stage.reveal('text="Coaching report"');
+  await stage.dwell(2600);
+
+  stage.beat("The thread is read-only. Feedback stays between player and coach.");
+  await stage.reveal("text=/Feedback is between/i");
+  await stage.dwell(2600);
+
+  stage.beat("And there is no approve button here. A club signs nothing off.");
+  await stage.dwell(2400);
+};
+
+const clubCoaches = async (stage) => {
+  await stage.goto("/dashboard/coach");
+  stage.beat("Its coaches reach the club from their own login. No shared password.");
+  await stage.reveal("text=/Your clubs/i");
+  await stage.dwell(2200);
+
+  await stage.click('a:has-text("Riverside CC")', { settle: 3200 });
+  await clubLoaded(stage);
+  stage.beat("Same dashboard, still signed in as themselves.");
+  await stage.reveal("text=/here as a coach of/i");
+  await stage.dwell(2600);
+
+  stage.beat("And whoever owns the club decides who else gets in.");
+  await stage.reveal("text=/Send invitation/i");
+  await stage.dwell(2600);
+};
+
 const FILMS = {
   player: {
     segments: [
@@ -458,6 +544,14 @@ const FILMS = {
       { as: "newplayer", run: signupPlayer },
       { as: "newguardian", run: signupGuardian },
       { as: "newcomer", run: signupCoach },
+    ],
+  },
+  club: {
+    segments: [
+      { as: "riverside", run: clubClaim },
+      { as: "ellis", run: clubAccept },
+      { as: "riverside", run: clubRoster },
+      { as: "tom", run: clubCoaches },
     ],
   },
   coach: {

@@ -13,7 +13,7 @@ set -euo pipefail
 cd "$(dirname "$0")/.."
 
 ROLES=("$@")
-if [ ${#ROLES[@]} -eq 0 ]; then ROLES=(signup player coach); fi
+if [ ${#ROLES[@]} -eq 0 ]; then ROLES=(signup player coach club); fi
 
 mkdir -p out public/tutorials
 
@@ -33,7 +33,19 @@ for ROLE in "${ROLES[@]}"; do
   # Poster: a frame from the walkthrough, never the title card — that would
   # only repeat the heading the page prints above it. See poster-frame.py for
   # why it is picked from the caption cues rather than a fixed fraction.
-  POSTER_AT=$(python3 scripts/poster-frame.py "remotion/public/captures/$ROLE.json")
+  #
+  # A film may name the caption it wants the poster from. The club film's
+  # longest-held beat spans two page loads, and a club's roster says what the
+  # film is about where a report screen does not.
+  case "$ROLE" in
+    club) POSTER_CUE="roster is everyone" ;;
+    *) POSTER_CUE="" ;;
+  esac
+  if [ -n "$POSTER_CUE" ]; then
+    POSTER_AT=$(python3 scripts/poster-frame.py "remotion/public/captures/$ROLE.json" --cue "$POSTER_CUE")
+  else
+    POSTER_AT=$(python3 scripts/poster-frame.py "remotion/public/captures/$ROLE.json")
+  fi
   ffmpeg -v error -y -ss "$POSTER_AT" -i "$MASTER" -frames:v 1 -q:v 3 "public/tutorials/$ROLE.jpg"
 
   SIZE=$(du -h "public/tutorials/$ROLE.mp4" | cut -f1)

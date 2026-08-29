@@ -28,6 +28,13 @@ export const FILMS: Record<string, Film> = {
     standfirst: "Film a shot, get it read, see what to fix.",
     endLine: "Film it. Get it read. Get better.",
   },
+  club: {
+    role: "club",
+    kicker: "For clubs",
+    title: "Running a club",
+    standfirst: "Find your players, read their reports, sign nothing off.",
+    endLine: "Your club, your players, one place.",
+  },
   coach: {
     role: "coach",
     kicker: "For coaches and scouts",

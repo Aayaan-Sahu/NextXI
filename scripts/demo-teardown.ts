@@ -110,6 +110,10 @@ async function main() {
     residue.players = await countIn("players", "id", ids);
     residue.coaches = await countIn("coaches", "id", ids);
     residue.guardians = await countIn("guardians", "id", ids);
+    residue.clubs = await countIn("clubs", "id", ids);
+    residue.clubCoaches =
+      (await countIn("club_coaches", "club_id", ids)) +
+      (await countIn("club_coaches", "coach_id", ids));
     residue.videos = await countIn("player_videos", "player_id", ids);
     residue.connections =
       (await countIn("connections", "user_a_id", ids)) +

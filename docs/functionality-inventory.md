@@ -75,6 +75,8 @@ One screen, two modes toggled by a **footer link** (URL param `?mode=sign-up`), 
 ### 1.4 Email confirmation (`/auth/confirm`)
 No UI — GET route handler that verifies the email token (signup or recovery), sets the session, and redirects to `next` (default `/onboarding`; recovery → `/auth/reset-password`). Errors bounce to `/auth?error=…`. The `next` param is sanitized against open redirects.
 
+Takes either shape of link: `token_hash` + `type`, which is what the repo's templates in `supabase/templates/` send, or a PKCE `code`, which is what Supabase's **default** templates send after their own `/auth/v1/verify` redirects to the Site URL. The default lands on `/`, so `proxy.ts` forwards a root request carrying `code` here — otherwise the click confirms the address and leaves the person on the landing page with no session. That path matters while the project is on the default email provider, which locks template editing until custom SMTP is configured.
+
 ### 1.5 Reset password (`/auth/reset-password`)
 One screen, two modes decided by **whether a session exists**:
 
