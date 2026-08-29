@@ -22,11 +22,17 @@ export default function SafeguardingPage() {
           connections, and messages — not a summary, the actual thing.
         </p>
       </InfoSection>
-      <InfoSection title="Coaches are verified before contact">
+      <InfoSection title="Coaches and clubs are verified before contact">
         <p>
-          Every coach and scout is checked and approved by the NextXI team before they can view
-          full profiles or contact any player. Until approval, a coach account can do nothing that
-          touches a player.
+          Every coach, scout and club is checked and approved by the NextXI team before they can
+          view full profiles or contact any player. Until approval, the account can do nothing
+          that touches a player.
+        </p>
+        <p>
+          A verified club still has to be let in. If a player named that club when they signed up,
+          the club can ask to connect — but it sees nothing until the player accepts, and a
+          coach&apos;s sign-off on a report is always a person&apos;s, never an
+          organisation&apos;s.
         </p>
       </InfoSection>
       <InfoSection title="Your videos, your call">

@@ -36,11 +36,11 @@ export function CoachDirectory({
       <SectionHeading>Coach directory</SectionHeading>
       <form className="mt-3.5 flex gap-2.5" method="GET">
         <TextInput
-          aria-label="Search coaches by name"
+          aria-label="Search coaches and clubs by name"
           className="min-w-0 flex-1"
           defaultValue={query}
           name="q"
-          placeholder="Search coaches by name"
+          placeholder="Search coaches and clubs by name"
           type="search"
         />
         <SubmitButton variant="secondary">Search</SubmitButton>

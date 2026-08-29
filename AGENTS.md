@@ -117,8 +117,10 @@ shared code.
 
 ## Gotchas
 
-- Roles: **player / coach / guardian / admin**. Coaches start `pending` and need
-  admin approval before they can act.
+- Roles: **player / coach / guardian / club / admin**. Coaches and clubs start
+  `pending` and need admin approval before they can act. A club sees what a
+  connected coach sees but **never signs off a report** — `countApprovers`
+  counts coaches, and that is the whole guarantee.
 - Videos upload directly to Supabase Storage via resumable **tus** uploads
   (`app/api/videos/*`); each finished upload auto-creates a `Report` row.
 - External AI pipeline delivers coaching reports via

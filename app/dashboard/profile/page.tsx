@@ -36,6 +36,8 @@ export default async function ProfilePage({
 
   if (!profile.role) redirect("/onboarding");
   if (profile.role === "guardian") redirect("/dashboard/guardian");
+  // A club's details are set at onboarding; there is no club profile form yet.
+  if (profile.role === "club") redirect("/dashboard/club");
 
   const params = await searchParams;
   const error = firstParam(params.error);

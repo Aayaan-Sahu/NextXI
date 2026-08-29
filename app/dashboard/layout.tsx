@@ -25,7 +25,9 @@ export default async function DashboardLayout({
       ? profile.player.name
       : profile.role === "coach"
         ? profile.coach.name
-        : profile.guardian.name;
+        : profile.role === "club"
+          ? profile.club.name
+          : profile.guardian.name;
   const limited =
     profile.role === "guardian" ||
     (profile.role === "player" && profile.player.status === PlayerStatus.PENDING_GUARDIAN);
@@ -34,7 +36,9 @@ export default async function DashboardLayout({
       ? profile.player.avatarPath
       : profile.role === "coach"
         ? profile.coach.avatarPath
-        : null;
+        : profile.role === "club"
+          ? profile.club.crestPath
+          : null;
   // Guardians and pending players have no Messages link, so skip their count.
   // Accepted-connection ids feed the realtime provider that keeps the badge
   // (and the messages surfaces) fresh from any dashboard page.
@@ -62,6 +66,7 @@ export default async function DashboardLayout({
         avatarUrl={avatarUrl}
         homeHref={`/dashboard/${profile.role}`}
         initial={name.charAt(0).toUpperCase()}
+        canEditProfile={profile.role !== "club"}
         limited={limited}
         pendingReviews={pendingReviews}
         unreadMessages={unreadMessages}

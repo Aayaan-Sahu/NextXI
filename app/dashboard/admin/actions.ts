@@ -3,9 +3,10 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { isUuid } from "@/app/api/videos/utils";
-import { CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
+import { ClubStatus, CoachStatus, ReportReviewStatus, ReportStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireAdmin } from "@/lib/auth";
+import { clubNameMatches } from "@/lib/clubs";
 import { publishReport, revalidateReportSurfaces } from "@/lib/report-review.server";
 
 function text(formData: FormData, name: string) {
@@ -32,6 +33,52 @@ async function setCoachStatus(formData: FormData, status: CoachStatus, message: 
 
   revalidatePath("/dashboard/admin");
   done("message", message);
+}
+
+async function setClubStatus(formData: FormData, status: ClubStatus, message: string) {
+  await requireAdmin();
+
+  const clubId = text(formData, "clubId");
+  if (!isUuid(clubId)) done("error", "Invalid request.");
+
+  if (status === ClubStatus.APPROVED) {
+    const pending = await prisma.club.findUnique({
+      where: { id: clubId },
+      select: { name: true, status: true },
+    });
+    if (!pending || pending.status !== ClubStatus.PENDING) {
+      done("error", "That club is no longer pending.");
+    }
+    const approved = await prisma.club.findMany({
+      where: { status: ClubStatus.APPROVED, id: { not: clubId } },
+      select: { name: true },
+    });
+    if (approved.some((club) => clubNameMatches(club.name, pending.name))) {
+      done(
+        "error",
+        `An approved club already uses the name "${pending.name}". Rename one before approving.`,
+      );
+    }
+  }
+
+  const result = await prisma.club.updateMany({
+    where: { id: clubId, status: ClubStatus.PENDING },
+    data: { status },
+  });
+
+  if (result.count === 0) done("error", "That club is no longer pending.");
+
+  revalidatePath("/dashboard/admin");
+  revalidatePath(`/dashboard/club/${clubId}`);
+  done("message", message);
+}
+
+export async function approveClub(formData: FormData) {
+  await setClubStatus(formData, ClubStatus.APPROVED, "Club approved.");
+}
+
+export async function rejectClub(formData: FormData) {
+  await setClubStatus(formData, ClubStatus.REJECTED, "Club rejected.");
 }
 
 export async function approveCoach(formData: FormData) {

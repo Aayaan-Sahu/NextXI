@@ -10,11 +10,14 @@ export function DashboardNav({
   avatarUrl = null,
   homeHref,
   initial,
+  canEditProfile = true,
   limited = false,
   pendingReviews = 0,
   unreadMessages = 0,
 }: {
   avatarUrl?: string | null;
+  /** A club has no profile form yet; its details are set at onboarding. */
+  canEditProfile?: boolean;
   homeHref: string;
   initial: string;
   limited?: boolean;
@@ -127,7 +130,7 @@ export function DashboardNav({
                 </Link>
               ))}
               <div className="mt-1.5 border-t border-cream-200/[.14] pt-1.5">
-                {!limited && (
+                {!limited && canEditProfile && (
                   <Link
                     className="block px-3.5 py-2.5 text-ui text-cream-200/70 no-underline hover:text-cream-50"
                     href="/dashboard/profile"
@@ -200,7 +203,7 @@ export function DashboardNav({
                 type="button"
               />
               <div className="absolute top-full right-0 z-20 mt-2 w-44 overflow-hidden rounded-md bg-pitch-900 py-1.5">
-                {!limited && (
+                {!limited && canEditProfile && (
                   <Link
                     className="block px-3.5 py-2 text-ui text-cream-200/70 no-underline hover:text-cream-50"
                     href="/dashboard/profile"

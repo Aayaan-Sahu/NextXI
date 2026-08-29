@@ -8,7 +8,8 @@ import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code";
 import { notifyTeam } from "@/lib/notify";
-import { isCountry, parsePlayerRoles } from "@/lib/players";
+import { isValidClubName, MAX_CLUB_BIO_LENGTH } from "@/lib/clubs";
+import { ageInYears, isCountry, parsePlayerRoles } from "@/lib/players";
 import { POLICY_VERSION } from "@/lib/policy";
 import { authEmailOrigin } from "@/lib/site-url";
 import { createSupabaseAdminClient } from "@/lib/supabase/admin";
@@ -68,15 +69,6 @@ function onboardingError(message: string): OnboardingState {
 
 function isUniqueError(error: unknown): error is Prisma.PrismaClientKnownRequestError {
   return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
-}
-
-// DOB is stored as UTC midnight, so compare against UTC "today" to avoid
-// timezone off-by-one on birthdays.
-function ageInYears(dob: string) {
-  const [y, m, d] = dob.split("-").map(Number);
-  const now = new Date();
-  const monthDay = (now.getUTCMonth() + 1) * 100 + now.getUTCDate();
-  return now.getUTCFullYear() - y - (monthDay < m * 100 + d ? 1 : 0);
 }
 
 async function afterSignIn(userId: string): Promise<never> {
@@ -419,6 +411,57 @@ export async function completeOnboarding(
     redirect("/dashboard");
   }
 
+  if (role === "club") {
+    const name = text(formData, "name");
+    const country = text(formData, "country");
+    const bio = text(formData, "bio");
+
+    if (!isValidClubName(name)) {
+      return onboardingError("Enter the club's name, between 2 and 120 characters.");
+    }
+    if (!isCountry(country)) {
+      return onboardingError("Select a valid country.");
+    }
+    if (bio.length > MAX_CLUB_BIO_LENGTH) {
+      return onboardingError("Keep the club description under 500 characters.");
+    }
+
+    let usernameTaken = false;
+
+    try {
+      await prisma.$transaction([
+        ...(reserved
+          ? []
+          : [
+              prisma.profile.create({
+                data: {
+                  consentedAt: new Date(),
+                  consentPolicyVersion: POLICY_VERSION,
+                  id: user.id,
+                  username,
+                },
+              }),
+            ]),
+        // PENDING by default: a club reaches no player until an admin verifies
+        // the name it is claiming.
+        prisma.club.create({
+          data: { bio: bio || null, country, id: user.id, name },
+        }),
+      ]);
+    } catch (error) {
+      if (!isUniqueError(error)) throw error;
+      usernameTaken = true;
+    }
+
+    if (usernameTaken) return onboardingError("Username is taken.");
+
+    await notifyTeam(
+      `New club signed up: ${name} (@${username}) — awaiting approval at /dashboard/admin`,
+    );
+
+    redirect("/dashboard");
+  }
+
   if (role === "guardian") {
     const name = text(formData, "name");
     const code = normalizeGuardianCode(text(formData, "childCode"));
@@ -482,5 +525,5 @@ export async function completeOnboarding(
     redirect("/dashboard");
   }
 
-  return onboardingError("Choose player, coach, or guardian.");
+  return onboardingError("Choose player, coach, guardian, or club.");
 }

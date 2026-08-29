@@ -75,6 +75,28 @@ enum CoachStatus {
   @@schema("public")
 }
 
+/**
+ * A club is admin-verified the way a coach is: an organisation claiming a name
+ * that real players will be asked to trust.
+ */
+enum ClubStatus {
+  PENDING  @map("pending")
+  APPROVED @map("approved")
+  REJECTED @map("rejected")
+
+  @@map("club_status")
+  @@schema("public")
+}
+
+/** OWNER manages membership; MEMBER only uses the club's dashboard. */
+enum ClubCoachRole {
+  OWNER  @map("owner")
+  MEMBER @map("member")
+
+  @@map("club_coach_role")
+  @@schema("public")
+}
+
 enum PlayerStatus {
   ACTIVE           @map("active")
   PENDING_GUARDIAN @map("pending_guardian")
@@ -176,10 +198,57 @@ model Coach {
   club            String?
   specialties     CoachSpecialty[] @default([])
   certifications  String[]         @default([])
+  clubs           ClubCoach[]
   createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt       DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   @@map("coaches")
+  @@schema("public")
+}
+
+/**
+ * A club: its own account, keyed to an auth user like Player/Coach/Guardian,
+ * so connections, messages and the video gates all work on it unchanged. A
+ * club sees what a connected coach sees and signs nothing off — only a person
+ * puts their name to a report (lib/report-review.ts).
+ */
+model Club {
+  id        String      @id @db.Uuid
+  authUser  AuthUser    @relation("ClubAuthUser", fields: [id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  name      String
+  country   String
+  status    ClubStatus  @default(PENDING)
+  bio       String?
+  crestPath String?     @map("crest_path")
+  coaches   ClubCoach[]
+  createdAt DateTime    @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime    @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@index([status, name], map: "clubs_status_name_idx")
+  @@map("clubs")
+  @@schema("public")
+}
+
+/**
+ * A coach's access to a club's dashboard. `status` reuses ConnectionStatus
+ * because it is the same three-state handshake the connections table already
+ * models: invited, accepted, revoked.
+ */
+model ClubCoach {
+  id          String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clubId      String           @map("club_id") @db.Uuid
+  club        Club             @relation(fields: [clubId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  coachId     String           @map("coach_id") @db.Uuid
+  coach       Coach            @relation(fields: [coachId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  role        ClubCoachRole    @default(MEMBER)
+  status      ConnectionStatus @default(PENDING)
+  invitedById String           @map("invited_by_id") @db.Uuid
+  createdAt   DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt   DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@unique([clubId, coachId])
+  @@index([coachId, status], map: "club_coaches_coach_status_idx")
+  @@map("club_coaches")
   @@schema("public")
 }
 
@@ -416,6 +485,7 @@ model AuthUser {
   player               Player?        @relation("PlayerAuthUser")
   coach                Coach?         @relation("CoachAuthUser")
   guardian             Guardian?      @relation("GuardianAuthUser")
+  club                 Club?          @relation("ClubAuthUser")
   profile              Profile?       @relation("ProfileAuthUser")
   connectionsAsUserA   Connection[]   @relation("ConnectionUserA")
   connectionsAsUserB   Connection[]   @relation("ConnectionUserB")

@@ -57,7 +57,8 @@ Built with Next.js 16 (App Router), React 19, Prisma 7, and Supabase
 | **Player**   | Chosen at onboarding                       | Build a profile, upload videos, log stats/goals, message connections   |
 | **Coach**    | Chosen at onboarding, approved by an admin | Browse the player directory, view videos, comment, message players     |
 | **Guardian** | Chosen at onboarding                       | Link to child players via guardian code, oversee their videos          |
-| **Admin**    | Email listed in `ADMIN_EMAILS`             | Approve/reject coaches from the admin dashboard                         |
+| **Club**     | Chosen at onboarding, verified by an admin | Claim the players who named it, watch their clips and signed-off reports, invite coaches to run it |
+| **Admin**    | Email listed in `ADMIN_EMAILS`             | Approve/reject coaches and clubs from the admin dashboard               |
 
 Roles resolve at request time from the signed-in Supabase user; the middleware
 (`proxy.ts`) refreshes sessions and `lib/auth.ts` gates routes.
@@ -189,6 +190,7 @@ app/
   onboarding/            # Role selection + first-run profile
   dashboard/
     admin/               # Coach approvals
+    club/                # Club dashboard: roster, claims, member coaches
     coach/               # Coach views: players, videos
     guardian/            # Guardian views
     player/              # Player home + videos

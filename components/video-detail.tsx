@@ -26,19 +26,27 @@ const SIGNED_URL_TTL_SECONDS = 60 * 60;
  * posted before the review began.
  */
 export async function VideoDetail({
+  audience = "player",
   backHref,
+  commentsFootnote = "Only connected coaches can leave feedback here.",
   deleteAction,
   initialTime,
   sessionLinkBase,
+  subtitlePrefix,
   where,
 }: {
+  /** "observer" is a connected club: same gate, but the report is somebody else's coach's. */
+  audience?: "player" | "observer";
   backHref: string;
+  commentsFootnote?: string;
   /** When set, the header carries a confirmed delete for this clip. */
   deleteAction?: (formData: FormData) => Promise<void>;
   /** A `?t=` deep link: open the clip paused at this second. */
   initialTime?: number;
   /** When set and the video belongs to a session, "back" returns there instead. */
   sessionLinkBase?: string;
+  /** Prepended to the meta line, e.g. the player's name on a club's page. */
+  subtitlePrefix?: string;
   where: Prisma.PlayerVideoWhereInput;
 }) {
   const video = await prisma.playerVideo.findFirst({
@@ -133,7 +141,8 @@ export async function VideoDetail({
         <div className="min-w-0">
           <PageTitle>{video.originalFilename}</PageTitle>
           <p className="mt-1.5 text-ui text-ink-600">
-            Uploaded {uploadedAt} · {formatVideoSize(video.sizeBytes)}
+            {subtitlePrefix ? `${subtitlePrefix} · ` : ""}Uploaded {uploadedAt} ·{" "}
+            {formatVideoSize(video.sizeBytes)}
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-3">
@@ -157,13 +166,10 @@ export async function VideoDetail({
         <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,1fr)_420px]">
           <div className="grid gap-8">
             <ClipPlayer fps={fps} initialTime={initialTime} moments={moments} src={data.signedUrl} />
-            <VideoComments
-              comments={comments}
-              footnote="Only connected coaches can leave feedback here."
-            />
+            <VideoComments comments={comments} footnote={commentsFootnote} />
           </div>
           <ReportPanel
-            audience="player"
+            audience={audience}
             coachNames={coachNames}
             derived={derived}
             report={redactReportForPlayer(report)}

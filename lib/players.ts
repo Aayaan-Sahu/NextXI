@@ -69,3 +69,19 @@ export function countryWithFlag(country: string) {
   const flag = COUNTRY_FLAGS.get(country);
   return flag ? `${flag} ${country}` : country;
 }
+
+/**
+ * Whole years since a date of birth. Dates of birth are stored as UTC
+ * midnight, so the comparison is UTC throughout — a local-time reading turns
+ * a birthday into an off-by-one for half the world.
+ *
+ * Accepts the `YYYY-MM-DD` string the onboarding form submits as well as the
+ * `Date` Prisma returns; there were two private copies of this, one for each.
+ */
+export function ageInYears(dateOfBirth: Date | string, now = new Date()): number {
+  const dob = typeof dateOfBirth === "string" ? new Date(`${dateOfBirth}T00:00:00.000Z`) : dateOfBirth;
+  let age = now.getUTCFullYear() - dob.getUTCFullYear();
+  const months = now.getUTCMonth() - dob.getUTCMonth();
+  if (months < 0 || (months === 0 && now.getUTCDate() < dob.getUTCDate())) age -= 1;
+  return age;
+}

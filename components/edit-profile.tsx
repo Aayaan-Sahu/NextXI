@@ -88,7 +88,8 @@ export function VisibilityRow({ visibility }: { visibility: Visibility }) {
         <p className="mt-1 max-w-[640px] text-caption leading-relaxed text-ink-600">
           Any approved coach can find you in the player directory and view your profile, videos
           and coaching reports without connecting. Switch to private and only connected coaches
-          can see you.
+          can see you — a verified club you named at signup can ask to connect only while you
+          are public.
         </p>
       </div>
       <Switch

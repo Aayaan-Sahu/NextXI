@@ -166,6 +166,10 @@ ready ──► awaiting_review ──(coach approves)──► approved   (stam
   when the player has none, is released at once.
 - A `ready` row is never re-claimed, so nothing you do can undo an approval.
 - Comments a coach leaves during review are released together with the report.
+- **Only a coach counts.** A club connected to the player is not an approver:
+  `countApprovers` counts `Coach` rows, so a player whose only connection is a
+  club is treated as having no coach and their report is released at once. The
+  stamp on a report is a person's name, never an organisation's.
 
 The rules are in `lib/report-review.ts`; the admin queue lists held reports.
 
