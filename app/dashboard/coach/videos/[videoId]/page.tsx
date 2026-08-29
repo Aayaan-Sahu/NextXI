@@ -9,12 +9,14 @@ import {
   ReportStatus,
   Visibility,
 } from "@/app/generated/prisma/enums";
+import { AdminPreviewBar } from "@/components/admin-preview-bar";
 import { ClipPlayer } from "@/components/clip-player";
 import { ReportPanel } from "@/components/report-panel";
 import { ReviewActions } from "@/components/review-actions";
 import { Chip, Notice, PageShell, PageTitle } from "@/components/ui";
 import { COMMENT_HINT_PUBLISHED, CommentForm, VideoComments } from "@/components/video-comments";
 import { VideoTimeProvider } from "@/components/video-time";
+import { getAdminPreview } from "@/lib/admin-preview";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { parseClipTime } from "@/lib/format-time";
@@ -42,7 +44,12 @@ export default async function CoachVideoPage({
   searchParams: Promise<{ commentError?: string; reviewError?: string; message?: string; t?: string }>;
 }) {
   const user = await requireUser();
-  const profile = await getProfile(user.id);
+  // An administrator reading this coach's review screen (lib/admin-preview).
+  // The composer and the sign-off panel come off below, and the visit does
+  // not mark the clip seen — that is the coach's list to keep.
+  const preview = await getAdminPreview(user);
+  const coachId = preview?.coachId ?? user.id;
+  const profile = await getProfile(coachId);
 
   if (!profile.role) redirect("/onboarding");
   if (profile.role !== "coach") redirect("/dashboard/player");
@@ -80,7 +87,7 @@ export default async function CoachVideoPage({
 
   // Same gate as the coach player page: connected coaches can always watch;
   // otherwise the player must have opted into discovery (PUBLIC) and be active.
-  const connected = await hasAcceptedConnection(user.id, video.playerId);
+  const connected = await hasAcceptedConnection(coachId, video.playerId);
   const viewable =
     connected ||
     (video.player.visibility === Visibility.PUBLIC &&
@@ -105,11 +112,11 @@ export default async function CoachVideoPage({
   // Opening the video marks it seen, dropping it from the coach's new-clips
   // list. Only for connected coaches: that list is connected players' videos,
   // and a pre-connection look should still read as new once connected.
-  if (connected) {
+  if (connected && !preview) {
     await prisma.videoView.upsert({
-      where: { videoId_viewerId: { videoId, viewerId: user.id } },
+      where: { videoId_viewerId: { videoId, viewerId: coachId } },
       update: {},
-      create: { videoId, viewerId: user.id },
+      create: { videoId, viewerId: coachId },
     });
   }
 
@@ -172,6 +179,7 @@ export default async function CoachVideoPage({
 
   return (
     <PageShell>
+      {preview ? <AdminPreviewBar name={preview.name} /> : null}
       <Link
         className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
         href={backHref}
@@ -202,7 +210,7 @@ export default async function CoachVideoPage({
             <VideoComments
               comments={comments}
               form={
-                connected ? (
+                connected && !preview ? (
                   <CommentForm
                     error={commentError}
                     hint={commentHint}
@@ -215,7 +223,7 @@ export default async function CoachVideoPage({
           </div>
           <div className="grid gap-4">
             <Notice>{message}</Notice>
-            {canReview && report ? (
+            {canReview && !preview && report ? (
               <ReviewActions
                 error={reviewError}
                 hold={
@@ -223,7 +231,7 @@ export default async function CoachVideoPage({
                     ? {
                         reason: report.holdReason ?? "",
                         byName: report.reviewedByName,
-                        bySelf: report.reviewedById === user.id,
+                        bySelf: report.reviewedById === coachId,
                         at: report.reviewedAt,
                       }
                     : null
@@ -246,7 +254,7 @@ export default async function CoachVideoPage({
               coachNames={coachNames}
               derived={derived}
               report={report}
-              viewerId={user.id}
+              viewerId={coachId}
             />
           </div>
         </div>

@@ -9,6 +9,7 @@ import { isVideoDiscipline, VIDEO_DISCIPLINES } from "@/lib/videos";
 import {
   approveClub,
   approveCoach,
+  previewCoach,
   rejectClub,
   rejectCoach,
   releaseHeldReport,
@@ -39,7 +40,7 @@ export default async function AdminDashboardPage({
 }) {
   const user = await requireAdmin();
 
-  const [pendingCoaches, pendingClubs] = await Promise.all([
+  const [pendingCoaches, pendingClubs, approvedCoaches] = await Promise.all([
     prisma.coach.findMany({
       where: { status: CoachStatus.PENDING },
       orderBy: { createdAt: "asc" },
@@ -49,6 +50,11 @@ export default async function AdminDashboardPage({
       where: { status: ClubStatus.PENDING },
       orderBy: { createdAt: "asc" },
       select: { id: true, name: true, country: true, bio: true, createdAt: true },
+    }),
+    prisma.coach.findMany({
+      where: { status: CoachStatus.APPROVED },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, club: true },
     }),
   ]);
   // Reports the AI worker still owes us, plus the ones a coach has held —
@@ -346,6 +352,40 @@ export default async function AdminDashboardPage({
               <p className="mt-4 text-ui text-ink-600">
                 No reports waiting on the pipeline.
               </p>
+            )}
+          </section>
+
+          <section>
+            <SectionHeading>Coach dashboards · {approvedCoaches.length}</SectionHeading>
+            <p className="mt-1.5 text-caption text-ink-600">
+              Open one to read the approval queue and the review screen the way that coach sees
+              them. Reading only: sign-off, feedback and marking a clip seen all authorise against
+              your own account, which is not theirs.
+            </p>
+            {approvedCoaches.length ? (
+              <ul className="mt-3.5 border-b border-cream-400">
+                {approvedCoaches.map((coach) => (
+                  <li
+                    className="flex items-center justify-between gap-5 border-t border-cream-400 py-3"
+                    key={coach.id}
+                  >
+                    <div className="min-w-0">
+                      <p className="text-ui font-semibold text-ink-900">{coach.name}</p>
+                      {coach.club ? (
+                        <p className="mt-0.5 text-caption text-ink-600">{coach.club}</p>
+                      ) : null}
+                    </div>
+                    <form action={previewCoach}>
+                      <input name="coachId" type="hidden" value={coach.id} />
+                      <SubmitButton className="!px-4 !py-[7px] !text-caption" variant="secondary">
+                        Open their dashboard
+                      </SubmitButton>
+                    </form>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-4 text-ui text-ink-600">No approved coaches yet.</p>
             )}
           </section>
         </div>

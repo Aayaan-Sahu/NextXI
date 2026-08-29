@@ -7,11 +7,13 @@ import {
   Visibility,
 } from "@/app/generated/prisma/enums";
 import { requestConnectionToPlayer } from "@/app/dashboard/connections/actions";
+import { AdminPreviewBar } from "@/components/admin-preview-bar";
 import { PersonAvatar } from "@/components/connections";
 import { SessionList } from "@/components/session-list";
 import { SubmitButton } from "@/components/submit-button";
 import { Chip, PageShell, SectionHeading, PageTitle } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
+import { getAdminPreview } from "@/lib/admin-preview";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { countryWithFlag, PLAYER_ROLE_LABELS } from "@/lib/players";
@@ -25,7 +27,10 @@ export default async function CoachPlayerVideosPage({
   params: Promise<{ playerId: string }>;
 }) {
   const user = await requireUser();
-  const profile = await getProfile(user.id);
+  // An administrator may be reading this coach's player (lib/admin-preview).
+  const preview = await getAdminPreview(user);
+  const coachId = preview?.coachId ?? user.id;
+  const profile = await getProfile(coachId);
 
   if (!profile.role) redirect("/onboarding");
   if (profile.role !== "coach") redirect(`/dashboard/${profile.role}`);
@@ -59,7 +64,7 @@ export default async function CoachPlayerVideosPage({
 
   if (!player) notFound();
 
-  const connected = await hasAcceptedConnection(user.id, playerId);
+  const connected = await hasAcceptedConnection(coachId, playerId);
   const viewable =
     connected ||
     (player.visibility === Visibility.PUBLIC &&
@@ -86,6 +91,7 @@ export default async function CoachPlayerVideosPage({
 
   return (
     <PageShell>
+      {preview ? <AdminPreviewBar name={preview.name} /> : null}
       <Link
         className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
         href={connected ? "/dashboard/coach" : "/dashboard/connections"}

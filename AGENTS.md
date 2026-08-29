@@ -132,6 +132,10 @@ shared code.
   `PUT /api/videos/{videoId}/report` — contract in `docs/reports-contract.md`.
 - Env vars: see the README. Server-only secrets (`SUPABASE_SECRET_KEY`,
   `REPORTS_INGEST_SECRET`) must never reach the browser.
+- An admin can read a coach's dashboard through the preview cookie
+  (`lib/admin-preview.ts`). Coach pages therefore resolve a `coachId` and must
+  use it — not `user.id` — for anything they read, and must not write on
+  render: an admin's visit must not mark a clip seen.
 - The `/tutorials` films are **recordings of the real app**, not animation —
   changing a screen they show means re-shooting. `docs/tutorials.md` has the
   four commands. Never leave the seeded demo world in the database.

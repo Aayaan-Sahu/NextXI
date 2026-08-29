@@ -3,8 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { CoachStatus } from "@/app/generated/prisma/enums";
 import { isUuid } from "@/app/api/videos/utils";
 import { SessionConsistencyPanel } from "@/components/session-consistency-panel";
+import { AdminPreviewBar } from "@/components/admin-preview-bar";
 import { Chip, PageShell, SectionHeading, PageTitle } from "@/components/ui";
 import { VideoGrid } from "@/components/video-grid";
+import { getAdminPreview } from "@/lib/admin-preview";
 import { getProfile, requireUser } from "@/lib/auth";
 import { hasAcceptedConnection } from "@/lib/connections";
 import { computeSessionConsistency, MIN_VIDEOS_FOR_SESSION_STATS } from "@/lib/session-consistency";
@@ -17,7 +19,10 @@ export default async function CoachSessionPage({
   params: Promise<{ sessionId: string }>;
 }) {
   const user = await requireUser();
-  const profile = await getProfile(user.id);
+  // An administrator may be reading this coach's session (lib/admin-preview).
+  const preview = await getAdminPreview(user);
+  const coachId = preview?.coachId ?? user.id;
+  const profile = await getProfile(coachId);
 
   if (!profile.role) redirect("/onboarding");
   if (profile.role !== "coach") redirect(`/dashboard/${profile.role}`);
@@ -27,12 +32,13 @@ export default async function CoachSessionPage({
   if (!isUuid(sessionId)) notFound();
 
   const session = await getSessionWithVideos(sessionId);
-  if (!session || !(await hasAcceptedConnection(user.id, session.playerId))) notFound();
+  if (!session || !(await hasAcceptedConnection(coachId, session.playerId))) notFound();
 
   const consistency = computeSessionConsistency(session.category, session.readyPayloads);
 
   return (
     <PageShell>
+      {preview ? <AdminPreviewBar name={preview.name} /> : null}
       <Link
         className="inline-block text-ui font-semibold text-rust-600 no-underline hover:text-rust-700"
         href={`/dashboard/coach/players/${session.playerId}`}
