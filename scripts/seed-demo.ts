@@ -116,6 +116,25 @@ const PEOPLE = {
     weightKg: 72,
     roles: ["pace", "all_rounder"],
   },
+  /**
+   * The one public demo player. A club's auto-match list is public profiles
+   * only (lib/clubs.server.ts), so the club film cannot show that list with
+   * nobody on it. Public also means briefly visible in the real coach
+   * directory, which is why the club film is shot last and torn down straight
+   * after.
+   */
+  ellis: {
+    kind: "player",
+    name: "Ellis Nakamura",
+    username: "ellis_nakamura",
+    dateOfBirth: "2011-08-22", // 15
+    club: "Riverside CC",
+    country: "England",
+    heightCm: 172,
+    weightKg: 61,
+    roles: ["leg_spin"],
+    visibility: "public",
+  },
   tom: {
     kind: "coach",
     name: "Tom Rhodes",
@@ -141,6 +160,18 @@ const PEOPLE = {
     bio: "Pace bowling coach. Run-up rhythm, front arm, and landings you can repeat.",
   },
   helen: { kind: "guardian", name: "Helen Ellison", username: "helen_ellison" },
+  /**
+   * The club account. "Riverside CC" is what every demo player typed at
+   * sign-up, which is the mechanism the club film is about: a club finds its
+   * players by the text they wrote, and then has to ask them.
+   */
+  riverside: {
+    kind: "club",
+    name: "Riverside CC",
+    username: "riverside_cc",
+    country: "England",
+    bio: "Age-group cricket in Surrey. Six sides from U11 to U17, and every one of them films.",
+  },
   /**
    * An account with a handle and no role yet — what you are for the thirty
    * seconds between creating an account and choosing what you are. The
@@ -175,11 +206,17 @@ function emailFor(key: PersonKey): string {
   return person.email ?? demoEmail(key);
 }
 
-/** Accepted connections. Tom sees both players; Priya only Jordan. */
+/**
+ * Accepted connections. Tom sees both players; Priya only Jordan; the club
+ * sees Maya, so its roster has somebody with clips on it before the film
+ * claims anyone. Ellis is deliberately left unconnected — he is the one the
+ * club asks on camera.
+ */
 const CONNECTIONS: [PersonKey, PersonKey][] = [
   ["maya", "tom"],
   ["jordan", "tom"],
   ["jordan", "priya"],
+  ["maya", "riverside"],
 ];
 
 // -------------------------------------------------------------- the report
@@ -411,9 +448,9 @@ async function seedPerson(key: PersonKey, id: string) {
         // act that would have cleared the pending-guardian gate anyway.
         status: "active",
         updated_at: now,
-        // Private, always: a demo player must never surface in the real
-        // coach directory or anybody's search results.
-        visibility: "private",
+        // Private unless the cast says otherwise: a demo player must not
+        // surface in the real coach directory or anybody's search results.
+        visibility: (person as { visibility?: string }).visibility ?? "private",
         weight_kg: person.weightKg,
       },
     ]);
@@ -430,6 +467,22 @@ async function seedPerson(key: PersonKey, id: string) {
         id,
         name: person.name,
         specialties: person.specialties,
+        status: "approved",
+        updated_at: now,
+      },
+    ]);
+    return;
+  }
+
+  if (person.kind === "club") {
+    await upsert("clubs", [
+      {
+        bio: person.bio,
+        country: person.country,
+        id,
+        name: person.name,
+        // Approved outright: admin verification is its own screen, and the
+        // film is about what an approved club can already do.
         status: "approved",
         updated_at: now,
       },
@@ -464,6 +517,42 @@ async function connect(aKey: PersonKey, bKey: PersonKey, ids: Record<PersonKey, 
     ],
     "user_a_id,user_b_id",
   );
+}
+
+/**
+ * Connection rows the seeder never wrote: a request the club film sent on a
+ * previous take, or one a capture made through the UI. The club's claim list
+ * is "players this club has never asked", so one left behind empties it and
+ * the next take has nothing to film.
+ */
+async function pruneStrayConnections(ids: Record<PersonKey, string>) {
+  const demoIds = Object.values(ids);
+  const keep = new Set(CONNECTIONS.map(([a, b]) => orderedPair(ids[a], ids[b]).join("|")));
+
+  const [asA, asB] = await Promise.all([
+    admin.from("connections").select("user_a_id, user_b_id").in("user_a_id", demoIds),
+    admin.from("connections").select("user_a_id, user_b_id").in("user_b_id", demoIds),
+  ]);
+  if (asA.error) throw new Error(`connections: ${asA.error.message}`);
+  if (asB.error) throw new Error(`connections: ${asB.error.message}`);
+
+  const seen = new Set<string>();
+  for (const row of [...(asA.data ?? []), ...(asB.data ?? [])]) {
+    const userAId = row.user_a_id as string;
+    const userBId = row.user_b_id as string;
+    const pair = `${userAId}|${userBId}`;
+    if (seen.has(pair) || keep.has(pair)) continue;
+    seen.add(pair);
+
+    const { error } = await admin
+      .from("connections")
+      .delete()
+      .eq("user_a_id", userAId)
+      .eq("user_b_id", userBId);
+    if (error) throw new Error(`connections: ${error.message}`);
+  }
+
+  return seen.size;
 }
 
 // ----------------------------------------------------------------- storage
@@ -706,7 +795,7 @@ async function main() {
     ids[key] = await ensureAuthUser(email);
     await seedPerson(key, ids[key]);
     sessions[key] = await signIn(email);
-    console.log(`  ${key.padEnd(7)} ${PEOPLE[key].name}`);
+    console.log(`  ${key.padEnd(11)} ${PEOPLE[key].name}`);
   }
 
   // The guardian link, written directly rather than through the code exchange:
@@ -720,6 +809,26 @@ async function main() {
   if (linkError) throw new Error(`players: ${linkError.message}`);
 
   for (const [a, b] of CONNECTIONS) await connect(a, b, ids);
+
+  const strayLinks = await pruneStrayConnections(ids);
+  if (strayLinks) console.log(`  pruned  ${strayLinks} connection(s) from a previous take`);
+
+  // Tom runs the club as well as coaching in it: the film opens on the club's
+  // own login and closes on his, and both have to reach the same dashboard.
+  await upsert(
+    "club_coaches",
+    [
+      {
+        club_id: ids.riverside,
+        coach_id: ids.tom,
+        invited_by_id: ids.riverside,
+        role: "owner",
+        status: "accepted",
+        updated_at: new Date().toISOString(),
+      },
+    ],
+    "club_id,coach_id",
+  );
 
   const [clip, thumb] = await Promise.all([readFile(CLIP), thumbnailBytes()]);
   if (!thumb) console.warn("  ffmpeg not found — videos will show the placeholder tile.");

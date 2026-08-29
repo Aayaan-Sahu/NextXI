@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, mock, test } from "bun:test";
+import { isAdminIdentity, parseAdminEmails } from "@/lib/admins";
 import { z } from "zod";
 import { CoachStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 
@@ -6,7 +7,7 @@ import { CoachStatus, PlayerStatus } from "@/app/generated/prisma/enums";
  * The handler is exercised with the auth and data layers replaced: who is
  * signed in and what rows exist are inputs to these tests, not a database.
  */
-type FakeUser = { id: string; email?: string } | null;
+type FakeUser = { admin: boolean; id: string; email?: string } | null;
 const state: {
   user: FakeUser;
   player: { id: string; status: PlayerStatus } | null;
@@ -16,7 +17,8 @@ const state: {
 
 mock.module("@/lib/auth", () => ({
   getCurrentUser: async () => state.user,
-  isAdmin: (user: FakeUser) => user?.email === "admin@nextxi.pro",
+  // The real rule, so this covers both ways in rather than standing in for one.
+  isAdmin: (user: FakeUser) => isAdminIdentity(user, parseAdminEmails("admin@nextxi.pro")),
 }));
 mock.module("@/lib/prisma", () => ({
   prisma: {
@@ -29,7 +31,7 @@ mock.module("server-only", () => ({}));
 
 const { ApiError, apiHandler, resolveApiAuth } = await import("@/lib/api");
 
-const USER = { id: "11111111-1111-4111-8111-111111111111", email: "player@example.com" };
+const USER = { admin: false, id: "11111111-1111-4111-8111-111111111111", email: "player@example.com" };
 
 function request(url: string, init?: RequestInit) {
   return new Request(`https://app.test${url}`, init);
@@ -81,7 +83,10 @@ describe("resolveApiAuth", () => {
     state.guardian = { id: USER.id };
     expect(await resolveApiAuth("guardian")).toEqual({ user: USER, guardian: state.guardian });
     await expect(resolveApiAuth("admin")).rejects.toMatchObject({ status: 403, message: "Admin access required." });
-    state.user = { id: USER.id, email: "admin@nextxi.pro" };
+    state.user = { admin: false, id: USER.id, email: "admin@nextxi.pro" };
+    expect(await resolveApiAuth("admin")).toEqual({ user: state.user });
+    // The other way in: the flag on the auth user, carried in the token.
+    state.user = { admin: true, id: USER.id, email: "someone@example.com" };
     expect(await resolveApiAuth("admin")).toEqual({ user: state.user });
   });
 });

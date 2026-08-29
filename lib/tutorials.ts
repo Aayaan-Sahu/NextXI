@@ -8,7 +8,7 @@
  */
 export type Tutorial = {
   /** Also the file stem: public/tutorials/<id>.mp4 and .jpg. */
-  id: "signup" | "player" | "coach";
+  id: "signup" | "player" | "coach" | "club";
   title: string;
   /** Who it is for, as a phrase that can follow "For". */
   audience: string;
@@ -31,7 +31,7 @@ export const TUTORIALS: Tutorial[] = [
     audience: "players",
     length: "1 min",
     blurb:
-      "Tag a clip and upload it, then read what comes back: the three scores, the moment-by-moment timestamps that jump the video, and your coach's sign-off.",
+      "Tag a clip and upload it, then read what comes back: the one thing to fix, the measurements behind it, the timestamps that jump the video, and your coach's sign-off.",
   },
   {
     id: "coach",
@@ -40,6 +40,14 @@ export const TUTORIALS: Tutorial[] = [
     length: "1 min",
     blurb:
       "Work through the approval queue: watch at quarter speed, pin feedback to the frame you mean, and release the report and your notes to the player together.",
+  },
+  {
+    id: "club",
+    title: "Running a club",
+    audience: "clubs",
+    length: "2 min",
+    blurb:
+      "Ask the players who typed your club's name to connect — they still decide — then read the clips and the reports their coaches have signed off. Your coaches run it from their own logins.",
   },
 ];
 

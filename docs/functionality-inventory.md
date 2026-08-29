@@ -7,10 +7,10 @@ This document catalogs **every piece of functionality** in the app, organized by
 ## 0. Global Structure & Cross-Cutting Patterns
 
 ### Roles
-Five roles: **Player**, **Coach**, **Guardian**, **Club**, **Admin** (admin is an email allowlist, not an onboarded role). Coaches and clubs are both admin-verified before they can reach anyone. Every dashboard page is server-guarded:
+Five roles: **Player**, **Coach**, **Guardian**, **Club**, **Admin** (admin is not an onboarded role: an email in `ADMIN_EMAILS`, or `app_metadata.admin` on the account — see `lib/admins.ts`). Coaches and clubs are both admin-verified before they can reach anyone. Every dashboard page is server-guarded:
 
 - Unauthenticated → `/auth`
-- Admin email → `/dashboard/admin` (admins never see the normal dashboard)
+- Admin → `/dashboard/admin` (admins never see the normal dashboard)
 - Authenticated but no role yet → `/onboarding`
 - Has a role → `/dashboard/{role}`; visiting another role's page redirects to your own
 
@@ -74,6 +74,8 @@ One screen, two modes toggled by a **footer link** (URL param `?mode=sign-up`), 
 
 ### 1.4 Email confirmation (`/auth/confirm`)
 No UI — GET route handler that verifies the email token (signup or recovery), sets the session, and redirects to `next` (default `/onboarding`; recovery → `/auth/reset-password`). Errors bounce to `/auth?error=…`. The `next` param is sanitized against open redirects.
+
+Takes either shape of link: `token_hash` + `type`, which is what the repo's templates in `supabase/templates/` send, or a PKCE `code`, which is what Supabase's **default** templates send after their own `/auth/v1/verify` redirects to the Site URL. The default lands on `/`, so `proxy.ts` forwards a root request carrying `code` here — otherwise the click confirms the address and leaves the person on the landing page with no session. That path matters while the project is on the default email provider, which locks template editing until custom SMTP is configured.
 
 ### 1.5 Reset password (`/auth/reset-password`)
 One screen, two modes decided by **whether a session exists**:
@@ -462,7 +464,7 @@ Approve a report (`countApprovers` counts `Coach` rows, so a club can never be o
 
 ## 10. Admin View (`/dashboard/admin`)
 
-A single-purpose **coach review console**. Admin is determined by email allowlist; admins are redirected here from everywhere else.
+A single-purpose **coach review console**. Admin is either an email in `ADMIN_EMAILS` or an account granted it directly (`app_metadata.admin`, set by `bun run admin:grant`, carried in the access token — see `lib/admins.ts`); admins are redirected here from everywhere else.
 
 - Header: "Admin — coach review", subtitle = admin email, header action = **Sign out** button.
 - Error/info banners from query params.

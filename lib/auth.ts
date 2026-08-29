@@ -1,25 +1,19 @@
 import { cache } from "react";
 import { headers } from "next/headers";
 import { redirect } from "next/navigation";
-import type { User } from "@supabase/supabase-js";
+import { type AdminIdentity, isAdminIdentity, parseAdminEmails } from "@/lib/admins";
 import { resolveAuthorization } from "@/lib/bearer";
 import { prisma } from "@/lib/prisma";
 import { createSupabaseServerClient } from "@/lib/supabase/server";
 
-const ADMIN_EMAILS = new Set(
-  (process.env.ADMIN_EMAILS ?? "")
-    .toLowerCase()
-    .split(",")
-    .map((email) => email.trim())
-    .filter(Boolean),
-);
+const ADMIN_EMAILS = parseAdminEmails(process.env.ADMIN_EMAILS);
 
-export function isAdmin(user: Pick<User, "email"> | null | undefined) {
-  const email = user?.email?.toLowerCase();
-  return Boolean(email && ADMIN_EMAILS.has(email));
+/** See lib/admins.ts for the two ways an account becomes an administrator. */
+export function isAdmin(user: AdminIdentity | null | undefined) {
+  return isAdminIdentity(user, ADMIN_EMAILS);
 }
 
-export type SessionUser = { id: string; email?: string };
+export type SessionUser = { id: string; email?: string; admin: boolean };
 
 /**
  * The signed-in user, from either credential the platform accepts:
@@ -44,7 +38,15 @@ export const getCurrentUser = cache(async (): Promise<SessionUser | null> => {
   );
 
   if (error || !data) return null;
-  return { id: data.claims.sub, email: data.claims.email };
+  return {
+    // Granted on the auth user by scripts/set-admin.ts and carried in the
+    // token, so who is an administrator can change without a deploy. It
+    // lands on the next token the user is issued — signing out and back in
+    // makes it immediate.
+    admin: data.claims.app_metadata?.admin === true,
+    email: data.claims.email,
+    id: data.claims.sub,
+  };
 });
 
 export async function requireUser() {

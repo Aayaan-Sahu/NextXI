@@ -30,5 +30,11 @@ Browser globals that RN also has (`crypto.getRandomValues` behind a polyfill,
 `generateGuardianCode()` is one: only the server calls it, and the apps import
 the same module for `normalizeGuardianCode` / `formatGuardianCode`.
 
+`theme.css` is the exception to the TypeScript-only rule and the clearest
+case for this directory: the seven colours and nine type roles, defined once.
+The web imports it as Tailwind v4 theme variables; the app compiles it to
+`mobile/lib/theme.ts` with `bun run tokens`, because React Native cannot read
+CSS. A test on each side fails if its copy drifts.
+
 The mobile app resolves this directory through Metro's `watchFolders`; the web
 app reaches it as `@/shared/*`, since `@/*` maps to the repo root.

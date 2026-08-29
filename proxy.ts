@@ -22,6 +22,20 @@ export async function proxy(request: NextRequest) {
     }
   }
 
+  // Supabase's *default* confirm-signup email links to its own /auth/v1/verify
+  // and redirects to the Site URL — here, with the PKCE `code` on the query.
+  // Only /auth/confirm exchanges that, so without this the click confirms the
+  // address and then drops the person on the landing page with no session.
+  // The repo's own template links straight to /auth/confirm; this is what
+  // keeps the flow working while the project is still on the default provider,
+  // which locks template editing until custom SMTP is configured.
+  if (request.nextUrl.pathname === "/" && request.nextUrl.searchParams.has("code")) {
+    const confirm = request.nextUrl.clone();
+    confirm.pathname = "/auth/confirm";
+    if (!confirm.searchParams.has("next")) confirm.searchParams.set("next", "/onboarding");
+    return NextResponse.redirect(confirm);
+  }
+
   let response = NextResponse.next({ request });
   const { key, url } = getSupabaseConfig();
 
