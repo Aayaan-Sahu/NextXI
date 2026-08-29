@@ -177,23 +177,34 @@ If Resend’s docs for the current month show port `587` + STARTTLS instead, use
 
 Only after custom SMTP is on. If you paste before SMTP, the dashboard will reject the save.
 
-For each template: open the file in the repo, copy the **entire HTML**, paste into the matching Supabase field, set the subject, save.
+The dashboard does not read the repo — a template only changes when its HTML is in the project's auth config. From a checkout with the Supabase CLI logged in, that is one command:
 
-Supabase → **Authentication** → **Email Templates**.
+```sh
+SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" -w) \
+  bun run auth:templates
+```
+
+It pushes the bodies only, so the subjects below still have to be set once, by hand.
+
+By hand for all of it: open the file in the repo, copy the **entire HTML**, paste into the matching Supabase field, set the subject, save. Supabase → **Authentication** → **Email Templates**.
 
 ### Confirm signup
 
 - Subject: `Confirm your NextXI account`
 - File: `supabase/templates/confirmation.html`
-- Must include `{{ .Token }}` (the 6-digit code) and the button URL:
+- Button URL (sign-up is link-only — no 6-digit code):
 
   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=signup&next=/onboarding`
 
-### Magic Link (this is the sign-in OTP email)
+### Magic Link
+
+Nothing in the app sends this today — sign-in is a password, sign-up is a
+confirmation link. Set it anyway so the template is right if magic-link sign-in
+comes back.
 
 - Subject: `Your NextXI sign-in code`
 - File: `supabase/templates/magic-link.html`
-- Must include `{{ .Token }}` and:
+- Must include `{{ .Token }}` (the 6-digit code) and:
 
   `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=magiclink&next=/onboarding`
 

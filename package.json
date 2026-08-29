@@ -11,6 +11,7 @@
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "lint": "eslint",
+    "auth:templates": "bun scripts/push-email-templates.ts",
     "video:studio": "remotion studio",
     "video:render": "remotion render RecordingTutorial out/recording-tutorial.mp4",
     "video:seed": "DEMO_WORLD=1 bun scripts/seed-demo.ts",
