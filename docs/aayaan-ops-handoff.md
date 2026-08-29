@@ -177,11 +177,10 @@ If Resend’s docs for the current month show port `587` + STARTTLS instead, use
 
 Only after custom SMTP is on. If you paste before SMTP, the dashboard will reject the save.
 
-The dashboard does not read the repo — a template only changes when its HTML is in the project's auth config. From a checkout with the Supabase CLI logged in, that is one command:
+The dashboard does not read the repo — a template only changes when its HTML is in the project's auth config. From a checkout, that is one command, with a personal access token from [Account → Access Tokens](https://supabase.com/dashboard/account/tokens):
 
 ```sh
-SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" \
-  -a access-token -w) bun run auth:templates
+SUPABASE_ACCESS_TOKEN=sbp_… bun run auth:templates
 ```
 
 It pushes the bodies only, so the subjects below still have to be set once, by hand.

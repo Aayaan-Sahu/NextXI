@@ -150,17 +150,15 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
    user receives until the HTML is in the project's auth config:
 
    ```sh
-   SUPABASE_ACCESS_TOKEN=$(security find-generic-password -s "Supabase CLI" \
-     -a access-token -w) bun run auth:templates
+   SUPABASE_ACCESS_TOKEN=sbp_… bun run auth:templates
    ```
 
-   `-a access-token` is not optional — the CLI files several secrets under
-   that one keychain service, and without it you get a project's database
-   password and a `JWT could not be decoded` from the API.
-
-   That reuses the token `supabase login` already stored, pushes only the
-   bodies (the dashboard keeps its subject lines) and reads back what it
-   wrote. By hand it is **Authentication → Emails**:
+   The token is a personal access token from
+   [Account → Access Tokens](https://supabase.com/dashboard/account/tokens),
+   revocable from the same page. Not the CLI's own credential: `supabase
+   login` files a go-keyring wrapper in the keychain, not a token an API
+   client can present. The push sends only the bodies (the dashboard keeps
+   its subject lines) and reads back what it wrote. By hand it is **Authentication → Emails**:
    `confirmation.html` → **Confirm signup** (subject: `Confirm your NextXI
    account`), `magic-link.html` → **Magic Link** (`Your NextXI sign-in code`),
    `recovery.html` → **Reset password** (`Reset your NextXI password`).
