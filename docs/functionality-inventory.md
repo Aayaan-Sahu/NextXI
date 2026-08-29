@@ -462,7 +462,7 @@ Approve a report (`countApprovers` counts `Coach` rows, so a club can never be o
 
 ## 10. Admin View (`/dashboard/admin`)
 
-A single-purpose **coach review console**. Admin is determined by email allowlist; admins are redirected here from everywhere else.
+A single-purpose **coach review console**. Admin is either an email in `ADMIN_EMAILS` or an account granted it directly (`app_metadata.admin`, set by `bun run admin:grant`, carried in the access token — see `lib/admins.ts`); admins are redirected here from everywhere else.
 
 - Header: "Admin — coach review", subtitle = admin email, header action = **Sign out** button.
 - Error/info banners from query params.

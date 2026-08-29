@@ -107,7 +107,9 @@ shared code.
 
 - Gate routes with `requireUser()` / `requireAdmin()` from `@/lib/auth`; resolve
   the signed-in user with `getCurrentUser()` and role with `getOnboardingStatus`.
-  Admins are the emails in `ADMIN_EMAILS`. `getCurrentUser()` accepts either
+  Admins are the emails in `ADMIN_EMAILS`, plus any account with
+  `app_metadata.admin` set by `bun run admin:grant` (`lib/admins.ts` holds the
+  rule; the flag rides in the token, so it needs no query and no redeploy). `getCurrentUser()` accepts either
   the browser's cookie session or a native app's `Authorization: Bearer
   <access token>` — see `docs/api.md`.
 - JSON routes for the native apps are written with `apiHandler` from
