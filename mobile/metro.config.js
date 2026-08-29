@@ -13,10 +13,11 @@ const config = getDefaultConfig(projectRoot);
 // and edits appear to do nothing.
 config.watchFolders = [path.join(repoRoot, "shared")];
 
-// With a watch folder above the project, Metro would otherwise also consider
-// the repo root's node_modules (the Next.js app's) when resolving. The mobile
-// app has its own dependency tree and must not reach into it.
+// The app has its own complete node_modules — the repo root is not a Bun
+// workspace and hoists nothing — so resolution is pinned here rather than
+// left to walk up into the Next.js app's tree. `disableHierarchicalLookup`
+// is deliberately NOT set: `expo doctor` fails the Metro config check on it,
+// and it is unnecessary once this path is explicit.
 config.resolver.nodeModulesPaths = [path.join(projectRoot, "node_modules")];
-config.resolver.disableHierarchicalLookup = true;
 
 module.exports = config;
