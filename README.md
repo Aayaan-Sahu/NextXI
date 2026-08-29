@@ -175,6 +175,10 @@ the step-by-step brief in `docs/aayaan-ops-handoff.md`.
 | `bun run db:generate` | Generate the Prisma client (`prisma generate`)        |
 | `bun run db:migrate`  | Create/apply a dev migration (`prisma migrate dev`)   |
 | `bun run lint`        | Run ESLint                                             |
+| `bun run video:seed`  | Build the demo world the tutorials are filmed against  |
+| `bun run video:capture` | Record a tutorial walkthrough (`… player`)          |
+| `bun run video:tutorials` | Render + encode the tutorial films                |
+| `bun run video:teardown` | Delete the demo world and verify it is gone        |
 
 ## Project structure
 
@@ -196,7 +200,9 @@ app/
 components/               # UI components (auth, video-*, messaging, charts, …)
 lib/                      # Server/data helpers (auth, prisma, supabase, videos, …)
 prisma/                   # schema.prisma + migrations
-docs/                     # reports-contract.md and other contracts
+docs/                     # reports-contract.md, tutorials.md and other contracts
+remotion/                 # Video compositions: the recording guide and the tutorials
+scripts/                  # Demo-world seeding, tutorial capture and rendering
 proxy.ts                  # Middleware: refreshes the Supabase session per request
 ```
 

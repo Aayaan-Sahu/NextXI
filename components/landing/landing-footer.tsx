@@ -36,6 +36,9 @@ export function LandingFooter({
             <Link href="/safeguarding" className={`hover:text-cream-50 ${focusRing}`}>
               {copy.safeguarding}
             </Link>
+            <Link href="/tutorials" className={`hover:text-cream-50 ${focusRing}`}>
+              {copy.tutorials}
+            </Link>
             <Link href="/privacy" className={`hover:text-cream-50 ${focusRing}`}>
               {copy.privacy}
             </Link>

@@ -3,6 +3,8 @@ import { CoachStatus, PlayerVideoStatus } from "@/app/generated/prisma/enums";
 import { ApprovalQueue } from "@/components/approval-queue";
 import { CoachPlayers } from "@/components/coach-players";
 import { GatePanel, PageHeader, PageShell, SectionHeading, TextLink } from "@/components/ui";
+import { TutorialLink } from "@/components/tutorial-link";
+import { getTutorial } from "@/lib/tutorials";
 import { VideoFilterBar } from "@/components/video-filter-bar";
 import { VideoGrid } from "@/components/video-grid";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -111,6 +113,7 @@ export default async function CoachDashboardPage({
     videos.flatMap((video) => video.thumbnailPath ?? []),
   );
 
+  const coachTutorial = getTutorial("coach");
   const stats = [
     `${players.length} player${players.length === 1 ? "" : "s"}`,
     `${awaiting.length} awaiting approval`,
@@ -125,7 +128,17 @@ export default async function CoachDashboardPage({
             Opening a clip marks it seen. Approving a report releases it to the player.
           </p>
         }
-        subtitle={stats.join(" · ")}
+        subtitle={
+          <>
+            {stats.join(" · ")}
+            {coachTutorial ? (
+              <>
+                {" · "}
+                <TutorialLink tutorial={coachTutorial} />
+              </>
+            ) : null}
+          </>
+        }
         title={profile.coach.name}
       />
       <div className="mt-8 grid gap-7">

@@ -19,6 +19,8 @@ import {
   PageShell,
   SectionHead,
   TextLink, PageTitle } from "@/components/ui";
+import { TutorialLink } from "@/components/tutorial-link";
+import { getTutorial } from "@/lib/tutorials";
 import { VideoGrid } from "@/components/video-grid";
 import { VideoUpload } from "@/components/video-upload";
 import { getProfile, requireUser } from "@/lib/auth";
@@ -168,6 +170,7 @@ export default async function PlayerDashboardPage() {
   // standalone-only by design.
   const latestUpload = pulse.latestUploadAt ? formatShortDate(pulse.latestUploadAt) : null;
   const firstName = profile.player.name.split(" ")[0] || profile.player.name;
+  const playerTutorial = getTutorial("player");
   const stats = [
     `${pulse.totalVideos} video${pulse.totalVideos === 1 ? "" : "s"}`,
     `${pulse.reportsReady} report${pulse.reportsReady === 1 ? "" : "s"} ready`,
@@ -189,7 +192,15 @@ export default async function PlayerDashboardPage() {
           <div className="flex flex-wrap items-baseline justify-between gap-4">
             <div>
               <PageTitle>{timeOfDayGreeting()}, {firstName}</PageTitle>
-              <p className="mt-1.5 text-ui text-ink-600">{stats.join(" · ")}</p>
+              <p className="mt-1.5 text-ui text-ink-600">
+                {stats.join(" · ")}
+                {playerTutorial ? (
+                  <>
+                    {" · "}
+                    <TutorialLink tutorial={playerTutorial} />
+                  </>
+                ) : null}
+              </p>
             </div>
             {profile.player.roles.length > 0 ? (
               <div className="flex flex-wrap gap-2">

@@ -12,7 +12,11 @@
     "db:migrate": "prisma migrate dev",
     "lint": "eslint",
     "video:studio": "remotion studio",
-    "video:render": "remotion render RecordingTutorial out/recording-tutorial.mp4"
+    "video:render": "remotion render RecordingTutorial out/recording-tutorial.mp4",
+    "video:seed": "DEMO_WORLD=1 bun scripts/seed-demo.ts",
+    "video:capture": "bun scripts/capture-tutorial.mjs",
+    "video:tutorials": "bash scripts/render-tutorials.sh",
+    "video:teardown": "DEMO_WORLD=1 bun scripts/demo-teardown.ts"
   },
   "dependencies": {
     "@prisma/adapter-pg": "^7.8.0",
@@ -44,6 +48,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.9",
+    "playwright-core": "^1.62.1",
     "prisma": "^7.8.0",
     "tailwindcss": "^4",
     "typescript": "^5"

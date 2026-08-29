@@ -43,6 +43,9 @@ All auth screens share a centered single card: title, optional description, form
 ### 1.1 Landing (`/`)
 Pure router — no UI. Redirects: signed-out → `/auth`; admin → `/dashboard/admin`; has role → `/dashboard`; no role → `/onboarding`.
 
+### 1.1b Tutorials (`/tutorials`)
+Public reading page in the landing register (`InfoPage`, same shell as `/safeguarding`), linked from the landing footer. One section per film: heading, "For {audience} · {length}", a poster taken from the film itself, and a sentence of prose. Playing opens the shared `VideoModal` (backdrop, Escape or **Close**, autoplay, muted — the films carry no audio track and are captioned). Films are recordings of the real product; see `docs/tutorials.md`.
+
 ### 1.2 Auth panel (`/auth`) — Sign in / Sign up
 One screen, two modes toggled by a **footer link** (URL param `?mode=sign-up`), not tabs. Already-signed-in users are bounced away.
 
@@ -145,7 +148,7 @@ If the player is under 18 and unapproved (`PENDING_GUARDIAN`), the entire home p
 
 ### 3.2 Home tab — active player ("Your videos")
 Top-to-bottom:
-1. Header: title "Your videos", subtitle "Upload footage of your batting, bowling, and fielding for coaches and scouts to see."
+1. Header: greeting + the stats line, which ends with a quiet **"Watch the 1 min tour"** link opening the player tutorial in a modal
 2. **Role badges** (display-only pills for the player's playing roles, if any)
 3. **Video upload widget**
 4. **Video grid** of the player's own READY videos (newest first)
@@ -376,7 +379,7 @@ New coaches are **PENDING** until an admin acts. Header always: "Welcome {name},
 - No other UI in either state (no roster, videos, or filters). Connections/messaging actions also refuse unapproved coaches.
 
 ### 8.2 Coach Home (approved) — the review queue
-Subtitle: "{n} players · {n} awaiting approval · {n} new". Header line: "Opening a clip marks it seen. Approving a report releases it to the player." Stack: **Awaiting your approval** → Players panel → Filter bar → **New from your players** grid.
+Subtitle: "{n} players · {n} awaiting approval · {n} new", ending with a quiet **"Watch the 1 min tour"** link opening the coach tutorial in a modal. Header line: "Opening a clip marks it seen. Approving a report releases it to the player." Stack: **Awaiting your approval** → Players panel → Filter bar → **New from your players** grid.
 
 **Awaiting your approval** (`ApprovalQueue`): every delivered, unpublished report of a connected player, oldest first — thumbnail, filename, "{player} · aged {age} · {tags}", "Report ready {relative}" (plus " · On hold by {coach}" and the reason when held), "Review →". Caption when non-empty: "Players can't see these reports until you sign them off." Empty: "Nothing waiting on you. New reports land here before your players see them." The Home nav badge is the count of those awaiting (held ones excluded).
 
