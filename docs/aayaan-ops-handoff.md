@@ -1,5 +1,10 @@
 # Aayaan ops brief — NextXI (give this whole file to Claude)
 
+> **Start with `docs/aayaan-launch-prompt.md` instead.** That is the ordered
+> run of everything still standing between NextXI and real users, and it names
+> which task below to read at each step. This file is the click-by-click
+> reference it points into, not the entry point.
+
 You are helping **Aayaan Sahu** finish the launch ops that the app repo cannot do from code. Mukilan already shipped the product changes. Your job is dashboard, DNS, and mailbox work only.
 
 Do **not** change application code, open PRs, or “improve” settings that are already correct. Do **not** set Site URL back to a `*.vercel.app` host. After each task, write what you clicked, the exact values saved, and how you verified it.
