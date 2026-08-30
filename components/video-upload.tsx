@@ -10,6 +10,7 @@ import {
   formatVideoSize,
   HANDEDNESS_LABELS,
   MAX_VIDEO_SIZE_BYTES,
+  MAX_VIDEO_SIZE_LABEL,
   VIDEO_BUCKET,
   VIDEO_CACHE_CONTROL,
   VIDEO_DISCIPLINES,
@@ -47,7 +48,7 @@ async function readError(response: Response) {
 function validateFile(file: File) {
   if (!(file.type in ALLOWED_VIDEO_TYPES)) return "Choose an MP4, MOV, or WebM file.";
   if (file.size <= 0 || file.size > MAX_VIDEO_SIZE_BYTES) {
-    return "Videos must be larger than 0 bytes and no more than 500 MB.";
+    return `Videos must be larger than 0 bytes and no more than ${MAX_VIDEO_SIZE_LABEL}.`;
   }
   return null;
 }
@@ -381,7 +382,8 @@ export function VideoUpload({
               {session ? "Drop a clip here to add it to this session" : "Drop a clip here to upload"}
             </p>
             <p className="mt-0.5 text-caption text-ink-600">
-              MP4, MOV or WebM up to 500 MB. You tag discipline and variation before it uploads.
+              MP4, MOV or WebM up to {MAX_VIDEO_SIZE_LABEL}. You tag discipline and variation before it
+              uploads.
             </p>
           </div>
           <div className="flex shrink-0 items-center gap-2.5">

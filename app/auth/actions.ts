@@ -2,13 +2,14 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
-import { PlayerStatus, Visibility } from "@/app/generated/prisma/enums";
+import { ClubStatus, CoachStatus, PlayerStatus, Visibility } from "@/app/generated/prisma/enums";
 import { Prisma } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/prisma";
 import { getOnboardingStatus, isAdmin, requireUser } from "@/lib/auth";
 import { generateGuardianCode, normalizeGuardianCode } from "@/lib/guardian-code";
 import { notifyTeam } from "@/lib/notify";
-import { isValidClubName, MAX_CLUB_BIO_LENGTH } from "@/lib/clubs";
+import { clubNameMatches, isValidClubName, MAX_CLUB_BIO_LENGTH } from "@/lib/clubs";
+import { CONTACT_EMAIL } from "@/lib/contact";
 import { ageInYears, isCountry, parsePlayerRoles } from "@/lib/players";
 import { POLICY_VERSION } from "@/lib/policy";
 import { authEmailOrigin } from "@/lib/site-url";
@@ -327,7 +328,11 @@ export async function completeOnboarding(
             id: user.id,
             name,
             roles,
-            status: minor ? PlayerStatus.PENDING_GUARDIAN : PlayerStatus.ACTIVE,
+            // Every player opens ACTIVE for now. The guardian code is still
+            // minted for under-18s so a parent can link the account, but it no
+            // longer holds the account shut. Put PENDING_GUARDIAN back here to
+            // restore the consent gate — the gated views it drives are intact.
+            status: PlayerStatus.ACTIVE,
             visibility: Visibility.PRIVATE,
             weightKg,
           },
@@ -372,11 +377,14 @@ export async function completeOnboarding(
                 },
               }),
             ]),
+        // Auto-approved for now so nobody waits on an unmanned queue. Drop
+        // this line to send coaches back through /dashboard/admin.
         prisma.coach.create({
           data: {
             accomplishments,
             id: user.id,
             name,
+            status: CoachStatus.APPROVED,
           },
         }),
       ]);
@@ -387,9 +395,7 @@ export async function completeOnboarding(
 
     if (usernameTaken) return onboardingError("Username is taken.");
 
-    await notifyTeam(
-      `New coach signed up: ${name} (@${username}) — awaiting approval at /dashboard/admin`,
-    );
+    await notifyTeam(`New coach signed up: ${name} (@${username}) — approved automatically`);
 
     redirect("/dashboard");
   }
@@ -409,7 +415,21 @@ export async function completeOnboarding(
       return onboardingError("Keep the club description under 500 characters.");
     }
 
-    let usernameTaken = false;
+    // Approving on sign-up puts this straight onto the partial unique index
+    // over approved club names (20260829070000_unique_approved_club_names).
+    // Check it here so a name clash reads as a name clash, not as the P2002
+    // below reporting a taken username.
+    const approvedClubs = await prisma.club.findMany({
+      where: { status: ClubStatus.APPROVED },
+      select: { name: true },
+    });
+    if (approvedClubs.some((club) => clubNameMatches(club.name, name))) {
+      return onboardingError(
+        `A club called "${name}" is already on NextXI. Ask them to add you as a coach, or email ${CONTACT_EMAIL} if this is your club.`,
+      );
+    }
+
+    let failure: string | null = null;
 
     try {
       await prisma.$transaction([
@@ -425,22 +445,24 @@ export async function completeOnboarding(
                 },
               }),
             ]),
-        // PENDING by default: a club reaches no player until an admin verifies
-        // the name it is claiming.
+        // Auto-approved for now, alongside coaches. Drop `status` to go back
+        // to an admin verifying the name a club is claiming before it reaches
+        // any player.
         prisma.club.create({
-          data: { bio: bio || null, country, id: user.id, name },
+          data: { bio: bio || null, country, id: user.id, name, status: ClubStatus.APPROVED },
         }),
       ]);
     } catch (error) {
       if (!isUniqueError(error)) throw error;
-      usernameTaken = true;
+      // The check above lost a race with another club claiming the same name.
+      failure = String(error.meta?.target ?? "").includes("normalized_name")
+        ? `A club called "${name}" was just registered by someone else. Email ${CONTACT_EMAIL} if this is your club.`
+        : "Username is taken.";
     }
 
-    if (usernameTaken) return onboardingError("Username is taken.");
+    if (failure) return onboardingError(failure);
 
-    await notifyTeam(
-      `New club signed up: ${name} (@${username}) — awaiting approval at /dashboard/admin`,
-    );
+    await notifyTeam(`New club signed up: ${name} (@${username}) — approved automatically`);
 
     redirect("/dashboard");
   }
@@ -457,13 +479,15 @@ export async function completeOnboarding(
       );
     }
 
-    const pendingChild = await prisma.player.findFirst({
-      where: { guardianCode: code, status: PlayerStatus.PENDING_GUARDIAN },
+    // The code is the claim, not the account's status: players now open
+    // ACTIVE, so an unclaimed code is one no guardian holds yet.
+    const unclaimedChild = await prisma.player.findFirst({
+      where: { guardianCode: code, guardianId: null },
       select: { id: true },
     });
 
-    if (!pendingChild) {
-      return onboardingError("That code doesn't match a pending player account.");
+    if (!unclaimedChild) {
+      return onboardingError("That code doesn't match a player account.");
     }
 
     const codeClaimed = "guardian-code-claimed";
@@ -485,8 +509,8 @@ export async function completeOnboarding(
         // The guarded updateMany is the atomic claim: if another guardian
         // linked this code first, count is 0 and the transaction rolls back.
         const linked = await tx.player.updateMany({
-          where: { guardianCode: code, status: PlayerStatus.PENDING_GUARDIAN },
-          data: { status: PlayerStatus.ACTIVE, guardianId: user.id, guardianCode: null },
+          where: { guardianCode: code, guardianId: null },
+          data: { guardianId: user.id, guardianCode: null },
         });
 
         if (linked.count === 0) throw new Error(codeClaimed);
@@ -495,7 +519,7 @@ export async function completeOnboarding(
       if (isUniqueError(error)) {
         failure = "Username is taken.";
       } else if (error instanceof Error && error.message === codeClaimed) {
-        failure = "That code doesn't match a pending player account.";
+        failure = "That code doesn't match a player account.";
       } else {
         throw error;
       }

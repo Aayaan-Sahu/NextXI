@@ -124,10 +124,14 @@ shared code.
 
 ## Gotchas
 
-- Roles: **player / coach / guardian / club / admin**. Coaches and clubs start
-  `pending` and need admin approval before they can act. A club sees what a
-  connected coach sees but **never signs off a report** — `countApprovers`
-  counts coaches, and that is the whole guarantee.
+- Roles: **player / coach / guardian / club / admin**. Coaches and clubs are
+  **auto-approved on sign-up for now** (`app/auth/actions.ts` sets `status`
+  explicitly; drop that line to send them back through `/dashboard/admin`) —
+  the schema default is still `pending` and every gate that reads it is intact.
+  Under-18 players open `ACTIVE` too: the guardian code is now an invitation a
+  parent claims, not a lock. A club sees what a connected coach sees but
+  **never signs off a report** — `countApprovers` counts coaches, and that is
+  the whole guarantee.
 - Videos upload directly to Supabase Storage via resumable **tus** uploads
   (`app/api/videos/*`); each finished upload auto-creates a `Report` row.
 - External AI pipeline delivers coaching reports via

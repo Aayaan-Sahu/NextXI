@@ -33,7 +33,9 @@ Built with Next.js 16 (App Router), React 19, Prisma 7, and Supabase
   physical details, and public/private visibility.
 - **Video uploads** — resumable, direct-to-storage uploads
   ([tus](https://tus.io/)) to Supabase Storage, tagged by category (pace,
-  off-spin, leg-spin, batting), variation, and handedness.
+  off-spin, leg-spin, batting), variation, and handedness. Capped at 50 MB to
+  match Supabase's Free-plan ceiling (`MAX_VIDEO_SIZE_BYTES` in
+  `shared/videos.ts`, and the bucket's own `file_size_limit`).
 - **AI coaching reports** — every uploaded video gets a report slot that an
   external AI pipeline fills in via a documented ingress API (see
   [AI coaching reports](#ai-coaching-reports)).
@@ -47,17 +49,18 @@ Built with Next.js 16 (App Router), React 19, Prisma 7, and Supabase
   and leave comments; video views are tracked.
 - **Guardian linking** — guardians link to their children via a one-time
   guardian code and oversee their videos.
-- **Admin console** — approve or reject coach applications (coaches start in a
-  `pending` state).
+- **Admin console** — approve or reject coach and club applications. Both are
+  auto-approved on sign-up for now, so the queue is normally empty; the console
+  is still where an account gets rejected or a club name dispute is settled.
 
 ## Roles
 
 | Role         | How it's assigned                          | Can do                                                                 |
 | ------------ | ------------------------------------------ | ---------------------------------------------------------------------- |
 | **Player**   | Chosen at onboarding                       | Build a profile, upload videos, log stats/goals, message connections   |
-| **Coach**    | Chosen at onboarding, approved by an admin | Browse the player directory, view videos, comment, message players     |
+| **Coach**    | Chosen at onboarding, approved automatically | Browse the player directory, view videos, comment, message players     |
 | **Guardian** | Chosen at onboarding                       | Link to child players via guardian code, oversee their videos          |
-| **Club**     | Chosen at onboarding, verified by an admin | Claim the players who named it, watch their clips and signed-off reports, invite coaches to run it |
+| **Club**     | Chosen at onboarding, approved automatically | Claim the players who named it, watch their clips and signed-off reports, invite coaches to run it |
 | **Admin**    | `ADMIN_EMAILS`, or granted on the account  | Approve/reject coaches and clubs from the admin dashboard               |
 
 Roles resolve at request time from the signed-in Supabase user; the middleware

@@ -144,9 +144,13 @@ function SignUpForm({ bannerError }: { bannerError?: string }) {
       <Notice className="mt-4" tone="error">
         {state.error ?? bannerError}
       </Notice>
-      <p className="mt-5 border-t border-cream-400 pt-4 text-caption leading-relaxed text-ink-600">
-        Under-18s need a parent or guardian to approve their account after sign-up.
-      </p>
+      <div className="mt-5 border-t border-cream-400 pt-4">
+        <p className="text-caption leading-relaxed text-ink-600">
+          Under-18s get a code to invite a parent or guardian onto the account
+          once they&apos;re in.
+        </p>
+        <SupabaseMailNote divider={false} kind="verification" />
+      </div>
     </>
   );
 }
@@ -176,6 +180,40 @@ function SignInForm({ bannerError }: { bannerError?: string }) {
         <SubmitButton className="w-full">Sign in</SubmitButton>
       </Form>
     </>
+  );
+}
+
+/**
+ * TEMPORARY — delete this component and its three call sites once custom SMTP
+ * is live (issue #41) and the templates in `supabase/templates/` are pushed
+ * with `bun run auth:templates`.
+ *
+ * Until then Supabase's own default mailer sends every auth email, so what
+ * lands is generic and unbranded and often filed as spam. People assume a
+ * NextXI email failed to arrive and give up on the sign-up. Saying so up front
+ * costs one sentence and saves the account.
+ */
+function SupabaseMailNote({
+  divider = true,
+  kind,
+}: {
+  /** Off where the note joins a block that already carries the hairline. */
+  divider?: boolean;
+  kind: "verification" | "reset";
+}) {
+  return (
+    <div className={divider ? "mt-6 border-t border-cream-400 pt-4" : "mt-3"}>
+      <p className="text-caption leading-relaxed text-ink-600">
+        The {kind} email is sent by Supabase, our auth provider, so the sender
+        and styling are theirs and not ours yet — the link inside is still
+        NextXI&apos;s. If it isn&apos;t in your inbox within a minute, check spam
+        or junk.
+        {kind === "verification"
+          ? " Open the link on the same device you signed up on; on another one it can fail."
+          : ""}{" "}
+        We&apos;re moving to NextXI-branded mail shortly.
+      </p>
+    </div>
   );
 }
 
@@ -226,6 +264,8 @@ export function ResetPasswordPanel({
       <Notice className="mt-4" tone="error">
         {error}
       </Notice>
+
+      {hasUser ? null : <SupabaseMailNote kind="reset" />}
     </AuthSheet>
   );
 }
@@ -246,7 +286,7 @@ export function CheckEmailPanel({
     <AuthSheet
       description={
         address
-          ? `We sent a verification link to ${address}. Click it to open your account.`
+          ? `We sent a verification link to ${address}. Open it and you go straight to setting up your profile — no code to type.`
           : "Enter the email you used and we'll send a verification link."
       }
       footer={<TextLink href="/auth">← Back to sign in</TextLink>}
@@ -256,9 +296,11 @@ export function CheckEmailPanel({
         {error ?? resendState.error}
       </Notice>
 
+      <SupabaseMailNote kind="verification" />
+
       <Form action={resendAction} className="mt-6">
         <Field>
-          Email
+          Didn&apos;t get it? Resend to
           <TextInput
             autoComplete="email"
             name="email"

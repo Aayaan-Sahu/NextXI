@@ -13,7 +13,16 @@
  */
 
 export const VIDEO_BUCKET = "player-videos";
-export const MAX_VIDEO_SIZE_BYTES = 500 * 1024 * 1024;
+/**
+ * Supabase's Free plan enforces a 50 MB per-file ceiling on the whole project;
+ * a bucket's own `file_size_limit` cannot lift it. Accepting more here only
+ * moves the rejection to the end of the upload, after the player has waited
+ * through it. Raise this and the bucket together when the project moves to Pro.
+ */
+export const MAX_VIDEO_SIZE_MB = 50;
+export const MAX_VIDEO_SIZE_BYTES = MAX_VIDEO_SIZE_MB * 1024 * 1024;
+/** The one place the limit is spelled for a person, so copy cannot drift. */
+export const MAX_VIDEO_SIZE_LABEL = `${MAX_VIDEO_SIZE_MB} MB`;
 export const TUS_CHUNK_SIZE_BYTES = 6 * 1024 * 1024;
 export const VIDEO_CACHE_CONTROL = "3600";
 

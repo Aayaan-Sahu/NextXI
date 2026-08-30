@@ -63,6 +63,8 @@ export default async function PlayerDashboardPage() {
   if (!profile.role) redirect("/onboarding");
   if (profile.role !== "player") redirect(`/dashboard/${profile.role}`);
 
+  // Unreachable while onboarding opens every player ACTIVE (app/auth/actions.ts).
+  // Left standing so restoring the consent gate is one line there, not a rebuild.
   if (profile.player.status === PlayerStatus.PENDING_GUARDIAN) {
     return (
       <main className="mx-auto w-full max-w-[1360px] px-6 pt-16 pb-20 sm:px-10" id="main-content">
@@ -182,7 +184,10 @@ export default async function PlayerDashboardPage() {
     `${feedback.length} recent note${feedback.length === 1 ? "" : "s"}`,
     ...(pulse.streakWeeks >= 2 ? [`${pulse.streakWeeks}-week upload streak`] : []),
   ];
-  const revealBase = latestReport ? 2 : 1;
+  // Set only on an under-18 whose parent has not claimed it yet — claiming
+  // nulls the code. The account is open either way; this is the invitation.
+  const guardianCode = profile.player.guardianCode;
+  const revealBase = (latestReport ? 2 : 1) + (guardianCode ? 1 : 0);
 
   return (
     <PageShell>
@@ -215,8 +220,26 @@ export default async function PlayerDashboardPage() {
           </div>
         </DashboardRevealItem>
 
-        {latestReport ? (
+        {guardianCode ? (
           <DashboardRevealItem index={1}>
+            <div className="border-t border-cream-400 pt-5">
+              <p className="text-ui text-ink-800">
+                Give a parent this code and they can follow your clips and reports
+                from their own account.
+              </p>
+              <p className="mt-2 text-title font-semibold tracking-[0.18em] text-ink-900">
+                {formatGuardianCode(guardianCode)}
+              </p>
+              <GuardianHandoff
+                code={formatGuardianCode(guardianCode)}
+                playerName={profile.player.name}
+              />
+            </div>
+          </DashboardRevealItem>
+        ) : null}
+
+        {latestReport ? (
+          <DashboardRevealItem index={guardianCode ? 2 : 1}>
             <LatestReportCard
               href={`/dashboard/player/videos/${latestReport.video.id}`}
               payload={latestReport.payload}
