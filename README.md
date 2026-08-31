@@ -157,11 +157,16 @@ In the Supabase dashboard → **Authentication → URL Configuration**:
    [Account → Access Tokens](https://supabase.com/dashboard/account/tokens),
    revocable from the same page. Not the CLI's own credential: `supabase
    login` files a go-keyring wrapper in the keychain, not a token an API
-   client can present. The push sends only the bodies (the dashboard keeps
-   its subject lines) and reads back what it wrote. By hand it is **Authentication → Emails**:
+   client can present. The push sends the subject line and the body of each
+   template and reads back what it wrote, so the repo decides the whole
+   email. By hand it is **Authentication → Emails**:
    `confirmation.html` → **Confirm signup** (subject: `Confirm your NextXI
    account`), `magic-link.html` → **Magic Link** (`Your NextXI sign-in code`),
    `recovery.html` → **Reset password** (`Reset your NextXI password`).
+
+   **None of it can be set while the project is on Supabase's default email
+   provider** — that locks template editing in the dashboard and over the API
+   alike. Custom SMTP first; the push warns you before it tries.
 
    Every template links to `/auth/confirm?token_hash={{ .TokenHash }}` with its
    own `type=`: `signup`, `magiclink`, `recovery`. Only the magic-link template
