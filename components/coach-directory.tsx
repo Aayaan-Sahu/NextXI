@@ -35,6 +35,7 @@ export function CoachDirectory({
     <section>
       <SectionHeading>Coach directory</SectionHeading>
       <form className="mt-3.5 flex gap-2.5" method="GET">
+        <input name="tab" type="hidden" value="coaches" />
         <TextInput
           aria-label="Search coaches and clubs by name"
           className="min-w-0 flex-1"

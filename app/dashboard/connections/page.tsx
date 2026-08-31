@@ -1,21 +1,21 @@
 import { CoachStatus } from "@/app/generated/prisma/enums";
-import { sendConnectionRequest } from "@/app/dashboard/connections/actions";
 import { ClubDirectory } from "@/components/club-directory";
 import { CoachDirectory } from "@/components/coach-directory";
-import { ConnectionsRoster, PendingColumn } from "@/components/connections";
+import { CoachConnections, PendingColumn, PlayerConnections } from "@/components/connections";
 import {
   DashboardReveal,
   DashboardRevealItem,
 } from "@/components/dashboard-reveal";
 import { PlayerDirectory } from "@/components/player-directory";
-import { SubmitButton } from "@/components/submit-button";
-import { BarShell, Notice, SubBar, Tabs, TextInput } from "@/components/ui";
+import { PlayerSearch } from "@/components/player-search";
+import { BarShell, Notice, SubBar, Tabs } from "@/components/ui";
 import { requireUser, redirectRolelessAdmin } from "@/lib/auth";
 import { getClubDirectory } from "@/lib/clubs.server";
 import {
   getCoachDirectory,
   getConnectionPanelData,
   searchPlayers,
+  searchPlayersByQuery,
 } from "@/lib/connections";
 import { isCountry, isPlayerRole } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
@@ -25,6 +25,7 @@ type SearchParams = Promise<{
   connectionError?: string | string[];
   connectionMessage?: string | string[];
   q?: string | string[];
+  pq?: string | string[];
   discipline?: string | string[];
   country?: string | string[];
   searched?: string | string[];
@@ -44,6 +45,7 @@ export default async function ConnectionsPage({
   const connectionError = firstParam(params.connectionError);
   const connectionMessage = firstParam(params.connectionMessage);
   const query = firstParam(params.q) ?? "";
+  const playerQuery = firstParam(params.pq) ?? "";
   const discipline = firstParam(params.discipline) ?? "";
   const country = firstParam(params.country) ?? "";
   const searched = firstParam(params.searched) === "1";
@@ -58,7 +60,7 @@ export default async function ConnectionsPage({
 
   const canSearchPlayers = coach?.status === CoachStatus.APPROVED;
 
-  const [connectionData, coaches, clubs, players] = await Promise.all([
+  const [connectionData, coaches, clubs, players, playerMatches] = await Promise.all([
     getConnectionPanelData(user.id),
     player ? getCoachDirectory(user.id, query) : Promise.resolve(null),
     // Players discover clubs the same way they discover coaches; the one
@@ -70,18 +72,16 @@ export default async function ConnectionsPage({
           country: isCountry(country) ? country : undefined,
         })
       : Promise.resolve(null),
+    player ? searchPlayersByQuery(user.id, playerQuery) : Promise.resolve(null),
   ]);
 
   const underReview = Boolean(coach) && !canSearchPlayers;
-  const incoming = connectionData.incomingPending.length;
-  const connected = connectionData.accepted.length;
   const coachCount = connectionData.accepted.filter((p) => p.role === "coach").length;
-  const playerCount = connected - coachCount;
+  const playerCount = connectionData.accepted.length - coachCount;
 
   const tab = firstParam(params.tab);
-  const active: "all" | "coaches" | "players" | "pending" =
-    tab === "coaches" || tab === "players" || tab === "pending" ? tab : "all";
-  const href = (next: string) => (next === "all" ? "?" : `?tab=${next}`);
+  const active: "players" | "coaches" = tab === "coaches" ? "coaches" : "players";
+  const href = (next: "players" | "coaches") => (next === "players" ? "?" : `?tab=${next}`);
 
   return (
     <BarShell
@@ -89,41 +89,18 @@ export default async function ConnectionsPage({
         <SubBar title="Connections">
           <Tabs
             items={[
-              { active: active === "all", href: href("all"), label: `All ${connected}` },
-              {
-                active: active === "coaches",
-                href: href("coaches"),
-                label: `Coaches ${coachCount}`,
-              },
               {
                 active: active === "players",
                 href: href("players"),
                 label: `Players ${playerCount}`,
               },
               {
-                active: active === "pending",
-                badge: incoming,
-                href: href("pending"),
-                label: "Pending",
+                active: active === "coaches",
+                href: href("coaches"),
+                label: `Coaches ${coachCount}`,
               },
             ]}
           />
-          <form
-            action={sendConnectionRequest}
-            className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2.5"
-          >
-            <TextInput
-              aria-label="Name or username"
-              className="min-w-0 sm:w-[260px]"
-              name="query"
-              placeholder="Name or @username"
-              required
-              type="text"
-            />
-            <SubmitButton className="shrink-0 !px-4 !py-2 !text-ui">
-              Send request
-            </SubmitButton>
-          </form>
         </SubBar>
       }
     >
@@ -140,34 +117,31 @@ export default async function ConnectionsPage({
             ) : null}
           </div>
 
-          {active === "pending" ? (
-            <PendingColumn data={connectionData} />
+          {active === "players" ? (
+            <>
+              {playerMatches ? <PlayerSearch players={playerMatches} query={playerQuery} /> : null}
+              {canSearchPlayers ? (
+                <PlayerDirectory
+                  country={country}
+                  discipline={discipline}
+                  players={players ?? []}
+                  searched={searched}
+                />
+              ) : null}
+              <PlayerConnections data={connectionData} />
+            </>
           ) : (
-            <ConnectionsRoster data={connectionData} filter={active} />
+            <>
+              <CoachConnections data={connectionData} />
+              {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
+              {clubs ? <ClubDirectory clubs={clubs} query={query} /> : null}
+            </>
           )}
-
-          {coaches ? <CoachDirectory coaches={coaches} query={query} /> : null}
-          {clubs ? <ClubDirectory clubs={clubs} query={query} /> : null}
-          {canSearchPlayers ? (
-            <PlayerDirectory
-              country={country}
-              discipline={discipline}
-              players={players ?? []}
-              searched={searched}
-            />
-          ) : null}
         </DashboardRevealItem>
 
-        {/* The rail is where pending requests live — unless the Pending tab has
-            already moved them into the main column, in which case it goes. */}
-        {active === "pending" ? null : (
-          <DashboardRevealItem
-            className="lg:border-l lg:border-cream-400 lg:pl-6"
-            index={1}
-          >
-            <PendingColumn data={connectionData} />
-          </DashboardRevealItem>
-        )}
+        <DashboardRevealItem className="lg:border-l lg:border-cream-400 lg:pl-6" index={1}>
+          <PendingColumn data={connectionData} />
+        </DashboardRevealItem>
       </DashboardReveal>
     </BarShell>
   );

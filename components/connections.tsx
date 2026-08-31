@@ -10,9 +10,9 @@ import type { ConnectionPanelData, ConnectionPerson } from "@/lib/connections";
 import {
   ConfirmDialog,
   DialogActions,
-  EmptyState,
   GhostButton,
   SectionHeading,
+  TextInput,
 } from "@/components/ui";
 
 const AVATAR_TONES: Record<string, string> = {
@@ -152,33 +152,60 @@ function RosterGroup({
   );
 }
 
-/**
- * The roster: everyone you are connected with, grouped by what they are.
- * `filter` follows the sub-bar tabs.
- */
-export function ConnectionsRoster({
-  data,
-  filter = "all",
-}: {
-  data: ConnectionPanelData;
-  filter?: "all" | "coaches" | "players";
-}) {
+/** The coach roster for the Coaches tab — a plain grouped list. */
+export function CoachConnections({ data }: { data: ConnectionPanelData }) {
   const coaches = data.accepted.filter((person) => person.role === "coach");
+  return <RosterGroup label="Coaches" people={coaches} />;
+}
+
+/**
+ * The player roster for the Players tab, with a live filter over who you're
+ * already connected to — a lighter, client-side search, distinct from the
+ * directory search above it that finds someone new to connect with.
+ */
+export function PlayerConnections({ data }: { data: ConnectionPanelData }) {
+  const [query, setQuery] = useState("");
   const players = data.accepted.filter((person) => person.role !== "coach");
 
-  if (!data.accepted.length) {
-    return (
-      <EmptyState>
-        No connections yet. Send a request from the bar above, or find someone in the directory.
-      </EmptyState>
-    );
-  }
+  if (!players.length) return null;
+
+  const trimmed = query.trim().toLowerCase();
+  const filtered = trimmed
+    ? players.filter(
+        (person) =>
+          person.name.toLowerCase().includes(trimmed) ||
+          person.username?.toLowerCase().includes(trimmed),
+      )
+    : players;
 
   return (
-    <div className="grid gap-7">
-      {filter === "players" ? null : <RosterGroup label="Coaches" people={coaches} />}
-      {filter === "coaches" ? null : <RosterGroup label="Players" people={players} />}
-    </div>
+    <section>
+      <SectionHeading>Connected players</SectionHeading>
+      <TextInput
+        aria-label="Filter your connected players by name"
+        className="mt-3.5"
+        onChange={(event) => setQuery(event.target.value)}
+        placeholder="Filter by name or @username"
+        type="search"
+        value={query}
+      />
+      {filtered.length ? (
+        <ul className="mt-4 -ml-3">
+          {filtered.map((person) => (
+            <RosterRow
+              actions={<RevokeButton person={person} />}
+              detail={person.role}
+              key={person.connectionId}
+              name={person.name}
+              role={person.role}
+              username={person.username}
+            />
+          ))}
+        </ul>
+      ) : (
+        <p className="mt-3.5 text-ui text-ink-600">No connected players match your search.</p>
+      )}
+    </section>
   );
 }
 

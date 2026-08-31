@@ -292,6 +292,91 @@ export type PlayerDirectoryEntry = {
   country: string;
 };
 
+export type PlayerSearchEntry = {
+  id: string;
+  name: string;
+  username: string | null;
+  roles: PlayerRole[];
+  country: string;
+  state: DirectoryConnectionState;
+};
+
+/**
+ * Search-only player discovery for players: unlike `getCoachDirectory`, an
+ * empty query returns nothing — there is no browsable roster of every player
+ * on the platform, only a match against a name or @username you already have
+ * in mind. Only surfaces players who opted into discovery (`PUBLIC`) and are
+ * active, same as `searchPlayers`.
+ */
+export async function searchPlayersByQuery(
+  viewerId: string,
+  query: string,
+): Promise<PlayerSearchEntry[]> {
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return [];
+
+  const matchingProfiles = await prisma.profile.findMany({
+    where: { username: { contains: trimmedQuery, mode: "insensitive" } },
+    select: { id: true },
+  });
+
+  const players = await prisma.player.findMany({
+    where: {
+      visibility: Visibility.PUBLIC,
+      status: PlayerStatus.ACTIVE,
+      id: { not: viewerId },
+      OR: [
+        { name: { contains: trimmedQuery, mode: "insensitive" } },
+        { id: { in: matchingProfiles.map((profile) => profile.id) } },
+      ],
+    },
+    orderBy: { name: "asc" },
+    select: { id: true, name: true, roles: true, country: true },
+  });
+
+  if (!players.length) return [];
+
+  const [profiles, viewerConnections] = await Promise.all([
+    prisma.profile.findMany({
+      where: { id: { in: players.map((player) => player.id) } },
+      select: { id: true, username: true },
+    }),
+    prisma.connection.findMany({
+      where: { OR: [{ userAId: viewerId }, { userBId: viewerId }] },
+      select: { userAId: true, userBId: true, status: true },
+    }),
+  ]);
+
+  const usernames = new Map(profiles.map((profile) => [profile.id, profile.username]));
+  const connectionByOtherId = new Map(
+    viewerConnections.map((row) => [
+      row.userAId === viewerId ? row.userBId : row.userAId,
+      row.status,
+    ]),
+  );
+
+  return players.map((player) => {
+    const status = connectionByOtherId.get(player.id);
+    const state: DirectoryConnectionState =
+      status === ConnectionStatus.ACCEPTED
+        ? "accepted"
+        : status === ConnectionStatus.REVOKED
+          ? "revoked"
+          : status === ConnectionStatus.PENDING
+            ? "pending"
+            : "none";
+
+    return {
+      id: player.id,
+      name: player.name,
+      username: usernames.get(player.id) ?? null,
+      roles: player.roles,
+      country: player.country,
+      state,
+    };
+  });
+}
+
 /**
  * Searchable list of players for approved coaches to discover, filtered by
  * discipline (role) and country. Only surfaces players who opted into

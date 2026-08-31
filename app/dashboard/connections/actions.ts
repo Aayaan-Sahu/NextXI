@@ -8,8 +8,6 @@ import { requireUser } from "@/lib/auth";
 import { createConnectionRequest, type ConnectionRequestOutcome } from "@/lib/connections";
 import { releaseOrphanedReports } from "@/lib/report-review.server";
 
-const usernamePattern = /^[a-z0-9_]{3,30}$/;
-
 function text(formData: FormData, name: string) {
   const value = formData.get(name);
   return typeof value === "string" ? value.trim() : "";
@@ -52,63 +50,7 @@ function finishConnectionRequest(outcome: ConnectionRequestOutcome): never {
   done("connectionMessage", outcome.message);
 }
 
-export async function sendConnectionRequest(formData: FormData) {
-  const user = await requireUser();
-  requireActiveAccount(await accountStatusFor(user.id));
-
-  const raw = text(formData, "query") || text(formData, "username");
-  const query = raw.replace(/^@/, "");
-
-  if (!query) done("connectionError", "Enter a name or username.");
-
-  if (usernamePattern.test(query.toLowerCase())) {
-    const byUsername = await prisma.profile.findUnique({
-      where: { username: query.toLowerCase() },
-      select: { id: true },
-    });
-    if (byUsername && byUsername.id !== user.id) {
-      finishConnectionRequest(await createConnectionRequest(user.id, byUsername.id));
-    }
-  }
-
-  const [players, coaches] = await Promise.all([
-    prisma.player.findMany({
-      where: { name: { equals: query, mode: "insensitive" } },
-      select: { id: true, name: true },
-    }),
-    prisma.coach.findMany({
-      where: { name: { equals: query, mode: "insensitive" } },
-      select: { id: true, name: true },
-    }),
-  ]);
-
-  const matches = [...players, ...coaches].filter((person) => person.id !== user.id);
-
-  if (matches.length === 1) {
-    finishConnectionRequest(await createConnectionRequest(user.id, matches[0].id));
-  }
-
-  if (matches.length > 1) {
-    const profiles = await prisma.profile.findMany({
-      where: { id: { in: matches.map((person) => person.id) } },
-      select: { username: true },
-    });
-    const handles = profiles
-      .map((profile) => (profile.username ? `@${profile.username}` : null))
-      .filter(Boolean)
-      .join(", ");
-    done(
-      "connectionError",
-      handles
-        ? `Several people match that name. Use one of: ${handles}.`
-        : "Several people match that name. Ask for their @username.",
-    );
-  }
-
-  done("connectionError", "No user found for that name or username.");
-}
-
-/** Connect action for the coach directory — same core as `sendConnectionRequest`. */
+/** Connect action for the coach directory — a thin wrapper over `createConnectionRequest`. */
 export async function requestConnectionToCoach(formData: FormData) {
   const user = await requireUser();
   requireActiveAccount(await accountStatusFor(user.id));
@@ -122,7 +64,7 @@ export async function requestConnectionToCoach(formData: FormData) {
   finishConnectionRequest(await createConnectionRequest(user.id, coachId));
 }
 
-/** Connect action for the player directory — same core as `sendConnectionRequest`. */
+/** Connect action for the player search — a thin wrapper over `createConnectionRequest`. */
 export async function requestConnectionToPlayer(formData: FormData) {
   const user = await requireUser();
   requireActiveAccount(await accountStatusFor(user.id));
