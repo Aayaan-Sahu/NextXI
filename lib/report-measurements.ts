@@ -138,6 +138,69 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+/**
+ * Pro-comparison rows the worker attaches under `payload.pro_reference`
+ * (pro_reference.py, cricket-ai-model) — kept separate from `measurements[]`
+ * so it doesn't disable the session-derived rows below; merged onto a
+ * matching row by key instead of replacing this module's output.
+ */
+type ProReferenceRow = {
+  key: string;
+  reference: Extract<MetricReference, { kind: "elite" }>;
+  percentile?: { value: number; sample: { players: number; shots: number } };
+};
+
+/** Worker metric keys that differ from this module's BATTING_METRICS keys. */
+const PRO_REFERENCE_KEY_ALIASES: Record<string, string> = {
+  stride_length: "front_foot_stride",
+  trigger_gap: "trigger_timing",
+};
+
+function parseSample(raw: unknown): { players: number; shots: number } | undefined {
+  if (!isRecord(raw)) return undefined;
+  const players = raw.players;
+  const shots = raw.shots;
+  if (typeof players !== "number" || typeof shots !== "number") return undefined;
+  return { players, shots };
+}
+
+function parseProReference(payload: unknown): Map<string, ProReferenceRow> {
+  const rows = new Map<string, ProReferenceRow>();
+  if (!isRecord(payload) || !Array.isArray(payload.pro_reference)) return rows;
+
+  for (const raw of payload.pro_reference) {
+    if (!isRecord(raw) || typeof raw.key !== "string") continue;
+    const ref = raw.reference;
+    if (!isRecord(ref) || ref.kind !== "elite") continue;
+    if (typeof ref.label !== "string" || !ref.label.trim()) continue;
+    if (!Array.isArray(ref.band) || ref.band.length !== 2) continue;
+    const [low, high] = ref.band;
+    if (typeof low !== "number" || typeof high !== "number") continue;
+
+    const row: ProReferenceRow = {
+      key: raw.key,
+      reference: {
+        kind: "elite",
+        label: ref.label,
+        band: [low, high],
+        source: typeof ref.source === "string" ? ref.source : undefined,
+        sample: parseSample(ref.sample),
+      },
+    };
+
+    if (isRecord(raw.percentile)) {
+      const value = raw.percentile.value;
+      const sample = parseSample(raw.percentile.sample);
+      if (typeof value === "number" && sample) {
+        row.percentile = { value: Math.round(value), sample };
+      }
+    }
+
+    rows.set(raw.key, row);
+  }
+  return rows;
+}
+
 /** Same CV fields the renderers use for the headline repeatability figure. */
 const CONSISTENCY_CV_FIELDS = [
   "stride_length_cv",
@@ -348,6 +411,10 @@ export function deriveMeasurements(
 
   const current = occasionMetricValues(shape, [payload]);
   const recent = history.slice(-HISTORY_WINDOW);
+  // Only batting carries a pro-comparison producer today (pro_reference.py);
+  // bowling rows always fall through to the session band below.
+  const proReference =
+    shape === "batting" ? parseProReference(payload) : new Map<string, ProReferenceRow>();
 
   const rows = metricsFor(shape).flatMap((def) => {
     const value = current[def.key];
@@ -370,6 +437,14 @@ export function deriveMeasurements(
       reference: sessionReference(metricHistory),
       note: progressNote(def, value, previous),
     };
+    // A pro comparison, where the worker sent one for this metric, replaces
+    // the session band on the row — the progress note/delta pill below still
+    // come from the player's own history either way.
+    const pro = proReference.get(PRO_REFERENCE_KEY_ALIASES[def.key] ?? def.key);
+    if (pro) {
+      row.reference = pro.reference;
+      if (pro.percentile) row.percentile = pro.percentile;
+    }
     const lead = metricLead(payload, def.key);
     if (lead) row.lead = lead;
     if (previous !== null) {
