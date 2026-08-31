@@ -10,6 +10,8 @@ starts in `pending`. The pipeline discovers work via the **claim endpoint**
 
 The reference worker lives in the `cricket-ai-model` repo (`worker/worker.py` +
 the `cricket_analysis` package) and implements both sides of this contract.
+It is not deployed yet, which is why reports never arrive —
+`docs/worker-deployment.md` is the plan for that.
 
 ## Claim endpoint — how the worker finds work
 

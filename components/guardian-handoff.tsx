@@ -8,11 +8,11 @@ function guardianMessage(code: string, playerName: string) {
   return [
     "Hi,",
     "",
-    `I started a NextXI player account (${playerName}). Because I'm under 18, a parent or guardian needs to approve it before I can use the platform.`,
+    `I started a NextXI player account (${playerName}). Because I'm under 18, I'd like you linked to it so you can see my clips and coaching reports.`,
     "",
     `1. Create an account at ${PUBLIC_SITE_URL}/auth?mode=sign-up`,
     `2. Open “Parent or guardian? Link a child's account” on the profile screen`,
-    `3. Enter this approval code: ${code}`,
+    `3. Enter this code: ${code}`,
     "",
     "Thanks,",
     firstName,

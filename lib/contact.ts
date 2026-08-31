@@ -1,5 +1,5 @@
 /** Public contact — mailbox must exist before this address is advertised. */
-export const CONTACT_EMAIL = "hello@nextxi.pro";
+export const CONTACT_EMAIL = "contact@nextxi.pro";
 
 export const PUBLIC_SITE_URL = "https://www.nextxi.pro";
 

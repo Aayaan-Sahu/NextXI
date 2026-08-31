@@ -1,5 +1,10 @@
 # Aayaan ops brief — NextXI (give this whole file to Claude)
 
+> **Start with `docs/aayaan-launch-prompt.md` instead.** That is the ordered
+> run of everything still standing between NextXI and real users, and it names
+> which task below to read at each step. This file is the click-by-click
+> reference it points into, not the entry point.
+
 You are helping **Aayaan Sahu** finish the launch ops that the app repo cannot do from code. Mukilan already shipped the product changes. Your job is dashboard, DNS, and mailbox work only.
 
 Do **not** change application code, open PRs, or “improve” settings that are already correct. Do **not** set Site URL back to a `*.vercel.app` host. After each task, write what you clicked, the exact values saved, and how you verified it.
@@ -9,7 +14,7 @@ Do **not** change application code, open PRs, or “improve” settings that are
 **Repo:** https://github.com/Aayaan-Sahu/NextXI  
 **Vercel project:** `cricket-platform` (team `aayaansahus-projects`)  
 **Supabase project:** `cricket-database` (ref `gvzavvdchapxvxzyuhac`)  
-**Public contact the site now advertises:** `hello@nextxi.pro`  
+**Public contact the site now advertises:** `contact@nextxi.pro`  
 **Auth email templates in the repo:**
 
 - `supabase/templates/confirmation.html`
@@ -20,12 +25,13 @@ Do **not** change application code, open PRs, or “improve” settings that are
 
 ## Why this exists
 
-Signup is OTP-first. Supabase sends the email. On the free default mailer:
+Signup is **link-only** — the person clicks the link in the email and the account opens. There are no 6-digit boxes anywhere in the app; if a step below asks you to type a code, that step is out of date. Supabase sends the email. On the free default mailer:
 
-1. Templates cannot be edited. Users get a generic Supabase email, not NextXI, and the in-app 6-digit boxes stay empty because `{{ .Token }}` is not in the default template.
+1. Templates cannot be edited. Users get a generic Supabase email, not NextXI. The app now says so on the sign-up, verify and reset screens (`SupabaseMailNote` in `components/auth.tsx`) — **delete that component and its three call sites once this task is done**.
 2. If Site URL is a Vercel alias, the confirm link leaves `www.nextxi.pro` and the session cookie never lands.
+3. The default mailer is rate-limited to a handful of messages an hour, so a group signing up together mostly will not receive anything. This is the single reason the platform cannot be opened to real users yet.
 
-Contact and safeguarding pages now show `hello@nextxi.pro`. If that mailbox does not exist, parents write into a black hole. That is worse than no address.
+Contact and safeguarding pages now show `contact@nextxi.pro`. If that mailbox does not exist, parents write into a black hole. That is worse than no address.
 
 ---
 
@@ -53,13 +59,13 @@ If Site URL is anything else (especially `https://cricket-platform-nine.vercel.a
 
 - Production confirm hops from `cricket-platform-nine.vercel.app` → `www.nextxi.pro`.
 - Production never mints `*.vercel.app` as the email origin.
-- `/contact` and `/safeguarding` show `hello@nextxi.pro`.
+- `/contact` and `/safeguarding` show `contact@nextxi.pro`.
 
 ---
 
 ## Task order (do in this order)
 
-1. Inbound mailbox for `hello@nextxi.pro` (so contact is real)
+1. Inbound mailbox for `contact@nextxi.pro` (so contact is real)
 2. Domain verified at an SMTP provider (Resend recommended)
 3. Custom SMTP on Supabase (unlocks templates)
 4. Paste the three HTML templates
@@ -72,7 +78,7 @@ Stop and report if any step is blocked (no DNS access, not admin on GitHub, bill
 
 ---
 
-## Task 1 — Inbound mail: `hello@nextxi.pro`
+## Task 1 — Inbound mail: `contact@nextxi.pro`
 
 The website tells people to email this address. It must land in a human inbox Aayaan reads daily.
 
@@ -93,15 +99,15 @@ Use this if `nextxi.pro` is on Cloudflare.
 
    | Custom address | Action | Destination |
    | --- | --- | --- |
-   | `hello@nextxi.pro` | Forward | Aayaan’s verified inbox |
+   | `contact@nextxi.pro` | Forward | Aayaan’s verified inbox |
 
-5. Optional aliases (same destination): `safeguarding@nextxi.pro` if you want a second door. The site currently uses `hello@` with subject `Safeguarding`, so `hello@` alone is enough if forwarding works.
+5. Optional aliases (same destination): `safeguarding@nextxi.pro` if you want a second door. The site currently uses `contact@` with subject `Safeguarding`, so `contact@` alone is enough if forwarding works.
 
 6. Wait for DNS to go live (often minutes, can be an hour).
 
 **Verify:** from a *different* email account (not the destination), send:
 
-- To: `hello@nextxi.pro`
+- To: `contact@nextxi.pro`
 - Subject: `NextXI mailbox test`
 - Body: `Inbound test from [your name] at [time].`
 
@@ -109,11 +115,11 @@ Aayaan must see it in the destination inbox within a few minutes. If it bounces,
 
 ### Alternative: Google Workspace / Microsoft 365
 
-If they want a real mailbox (send + receive from `hello@`) instead of forward-only:
+If they want a real mailbox (send + receive from `contact@`) instead of forward-only:
 
 1. Create the Workspace/M365 account for `nextxi.pro`.
 2. Add the provider’s MX, SPF, DKIM, DMARC as the provider shows.
-3. Create user `hello@nextxi.pro`.
+3. Create user `contact@nextxi.pro`.
 4. Same send-a-test-from-outside verification.
 
 Do **not** run Cloudflare Email Routing and Google MX at the same time. One inbound path only.
@@ -157,7 +163,7 @@ Custom SMTP (or a paid Supabase plan) is required. Resend is the usual path.
 
    | Field | Value |
    | --- | --- |
-   | Sender email | `hello@nextxi.pro` |
+   | Sender email | `contact@nextxi.pro` |
    | Sender name | `NextXI` |
    | Host | `smtp.resend.com` |
    | Port | `465` |
@@ -233,25 +239,25 @@ Use a personal inbox that is **not** already a NextXI user, or delete/reset that
 
 **Pass only if all of these are true:**
 
-- From name is **NextXI**, from address is `hello@nextxi.pro` (or Resend-on-behalf if they are still warming; prefer hello@).
+- From name is **NextXI**, from address is `contact@nextxi.pro` (or Resend-on-behalf if they are still warming; prefer contact@).
 - Body looks like the NextXI dark/gold template, not generic Supabase.
-- A **6-digit code** is visible.
 - The button/link host is `www.nextxi.pro` (not `cricket-platform-nine.vercel.app`, not localhost).
-- Entering the code on `/auth/check-email` signs you in.
-- Clicking the link also signs you in on `www.nextxi.pro`.
+- Clicking the link signs you in on `www.nextxi.pro` and lands on onboarding.
 
-### Sign-in code (magic-link template)
+There is **no 6-digit code** in the sign-up flow and no box to type one into. `/auth/check-email` offers a resend and nothing else.
 
-1. Sign out.
-2. Sign in with “email me a code” (not password) using the same address.
-3. Same checks: branded, 6-digit code, host is `www.nextxi.pro`.
+**Open the link on a second device** (phone, or another browser) as well as the one you signed up on. The repo's own template confirms by `token_hash`, which works anywhere; Supabase's default template confirms by PKCE `code`, which only works in the browser that started the sign-up. If the second device fails and the first succeeds, the templates from Task 3 did not actually save.
+
+### Magic link (magic-link template)
+
+Nothing in the app sends this today — sign-in is a password. Send one from **Authentication → Users → … → Send magic link** if you want to check the template rendered; otherwise skip.
 
 ### Password reset (recovery template)
 
 1. `/auth/reset-password` → send reset to the test email.
 2. Link host is `www.nextxi.pro` and lands on set-password.
 
-If the code is missing, the template did not save or you edited the wrong template slot. If the link is the old Vercel host, Site URL or Redirect URLs drifted — fix Task “Already done”.
+If the link is the old Vercel host, Site URL or Redirect URLs drifted — fix Task “Already done”.
 
 Delete the test user in Supabase **Authentication → Users** when finished, unless you want to keep it as a staging account.
 
@@ -297,7 +303,7 @@ On `https://www.nextxi.pro` (hard refresh, not a preview URL):
 
 1. Create account → email looks like NextXI → code works → player intake (“You’re in”).
 2. If the test user is under 18, the locked home shows a code plus Copy / Email a parent. The parent instructions mention “Parent or guardian? Link a child's account”, not a role-picker card.
-3. `/contact` shows `hello@nextxi.pro`. Send another real email to it; Aayaan receives it.
+3. `/contact` shows `contact@nextxi.pro`. Send another real email to it; Aayaan receives it.
 4. `/safeguarding` uses the same address.
 5. GitHub homepage points at nextxi.pro.
 6. An old confirm link on `cricket-platform-nine.vercel.app` (if you still have one) 308s to www and still confirms.
@@ -306,7 +312,7 @@ On `https://www.nextxi.pro` (hard refresh, not a preview URL):
 
 ## Ongoing (not a one-off, but tell Aayaan)
 
-**Coach approvals.** New coaches stay pending until someone on the admin email list opens `https://www.nextxi.pro/dashboard/admin` and approves them. If coaches complain they are stuck on “Under review”, this queue is why.
+**Coach and club approvals.** Both are auto-approved on sign-up for now, so nobody waits on the queue. `/dashboard/admin` is still where an account gets rejected, and where a club claiming a name another club already holds gets settled — that sign-up is refused with a message pointing at `contact@nextxi.pro`, so those land in the mailbox from Task 1.
 
 **Do not** change Site URL when adding preview domains. Only add more Redirect URL allow-list entries.
 
@@ -318,13 +324,13 @@ On `https://www.nextxi.pro` (hard refresh, not a preview URL):
 
 When done, reply with a checklist like this (yes/no + evidence):
 
-- [ ] `hello@nextxi.pro` received a test mail from an outside address (timestamp)
+- [ ] `contact@nextxi.pro` received a test mail from an outside address (timestamp)
 - [ ] Resend domain status: Verified
-- [ ] Supabase custom SMTP: on, sender `hello@nextxi.pro`
+- [ ] Supabase custom SMTP: on, sender `contact@nextxi.pro`
 - [ ] Confirm / Magic Link / Reset templates pasted and saved
-- [ ] Test signup email: branded, 6-digit code, link host `www.nextxi.pro`
-- [ ] Test sign-in code email: same
+- [ ] Test signup email: branded, link host `www.nextxi.pro`, opens on a second device too
 - [ ] Test reset email: same
+- [ ] `SupabaseMailNote` deleted from `components/auth.tsx` and its three call sites
 - [ ] Vercel Production `NEXT_PUBLIC_SITE_URL=https://www.nextxi.pro` + redeployed
 - [ ] GitHub Website = `https://www.nextxi.pro`
 - [ ] Site URL still `https://www.nextxi.pro` (unchanged)

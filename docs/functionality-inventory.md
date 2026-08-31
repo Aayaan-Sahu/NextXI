@@ -166,13 +166,13 @@ Top-to-bottom:
 3. **Handedness** — "Select…" default; Right / Left.
 
 **Drop zone** (dashed border, drag-active visual state):
-- Idle: heading "Drag and drop a video to upload", helper "MP4, MOV, or WebM, up to 500 MB.", and a "**Browse files**" button (file picker). Drag-drop or browse; first file only.
+- Idle: heading "Drag and drop a video to upload", helper "MP4, MOV, or WebM, up to 50 MB.", and a "**Browse files**" button (file picker). Drag-drop or browse; first file only.
 - Uploading: idle content is replaced by a **progress bar** + "{n}% uploaded" label (live, chunked resumable upload with automatic retries).
 
 **Constraints & pre-checks (inline error text below the zone):**
 - Dropdowns not all set → "Choose a discipline, variation, and handedness before uploading."
 - Type not MP4/MOV/WebM → "Choose an MP4, MOV, or WebM file."
-- Size 0 or > 500 MB → "Videos must be larger than 0 bytes and no more than 500 MB."
+- Size 0 or > 50 MB → "Videos must be larger than 0 bytes and no more than 50 MB."
 - Undecodable codec (thumbnail capture fails) → "This video uses a codec browsers cannot play. Re-export it as an H.264 MP4 and try again."
 
 **Pipeline (invisible to user beyond the progress bar):** client captures a JPEG thumbnail from ~1s in → server creates the video row and signed upload URLs → chunked tus upload (6 MB chunks) → best-effort thumbnail PUT → completion call marks the video READY and **auto-creates an AI report slot**. On success the page refreshes and the new video appears in the grid. Server errors are shown verbatim (e.g. "Upload has not finished.", "Could not verify upload.", "Account pending guardian approval.").
