@@ -71,8 +71,8 @@ export function Kicker({
 }
 
 /**
- * The 15px uppercase section head — the second and last display size in the
- * system. Every content group on a product page opens with one.
+ * The 15px uppercase section head — a Public Sans eyebrow, not the display
+ * face. Every content group on a product page opens with one.
  */
 export function SectionHeading({
   as: Tag = "h2",
@@ -81,7 +81,7 @@ export function SectionHeading({
 }: Children & { as?: "h2" | "h3"; className?: string }) {
   return (
     <Tag
-      className={`font-display font-semibold tracking-[.08em] uppercase ${
+      className={`font-semibold tracking-[.08em] uppercase ${
         Tag === "h2" ? "text-body" : "text-ui"
       } ${className}`}
     >

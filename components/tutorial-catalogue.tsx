@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import { VideoModal } from "@/components/video-modal";
+import { SectionHeading } from "@/components/ui";
 import { type Tutorial, tutorialPoster, tutorialSrc } from "@/lib/tutorials";
 
 /**
@@ -17,9 +18,7 @@ export function TutorialCatalogue({ tutorials }: { tutorials: Tutorial[] }) {
     <>
       {tutorials.map((tutorial) => (
         <section key={tutorial.id}>
-          <h2 className="font-display text-body font-semibold tracking-[.08em] uppercase">
-            {tutorial.title}
-          </h2>
+          <SectionHeading>{tutorial.title}</SectionHeading>
           <p className="mt-1 text-caption text-ink-600">
             For {tutorial.audience} · {tutorial.length}
           </p>

@@ -180,8 +180,9 @@ Below the fold it is the product scale, through `BandHeading` / `BandIntro`.
 **Key characteristics**
 - Grouping by spacing and one hairline. A card is for a genuinely raised
   surface, never for wrapping a list.
-- Nine type roles, no ad-hoc sizes. Saira Condensed names pages and sections;
-  Public Sans carries everything else.
+- Nine type roles, no ad-hoc sizes. Saira Condensed names pages and report
+  headings; Public Sans carries everything else, including the section
+  eyebrow.
 - Amber reads data, peach reads action, maroon reads brand and loss. Three
   jobs, three colors, no overlap.
 - Every number the product shows was measured. Where it wasn't, the row says so.
@@ -232,8 +233,12 @@ under 60 fills maroon instead of amber. Nowhere else.
 
 ## 3. Typography
 
-**Display:** Saira Condensed (500/600/700), falling back to Public Sans.
-**Body:** Public Sans, system-ui fallback.
+**Display:** Saira Condensed (500/600/700), falling back to Public Sans. Reserved
+for the page title (`PageTitle`) and report/dialog headings (`text-title`,
+`text-figure`) — the two sizes with the most weight to carry.
+**Body:** Public Sans, system-ui fallback. Carries everything else, including
+the `SectionHeading` eyebrow — uppercase and tracked for emphasis, but the same
+face as the rest of the page, not a second one.
 **Mono:** none. There is no third face and none is loaded. Aligned figures come
 from `tabular-nums`, not a font swap. The analysis HUD on the landing page was
 the last mono holdout — it was set entirely in Plex Mono over pure white, which
@@ -272,10 +277,12 @@ which — not that the scale needs a tenth step.
 
 **The Rare Eyebrow Rule.** Tracked uppercase appears in exactly two places: the
 `SectionHeading` that opens a content group, and the `Kicker` that labels a
-panel with no other heading. Never above an `h1` that already says the same
-words — "GUARDIAN HOME / Aayaan Verma" spends the rarest treatment in the system
-on a repeat. Letter-spacing anywhere else must be functional, like the approval
-code and the typed DELETE confirmation, where you read character by character.
+panel with no other heading. Both are Public Sans, not the display face — the
+eyebrow is weight, size and tracking doing the work, not a second typeface.
+Never above an `h1` that already says the same words — "GUARDIAN HOME / Aayaan
+Verma" spends the rarest treatment in the system on a repeat. Letter-spacing
+anywhere else must be functional, like the approval code and the typed DELETE
+confirmation, where you read character by character.
 
 **The Quiet Facts Rule.** Machine facts — dates, sizes, counts, model versions —
 are `text-caption` in `ink-600`, joined with " · ". They sit beside the thing
