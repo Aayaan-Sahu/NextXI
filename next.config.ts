@@ -1,6 +1,9 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Self-hosted Docker deploy (see Dockerfile) copies this trimmed output
+  // instead of the full node_modules tree onto the runtime image.
+  output: "standalone",
   // Lets the dev server serve _next/* assets when opened via the LAN IP
   // (phone/tablet testing), not just localhost. `*` matches one dot-segment,
   // so this covers any device on the 192.168.68.x subnet.

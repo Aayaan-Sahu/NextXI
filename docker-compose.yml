@@ -1,0 +1,51 @@
+# Self-host stack: the web app, the analysis worker, and a TLS-terminating
+# reverse proxy. Postgres and object storage stay on Supabase (managed) --
+# this box is compute only.
+#
+# Expects the worker's repo checked out as a sibling directory named
+# "CRICKET" next to this one (adjust the `worker.build.context` path below
+# if yours is named differently).
+#
+# Usage (from this directory, on the server):
+#   docker compose run --rm web bunx prisma migrate deploy   # once per deploy
+#   docker compose up -d --build
+
+services:
+  web:
+    build: .
+    restart: unless-stopped
+    env_file: .env
+    expose:
+      - "3000"
+
+  worker:
+    build:
+      context: ../CRICKET
+      dockerfile: worker/Dockerfile
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      # Talks to `web` over the compose network, not the public hostname.
+      PLATFORM_URL: http://web:3000
+    depends_on:
+      - web
+    # Bump if the claim queue backs up under load -- the claim query already
+    # uses `for update ... skip locked`, so replicas never double-claim.
+    # deploy: { replicas: 2 }
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - web
+
+volumes:
+  caddy_data:
+  caddy_config:

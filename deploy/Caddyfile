@@ -1,0 +1,7 @@
+www.nextxi.pro {
+	reverse_proxy web:3000
+}
+
+nextxi.pro {
+	redir https://www.nextxi.pro{uri} permanent
+}
