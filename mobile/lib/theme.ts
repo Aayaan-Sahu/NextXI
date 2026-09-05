@@ -41,15 +41,15 @@ export const colors = {
 
 /** The nine type roles, line heights resolved to pixels for React Native. */
 export const typeRoles = {
-  display: { fontSize: 30, lineHeight: 31.5 },
+  display: { fontSize: 30, lineHeight: 36 },
   title: { fontSize: 20, lineHeight: 25 },
   lead: { fontSize: 17, lineHeight: 27.2 },
   body: { fontSize: 15, lineHeight: 24 },
   ui: { fontSize: 14, lineHeight: 21 },
   caption: { fontSize: 13, lineHeight: 18.85 },
   micro: { fontSize: 11, lineHeight: 14.3 },
-  figure: { fontSize: 28, lineHeight: 28 },
-  "figure-sm": { fontSize: 20, lineHeight: 20 },
+  figure: { fontSize: 28, lineHeight: 33.6 },
+  "figure-sm": { fontSize: 20, lineHeight: 24 },
 } as const;
 
 /**

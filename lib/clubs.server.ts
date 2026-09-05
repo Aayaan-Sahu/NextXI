@@ -8,7 +8,12 @@ import {
   PlayerVideoStatus,
 } from "@/app/generated/prisma/enums";
 import { normalizeClubName } from "@/lib/clubs";
-import { type DirectoryConnectionState, getAcceptedCounterpartIds } from "@/lib/connections";
+import {
+  directoryState,
+  getAcceptedCounterpartIds,
+  getViewerConnectionsByOtherId,
+  type DirectoryConnectionState,
+} from "@/lib/connections";
 import { ageInYears } from "@/lib/players";
 import { prisma } from "@/lib/prisma";
 import { publishedReportWhere } from "@/lib/report-review.server";
@@ -239,6 +244,7 @@ export type ClubDirectoryEntry = {
   country: string;
   bio: string | null;
   state: DirectoryConnectionState;
+  connectionId: string | null;
 };
 
 /** Approved clubs for a player to find, with their state relative to the viewer. */
@@ -260,35 +266,18 @@ export async function getClubDirectory(
 
   if (!clubs.length) return [];
 
-  const [profiles, viewerConnections] = await Promise.all([
+  const [profiles, connectionByOtherId] = await Promise.all([
     prisma.profile.findMany({
       where: { id: { in: clubs.map((club) => club.id) } },
       select: { id: true, username: true },
     }),
-    prisma.connection.findMany({
-      where: { OR: [{ userAId: viewerId }, { userBId: viewerId }] },
-      select: { userAId: true, userBId: true, status: true },
-    }),
+    getViewerConnectionsByOtherId(viewerId),
   ]);
 
   const usernames = new Map(profiles.map((profile) => [profile.id, profile.username]));
-  const statusByOtherId = new Map(
-    viewerConnections.map((row) => [
-      row.userAId === viewerId ? row.userBId : row.userAId,
-      row.status,
-    ]),
-  );
 
   return clubs.map((club) => {
-    const status = statusByOtherId.get(club.id);
-    const state: DirectoryConnectionState =
-      status === ConnectionStatus.ACCEPTED
-        ? "accepted"
-        : status === ConnectionStatus.REVOKED
-          ? "revoked"
-          : status === ConnectionStatus.PENDING
-            ? "pending"
-            : "none";
+    const connection = connectionByOtherId.get(club.id);
 
     return {
       id: club.id,
@@ -296,7 +285,8 @@ export async function getClubDirectory(
       username: usernames.get(club.id) ?? null,
       country: club.country,
       bio: club.bio,
-      state,
+      state: directoryState(viewerId, connection),
+      connectionId: connection?.connectionId ?? null,
     };
   });
 }

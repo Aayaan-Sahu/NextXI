@@ -1,4 +1,15 @@
-import { StyleSheet, Text as RNText, View, type TextProps, type ViewProps } from "react-native";
+import {
+  ActivityIndicator,
+  Pressable,
+  StyleSheet,
+  Text as RNText,
+  TextInput as RNTextInput,
+  View,
+  type PressableProps,
+  type TextInputProps,
+  type TextProps,
+  type ViewProps,
+} from "react-native";
 import { colors, fonts, typeRoles, type ColorToken, type TypeRole } from "@/lib/theme";
 
 /**
@@ -84,6 +95,87 @@ export function Hairline({ style, ...props }: ViewProps) {
   return <View style={[styles.hairline, style]} {...props} />;
 }
 
+/**
+ * Flash notice — a left rule and a tinted ground, mirroring the web's
+ * components/ui.tsx Notice. "error" for anything the user must read now;
+ * "info" for everything else.
+ */
+export function Notice({
+  children,
+  tone = "error",
+  style,
+}: { children: string; tone?: "info" | "error" } & Pick<ViewProps, "style">) {
+  return (
+    <View
+      style={[
+        styles.notice,
+        tone === "error" ? styles.noticeError : styles.noticeInfo,
+        style,
+      ]}
+    >
+      <Text variant="ui" tone={tone === "error" ? "rust-600" : "ink-800"}>
+        {children}
+      </Text>
+    </View>
+  );
+}
+
+/** The one text input style in the system — cream ground, ink border, amber focus ring on iOS. */
+export function TextField(props: TextInputProps) {
+  return (
+    <RNTextInput
+      placeholderTextColor={colors["ink-400"]}
+      style={[styles.textField, props.style]}
+      {...props}
+    />
+  );
+}
+
+const BUTTON_TONE = {
+  primary: { background: colors["gold-500"], text: "ink-900" as ColorToken },
+  secondary: { background: colors["cream-300"], text: "ink-900" as ColorToken },
+} as const;
+
+/** Primary (gold-500 fill) or secondary (cream-300 fill) — the two button weights the app needs. */
+export function Button({
+  children,
+  variant = "primary",
+  loading = false,
+  disabled = false,
+  style,
+  ...props
+}: Omit<PressableProps, "children" | "style"> & {
+  children: string;
+  variant?: keyof typeof BUTTON_TONE;
+  loading?: boolean;
+  style?: ViewProps["style"];
+}) {
+  const tone = BUTTON_TONE[variant];
+  const isDisabled = disabled || loading;
+
+  return (
+    <Pressable
+      accessibilityRole="button"
+      accessibilityState={{ disabled: isDisabled }}
+      disabled={isDisabled}
+      style={[
+        styles.button,
+        { backgroundColor: isDisabled ? colors["cream-350"] : tone.background },
+        style,
+      ]}
+      {...props}
+    >
+      {loading ? (
+        <ActivityIndicator color={colors["ink-900"]} />
+      ) : (
+        <Text variant="ui" tone={isDisabled ? "ink-400" : tone.text} weight="semibold">
+          {children}
+        </Text>
+      )}
+    </Pressable>
+  );
+}
+
 const styles = StyleSheet.create({
   uppercase: { textTransform: "uppercase" },
   kicker: { letterSpacing: 1.6 },
@@ -94,4 +186,25 @@ const styles = StyleSheet.create({
     borderWidth: StyleSheet.hairlineWidth,
   },
   hairline: { backgroundColor: colors["cream-400"], height: StyleSheet.hairlineWidth },
+  notice: { borderLeftWidth: 3, borderRadius: 6, paddingHorizontal: 14, paddingVertical: 10 },
+  noticeError: { backgroundColor: colors["rust-50"], borderLeftColor: colors["rust-600"] },
+  noticeInfo: { backgroundColor: colors["cream-250"], borderLeftColor: colors["amber-500"] },
+  textField: {
+    backgroundColor: colors["cream-50"],
+    borderColor: colors["cream-400"],
+    borderRadius: 8,
+    borderWidth: StyleSheet.hairlineWidth,
+    color: colors["ink-900"],
+    fontFamily: fonts.sans,
+    fontSize: typeRoles.body.fontSize,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  button: {
+    alignItems: "center",
+    borderRadius: 8,
+    justifyContent: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+  },
 });

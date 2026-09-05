@@ -5,7 +5,11 @@ import { redirect } from "next/navigation";
 import { ClubStatus, CoachStatus, ConnectionStatus, PlayerStatus } from "@/app/generated/prisma/enums";
 import { prisma } from "@/lib/prisma";
 import { requireUser } from "@/lib/auth";
-import { createConnectionRequest, type ConnectionRequestOutcome } from "@/lib/connections";
+import {
+  createConnectionRequest,
+  respondToConnection,
+  type ConnectionRequestOutcome,
+} from "@/lib/connections";
 import { releaseOrphanedReports } from "@/lib/report-review.server";
 
 function text(formData: FormData, name: string) {
@@ -139,30 +143,7 @@ export async function respondToConnectionRequest(formData: FormData) {
     done("connectionError", "Invalid request.");
   }
 
-  const connection = await prisma.connection.findUnique({
-    where: { id: connectionId },
-    select: { userAId: true, userBId: true, requestedById: true, status: true },
-  });
-
-  if (!connection || connection.status !== ConnectionStatus.PENDING) {
-    done("connectionError", "Pending request not found.");
-  }
-
-  const isParticipant =
-    connection.userAId === user.id || connection.userBId === user.id;
-
-  if (!isParticipant || connection.requestedById === user.id) {
-    done("connectionError", "Only the recipient can respond.");
-  }
-
-  if (response === "accept") {
-    await prisma.connection.update({
-      where: { id: connectionId },
-      data: { status: ConnectionStatus.ACCEPTED },
-    });
-  } else {
-    await prisma.connection.delete({ where: { id: connectionId } });
-  }
-
-  done("connectionMessage", response === "accept" ? "Request accepted." : "Request declined.");
+  const outcome = await respondToConnection(user.id, connectionId, response);
+  if ("error" in outcome) done("connectionError", outcome.error);
+  done("connectionMessage", outcome.message);
 }

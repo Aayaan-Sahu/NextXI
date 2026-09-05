@@ -30,6 +30,19 @@ function colors(css: string): [string, string][] {
 }
 
 /**
+ * CSS line-height only ever spaces lines apart — a browser always draws a
+ * glyph's full ascender/descender regardless of how tight the ratio is, so
+ * shared/theme.css's tightest ratios (display: 1.05, figure/figure-sm: 1)
+ * are perfectly safe there. React Native's `lineHeight` instead sets a hard
+ * line box and can visibly clip a custom font's cap-height when that box is
+ * tighter than the glyph needs — most visible on the bold, condensed
+ * display face at its largest size. This is a React Native rendering floor,
+ * not a design change: it never lowers a ratio the web already uses, only
+ * raises the ones too tight for RN to render without clipping.
+ */
+const RN_MIN_LINE_HEIGHT_RATIO = 1.2;
+
+/**
  * The nine type roles. CSS carries a unitless line-height multiplier; React
  * Native wants absolute pixels, so it is resolved here — the one conversion
  * between the two runtimes, done once instead of at every call site.
@@ -49,7 +62,8 @@ function typeRoles(css: string): [string, { fontSize: number; lineHeight: number
   return [...sizes].map(([name, fontSize]) => {
     const ratio = ratios.get(name);
     if (ratio === undefined) throw new Error(`Type role "${name}" has no line height.`);
-    return [name, { fontSize, lineHeight: Math.round(fontSize * ratio * 100) / 100 }];
+    const rnRatio = Math.max(ratio, RN_MIN_LINE_HEIGHT_RATIO);
+    return [name, { fontSize, lineHeight: Math.round(fontSize * rnRatio * 100) / 100 }];
   });
 }
 

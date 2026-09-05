@@ -32,7 +32,11 @@ import { getDerivedMeasurements } from "@/lib/report-history";
 import { publishedReportWhere } from "@/lib/report-review.server";
 import { PRODUCT_SCORES_ENABLED } from "@/lib/report-scores";
 import { formatVideoTags } from "@/lib/videos";
-import { getPlayerVideoPulse, getReadyVideoGridItems } from "@/lib/videos.server";
+import {
+  getPlayerVideoPulse,
+  getReadyVideoGridItems,
+  getRecentPlayerFeedback,
+} from "@/lib/videos.server";
 
 function formatShortDate(date: Date) {
   return date.toLocaleDateString("en-US", {
@@ -106,21 +110,7 @@ export default async function PlayerDashboardPage() {
   const [videos, pulse, feedback, latestReport, guardianRow] = await Promise.all([
     getReadyVideoGridItems(user.id, "player"),
     getPlayerVideoPulse(user.id),
-    prisma.videoComment.findMany({
-      where: { video: { playerId: user.id }, publishedAt: { not: null } },
-      orderBy: { createdAt: "desc" },
-      take: 5,
-      select: {
-        id: true,
-        authorName: true,
-        authorUsername: true,
-        body: true,
-        createdAt: true,
-        timestampSec: true,
-        videoId: true,
-        video: { select: { originalFilename: true } },
-      },
-    }),
+    getRecentPlayerFeedback(user.id, 5),
     // Newest READY report across all videos (session-filed ones included —
     // the grid excludes those, but the video detail page renders them fine).
     // Published only: a report the coach hasn't signed off isn't the player's yet.

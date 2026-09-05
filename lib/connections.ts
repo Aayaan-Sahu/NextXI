@@ -70,6 +70,16 @@ export async function describeUsers(ids: string[]): Promise<Map<string, PersonIn
   return result;
 }
 
+/**
+ * Handles are displayed everywhere with their sigil — "@sanai" — and both
+ * search placeholders ask for an "@username", so that is the form people
+ * type. The `username` column holds it without one, where a raw `contains`
+ * would never match. Strip it before the query sees it.
+ */
+export function normalizeSearchQuery(query: string | undefined | null): string {
+  return (query ?? "").trim().replace(/^@+/, "").trim();
+}
+
 export type ConnectionRequestOutcome = { message: string } | { error: string };
 
 /**
@@ -145,6 +155,76 @@ export async function createConnectionRequest(
   return { message: "Request sent." };
 }
 
+export type RespondOutcome = { message: string } | { error: string };
+
+/**
+ * Accept or decline a pending connection request. Only the non-requesting
+ * participant may respond — accepting flips the row to ACCEPTED, declining
+ * deletes it outright (nothing about a request that was never opened is
+ * worth keeping).
+ */
+export async function respondToConnection(
+  userId: string,
+  connectionId: string,
+  response: "accept" | "decline",
+): Promise<RespondOutcome> {
+  const connection = await prisma.connection.findUnique({
+    where: { id: connectionId },
+    select: { userAId: true, userBId: true, requestedById: true, status: true },
+  });
+
+  if (!connection || connection.status !== ConnectionStatus.PENDING) {
+    return { error: "Pending request not found." };
+  }
+
+  const isParticipant = connection.userAId === userId || connection.userBId === userId;
+  if (!isParticipant || connection.requestedById === userId) {
+    return { error: "Only the recipient can respond." };
+  }
+
+  if (response === "accept") {
+    await prisma.connection.update({
+      where: { id: connectionId },
+      data: { status: ConnectionStatus.ACCEPTED },
+    });
+  } else {
+    await prisma.connection.delete({ where: { id: connectionId } });
+  }
+
+  return { message: response === "accept" ? "Request accepted." : "Request declined." };
+}
+
+export type CancelOutcome = { message: string } | { error: string };
+
+/**
+ * Deletes a PENDING connection the caller requested — the outgoing-request
+ * "Cancel" action. Unlike revoke (ACCEPTED → REVOKED, kept for history),
+ * cancelling an unopened request has nothing worth keeping, so the row is
+ * deleted, the same way declining one is.
+ */
+export async function cancelConnectionRequest(
+  userId: string,
+  connectionId: string,
+): Promise<CancelOutcome> {
+  const connection = await prisma.connection.findUnique({
+    where: { id: connectionId },
+    select: { userAId: true, userBId: true, requestedById: true, status: true },
+  });
+
+  const isParticipant =
+    !!connection && (connection.userAId === userId || connection.userBId === userId);
+  if (!connection || !isParticipant || connection.status !== ConnectionStatus.PENDING) {
+    return { error: "Pending request not found." };
+  }
+
+  if (connection.requestedById !== userId) {
+    return { error: "Only the requester can cancel this." };
+  }
+
+  await prisma.connection.delete({ where: { id: connectionId } });
+  return { message: "Request cancelled." };
+}
+
 /** Whether the two users have an accepted connection. */
 export async function hasAcceptedConnection(a: string, b: string): Promise<boolean> {
   const [userAId, userBId] = orderedPair(a, b);
@@ -210,8 +290,13 @@ export async function getConnectionPanelData(userId: string): Promise<Connection
   return data;
 }
 
-/** Connection state of a directory row, from the viewer's perspective. */
-export type DirectoryConnectionState = "none" | "pending" | "accepted" | "revoked";
+/**
+ * Connection state of a directory row, from the viewer's perspective.
+ * "pending" is a request the viewer sent and is waiting on; "incoming" is one
+ * the other person sent, which the viewer must accept or ignore rather than
+ * "request" again.
+ */
+export type DirectoryConnectionState = "none" | "pending" | "incoming" | "accepted" | "revoked";
 
 export type CoachDirectoryEntry = {
   id: string;
@@ -219,25 +304,81 @@ export type CoachDirectoryEntry = {
   username: string | null;
   accomplishments: string[];
   state: DirectoryConnectionState;
+  connectionId: string | null;
 };
+
+export type ViewerConnectionInfo = {
+  connectionId: string;
+  status: ConnectionStatus;
+  requestedById: string;
+};
+
+/** Directory rows' connection state and id relative to `viewerId`, keyed by the other party's id. */
+export async function getViewerConnectionsByOtherId(
+  viewerId: string,
+): Promise<Map<string, ViewerConnectionInfo>> {
+  const rows = await prisma.connection.findMany({
+    where: { OR: [{ userAId: viewerId }, { userBId: viewerId }] },
+    select: { id: true, userAId: true, userBId: true, status: true, requestedById: true },
+  });
+
+  return new Map(
+    rows.map((row) => [
+      row.userAId === viewerId ? row.userBId : row.userAId,
+      { connectionId: row.id, status: row.status, requestedById: row.requestedById },
+    ]),
+  );
+}
+
+/** A directory row's state — and which side a PENDING request came from — relative to `viewerId`. */
+export function directoryState(
+  viewerId: string,
+  connection: ViewerConnectionInfo | undefined,
+): DirectoryConnectionState {
+  if (!connection) return "none";
+  if (connection.status === ConnectionStatus.ACCEPTED) return "accepted";
+  if (connection.status === ConnectionStatus.REVOKED) return "revoked";
+  if (connection.status === ConnectionStatus.PENDING) {
+    return connection.requestedById === viewerId ? "pending" : "incoming";
+  }
+  return "none";
+}
 
 /**
  * Browsable list of approved coaches for players to discover, with each
  * coach's connection state relative to `viewerId` so the UI can render the
- * right call to action ("Request to connect", "Requested", "Connected", or
- * "Request again" for a revoked connection).
+ * right call to action ("Request to connect", "Requested", "Connected",
+ * "Request again" for a revoked connection, or "Accept" / "Ignore" for a
+ * request the coach already sent the viewer).
  */
 export async function getCoachDirectory(
   viewerId: string,
   query?: string,
 ): Promise<CoachDirectoryEntry[]> {
-  const trimmedQuery = query?.trim();
+  const trimmedQuery = normalizeSearchQuery(query);
+
+  // Both search fields ask for "a @username or name", so a query has to reach
+  // the handle as well as the name — the same two-column match
+  // `searchPlayersByQuery` does.
+  const matchingProfiles = trimmedQuery
+    ? await prisma.profile.findMany({
+        where: { username: { contains: trimmedQuery, mode: "insensitive" } },
+        select: { id: true },
+      })
+    : [];
 
   const coaches = await prisma.coach.findMany({
     where: {
       status: CoachStatus.APPROVED,
       id: { not: viewerId },
-      ...(trimmedQuery ? { name: { contains: trimmedQuery, mode: "insensitive" } } : {}),
+      ...(trimmedQuery
+        ? {
+            OR: [
+              { name: { contains: trimmedQuery, mode: "insensitive" } },
+              { id: { in: matchingProfiles.map((profile) => profile.id) } },
+            ],
+          }
+        : {}),
     },
     orderBy: { name: "asc" },
     select: { id: true, name: true, accomplishments: true },
@@ -245,42 +386,26 @@ export async function getCoachDirectory(
 
   if (!coaches.length) return [];
 
-  const [profiles, viewerConnections] = await Promise.all([
+  const [profiles, connectionByOtherId] = await Promise.all([
     prisma.profile.findMany({
       where: { id: { in: coaches.map((coach) => coach.id) } },
       select: { id: true, username: true },
     }),
-    prisma.connection.findMany({
-      where: { OR: [{ userAId: viewerId }, { userBId: viewerId }] },
-      select: { userAId: true, userBId: true, status: true },
-    }),
+    getViewerConnectionsByOtherId(viewerId),
   ]);
 
   const usernames = new Map(profiles.map((profile) => [profile.id, profile.username]));
-  const connectionByOtherId = new Map(
-    viewerConnections.map((row) => [
-      row.userAId === viewerId ? row.userBId : row.userAId,
-      row.status,
-    ]),
-  );
 
   return coaches.map((coach) => {
-    const status = connectionByOtherId.get(coach.id);
-    const state: DirectoryConnectionState =
-      status === ConnectionStatus.ACCEPTED
-        ? "accepted"
-        : status === ConnectionStatus.REVOKED
-          ? "revoked"
-          : status === ConnectionStatus.PENDING
-            ? "pending"
-            : "none";
+    const connection = connectionByOtherId.get(coach.id);
 
     return {
       id: coach.id,
       name: coach.name,
       username: usernames.get(coach.id) ?? null,
       accomplishments: coach.accomplishments,
-      state,
+      state: directoryState(viewerId, connection),
+      connectionId: connection?.connectionId ?? null,
     };
   });
 }
@@ -299,35 +424,62 @@ export type PlayerSearchEntry = {
   roles: PlayerRole[];
   country: string;
   state: DirectoryConnectionState;
+  connectionId: string | null;
 };
 
 /**
- * Search-only player discovery for players: unlike `getCoachDirectory`, an
- * empty query returns nothing — there is no browsable roster of every player
- * on the platform, only a match against a name or @username you already have
- * in mind. Only surfaces players who opted into discovery (`PUBLIC`) and are
- * active, same as `searchPlayers`.
+ * Search-only player discovery **for players** — the "someone is trying to
+ * find you" path. There is no browsable roster: an empty query returns
+ * nothing, only a match against a name or @username already in mind.
+ *
+ * `visibility` decides how findable each side is, and the two rules differ:
+ *
+ * - **PUBLIC** — discoverable. A partial match on either the name or the
+ *   handle surfaces them, so typing "san" finds Sano.
+ * - **PRIVATE** — unlisted, not unreachable. They surface only for someone
+ *   who types their handle in full, which is knowledge you can only have
+ *   from the player themselves. Partial handles and names never reach them,
+ *   so a private player can't be stumbled upon by browsing or by sharing a
+ *   name with someone public.
+ *
+ * The coach-facing search (`searchPlayers`) is a different rule and a
+ * different function: PUBLIC only, no exact-handle escape hatch.
  */
 export async function searchPlayersByQuery(
   viewerId: string,
   query: string,
 ): Promise<PlayerSearchEntry[]> {
-  const trimmedQuery = query.trim();
+  const trimmedQuery = normalizeSearchQuery(query);
   if (!trimmedQuery) return [];
 
-  const matchingProfiles = await prisma.profile.findMany({
-    where: { username: { contains: trimmedQuery, mode: "insensitive" } },
-    select: { id: true },
-  });
+  const [partialHandleMatches, exactHandleMatch] = await Promise.all([
+    prisma.profile.findMany({
+      where: { username: { contains: trimmedQuery, mode: "insensitive" } },
+      select: { id: true },
+    }),
+    // `username` is unique, but a case-insensitive compare isn't covered by
+    // that index, so this is a findFirst rather than a findUnique.
+    prisma.profile.findFirst({
+      where: { username: { equals: trimmedQuery, mode: "insensitive" } },
+      select: { id: true },
+    }),
+  ]);
 
   const players = await prisma.player.findMany({
     where: {
-      visibility: Visibility.PUBLIC,
       status: PlayerStatus.ACTIVE,
       id: { not: viewerId },
       OR: [
-        { name: { contains: trimmedQuery, mode: "insensitive" } },
-        { id: { in: matchingProfiles.map((profile) => profile.id) } },
+        {
+          visibility: Visibility.PUBLIC,
+          OR: [
+            { name: { contains: trimmedQuery, mode: "insensitive" } },
+            { id: { in: partialHandleMatches.map((profile) => profile.id) } },
+          ],
+        },
+        ...(exactHandleMatch
+          ? [{ visibility: Visibility.PRIVATE, id: exactHandleMatch.id }]
+          : []),
       ],
     },
     orderBy: { name: "asc" },
@@ -336,35 +488,18 @@ export async function searchPlayersByQuery(
 
   if (!players.length) return [];
 
-  const [profiles, viewerConnections] = await Promise.all([
+  const [profiles, connectionByOtherId] = await Promise.all([
     prisma.profile.findMany({
       where: { id: { in: players.map((player) => player.id) } },
       select: { id: true, username: true },
     }),
-    prisma.connection.findMany({
-      where: { OR: [{ userAId: viewerId }, { userBId: viewerId }] },
-      select: { userAId: true, userBId: true, status: true },
-    }),
+    getViewerConnectionsByOtherId(viewerId),
   ]);
 
   const usernames = new Map(profiles.map((profile) => [profile.id, profile.username]));
-  const connectionByOtherId = new Map(
-    viewerConnections.map((row) => [
-      row.userAId === viewerId ? row.userBId : row.userAId,
-      row.status,
-    ]),
-  );
 
   return players.map((player) => {
-    const status = connectionByOtherId.get(player.id);
-    const state: DirectoryConnectionState =
-      status === ConnectionStatus.ACCEPTED
-        ? "accepted"
-        : status === ConnectionStatus.REVOKED
-          ? "revoked"
-          : status === ConnectionStatus.PENDING
-            ? "pending"
-            : "none";
+    const connection = connectionByOtherId.get(player.id);
 
     return {
       id: player.id,
@@ -372,7 +507,8 @@ export async function searchPlayersByQuery(
       username: usernames.get(player.id) ?? null,
       roles: player.roles,
       country: player.country,
-      state,
+      state: directoryState(viewerId, connection),
+      connectionId: connection?.connectionId ?? null,
     };
   });
 }
