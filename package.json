@@ -13,6 +13,7 @@
     "lint": "eslint",
     "admin:grant": "bun scripts/set-admin.ts",
     "admin:revoke": "bun scripts/set-admin.ts --revoke",
+    "mobile:test-friend": "bun scripts/create-mobile-test-friend.ts",
     "auth:templates": "bun scripts/push-email-templates.ts",
     "video:studio": "remotion studio",
     "video:render": "remotion render RecordingTutorial out/recording-tutorial.mp4",

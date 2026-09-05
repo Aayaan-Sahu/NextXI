@@ -1,5 +1,5 @@
 import { requestConnectionToCoach } from "@/app/dashboard/connections/actions";
-import { PersonAvatar } from "@/components/connections";
+import { PersonAvatar, RespondButtons } from "@/components/connections";
 import { SubmitButton } from "@/components/submit-button";
 import type { CoachDirectoryEntry } from "@/lib/connections";
 import { SectionHeading, TextInput } from "@/components/ui";
@@ -7,6 +7,10 @@ import { SectionHeading, TextInput } from "@/components/ui";
 function ConnectAction({ coach }: { coach: CoachDirectoryEntry }) {
   if (coach.state === "accepted") {
     return <span className="text-ui whitespace-nowrap text-ink-600">Connected</span>;
+  }
+
+  if (coach.state === "incoming") {
+    return <RespondButtons connectionId={coach.connectionId!} />;
   }
 
   if (coach.state === "pending") {

@@ -1,5 +1,5 @@
 import { requestConnectionToClub } from "@/app/dashboard/connections/actions";
-import { PersonAvatar } from "@/components/connections";
+import { PersonAvatar, RespondButtons } from "@/components/connections";
 import { SubmitButton } from "@/components/submit-button";
 import { SectionHeading } from "@/components/ui";
 import type { ClubDirectoryEntry } from "@/lib/clubs.server";
@@ -8,6 +8,10 @@ import { countryWithFlag } from "@/lib/players";
 function ConnectAction({ club }: { club: ClubDirectoryEntry }) {
   if (club.state === "accepted") {
     return <span className="text-ui whitespace-nowrap text-ink-600">Connected</span>;
+  }
+
+  if (club.state === "incoming") {
+    return <RespondButtons connectionId={club.connectionId!} />;
   }
 
   if (club.state === "pending") {

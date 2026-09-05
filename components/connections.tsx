@@ -210,6 +210,33 @@ export function PlayerConnections({ data }: { data: ConnectionPanelData }) {
 }
 
 /**
+ * Accept / Ignore for a request the other person already sent — used by the
+ * pending column and by a directory row whose search match turns out to
+ * already be waiting on the viewer, rather than the other way around.
+ */
+export function RespondButtons({ connectionId }: { connectionId: string }) {
+  return (
+    <div className="flex gap-2">
+      <form action={respondToConnectionRequest} className="flex-1">
+        <input name="connectionId" type="hidden" value={connectionId} />
+        <input name="response" type="hidden" value="accept" />
+        <SubmitButton className="w-full !py-[7px] !text-caption">Accept</SubmitButton>
+      </form>
+      <form action={respondToConnectionRequest} className="flex-1">
+        <input name="connectionId" type="hidden" value={connectionId} />
+        <input name="response" type="hidden" value="decline" />
+        <button
+          className="w-full cursor-pointer rounded-md border border-cream-400 py-[7px] text-caption font-semibold text-ink-600 hover:bg-cream-100"
+          type="submit"
+        >
+          Ignore
+        </button>
+      </form>
+    </div>
+  );
+}
+
+/**
  * The pending column: requests waiting on you, then the ones you are waiting
  * on. Ignoring is as easy as accepting — neither is a destructive act.
  */
@@ -235,22 +262,8 @@ export function PendingColumn({ data }: { data: ConnectionPanelData }) {
                     </p>
                   </div>
                 </div>
-                <div className="mt-2.5 flex gap-2">
-                  <form action={respondToConnectionRequest} className="flex-1">
-                    <input name="connectionId" type="hidden" value={person.connectionId} />
-                    <input name="response" type="hidden" value="accept" />
-                    <SubmitButton className="w-full !py-[7px] !text-caption">Accept</SubmitButton>
-                  </form>
-                  <form action={respondToConnectionRequest} className="flex-1">
-                    <input name="connectionId" type="hidden" value={person.connectionId} />
-                    <input name="response" type="hidden" value="decline" />
-                    <button
-                      className="w-full cursor-pointer rounded-md border border-cream-400 py-[7px] text-caption font-semibold text-ink-600 hover:bg-cream-100"
-                      type="submit"
-                    >
-                      Ignore
-                    </button>
-                  </form>
+                <div className="mt-2.5">
+                  <RespondButtons connectionId={person.connectionId} />
                 </div>
               </li>
             ))}

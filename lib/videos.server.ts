@@ -119,6 +119,43 @@ export async function getReadyVideoGridItems(playerId: string, viewer: ReportVie
   }));
 }
 
+export type RecentFeedbackItem = {
+  id: string;
+  authorName: string;
+  authorUsername: string;
+  body: string;
+  createdAt: Date;
+  timestampSec: number | null;
+  videoId: string;
+  video: { originalFilename: string };
+};
+
+/**
+ * Latest published coach comments across a player's videos, newest first —
+ * feedback shouldn't only be discoverable by reopening each video. Held
+ * comments (a report still awaiting sign-off) stay excluded.
+ */
+export async function getRecentPlayerFeedback(
+  playerId: string,
+  limit: number,
+): Promise<RecentFeedbackItem[]> {
+  return prisma.videoComment.findMany({
+    where: { video: { playerId }, publishedAt: { not: null } },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      authorName: true,
+      authorUsername: true,
+      body: true,
+      createdAt: true,
+      timestampSec: true,
+      videoId: true,
+      video: { select: { originalFilename: true } },
+    },
+  });
+}
+
 /** Whole-day index of a date on the London calendar (en-CA gives YYYY-MM-DD). */
 export function londonDayNumber(date: Date) {
   return (

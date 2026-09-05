@@ -66,11 +66,29 @@ export async function authorizeConversation(userId: string, connectionId: string
   return connection;
 }
 
-export async function getConversations(userId: string): Promise<ConversationSummary[]> {
+/**
+ * A user's conversations, newest first.
+ *
+ * `withMessagesOnly` decides whether a connection nobody has written to yet
+ * counts as a conversation, and the two surfaces genuinely differ. The app
+ * opens a first thread from its own compose screen and from the roster's
+ * Message button, so its inbox is an inbox — only people you have actually
+ * exchanged messages with. The web has neither entry point: its sidebar is
+ * the only way to reach a thread, so filtering there would strand a user who
+ * is connected but has never written. Same for a guardian's oversight view,
+ * which reads whatever the child can see.
+ */
+export async function getConversations(
+  userId: string,
+  options: { withMessagesOnly?: boolean } = {},
+): Promise<ConversationSummary[]> {
   const connections = await prisma.connection.findMany({
     where: {
       status: ConnectionStatus.ACCEPTED,
       OR: [{ userAId: userId }, { userBId: userId }],
+      // Filtered in SQL rather than dropped after the fact, so an inbox of
+      // three threads doesn't fetch every connection to get there.
+      ...(options.withMessagesOnly ? { messages: { some: {} } } : {}),
     },
     select: {
       id: true,

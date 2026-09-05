@@ -1,5 +1,5 @@
 import { requestConnectionToPlayer } from "@/app/dashboard/connections/actions";
-import { PersonAvatar } from "@/components/connections";
+import { PersonAvatar, RespondButtons } from "@/components/connections";
 import { SubmitButton } from "@/components/submit-button";
 import type { PlayerSearchEntry } from "@/lib/connections";
 import { countryWithFlag, PLAYER_ROLE_LABELS } from "@/lib/players";
@@ -8,6 +8,10 @@ import { SectionHeading, TextInput } from "@/components/ui";
 function ConnectAction({ player }: { player: PlayerSearchEntry }) {
   if (player.state === "accepted") {
     return <span className="text-ui whitespace-nowrap text-ink-600">Connected</span>;
+  }
+
+  if (player.state === "incoming") {
+    return <RespondButtons connectionId={player.connectionId!} />;
   }
 
   if (player.state === "pending") {
@@ -53,7 +57,8 @@ export function PlayerSearch({
 
       {!query ? (
         <p className="mt-3.5 text-ui text-ink-600">
-          Search for a player by name or username to connect.
+          Search for a player by name or username to connect. Private accounts only appear when
+          you type their full username.
         </p>
       ) : players.length ? (
         <ul className="mt-4 border-b border-cream-400">
@@ -83,7 +88,9 @@ export function PlayerSearch({
           ))}
         </ul>
       ) : (
-        <p className="mt-3.5 text-ui text-ink-600">No players match your search.</p>
+        <p className="mt-3.5 text-ui text-ink-600">
+          No players match your search. If their account is private, type their full username.
+        </p>
       )}
     </section>
   );

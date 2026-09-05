@@ -11,8 +11,8 @@ import { Hairline, Kicker, PageTitle, Panel, Text } from "@/lib/ui";
  * from, generated from the same shared/theme.css, in the two brand faces.
  * Rendering them is how that gets verified on a device rather than asserted.
  *
- * Scaffolding — replaced by Home as soon as the app has an account to show
- * (docs/mobile-apps.md).
+ * Not part of the tab bar — reachable at /dev/design-system for a manual
+ * drift check, now that the root route is the (tabs) group.
  */
 
 const TYPE_ROLES: { role: keyof typeof typeRoles; weight: Parameters<typeof Text>[0]["weight"]; uppercase?: boolean; sample: string }[] = [
