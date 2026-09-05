@@ -10,20 +10,35 @@ A cricket talent platform: players upload technique videos for AI coaching
 reports, track stats/goals, and connect with coaches and guardians.
 Next.js 16 (App Router) · React 19 · Prisma 7 · Supabase · Tailwind v4 · Bun.
 
-**Author / committer (mandatory):** Mukilan Rajasekar \<mukilan.rajasekar@gmail.com\>.
+**Author / committer (mandatory):** the human who directed the work — for
+**both** author and committer, on every agent commit, Cloud, background or
+local.
 
-Every agent commit — Cloud, background, local — must use that identity for **both**
-author and committer. Never `Cursor Agent` / `cursoragent@cursor.com`. Never
-`Co-authored-by:` or `Made-with: Cursor` trailers.
+An agent is a tool, not a contributor. `git blame` has to answer "who decided
+this", so the commit carries the identity of whoever asked for the change, not
+a fixed maintainer and never the agent. Current contributors:
+
+| Person | Identity |
+| --- | --- |
+| Aayaan Sahu | `Aayaan-Sahu <64231581+Aayaan-Sahu@users.noreply.github.com>` |
+| Mukilan Rajasekar | `Mukilan Rajasekar <mukilan.rajasekar@gmail.com>` |
+
+Never `Cursor Agent` / `cursoragent@cursor.com`. Never `Co-authored-by:` or
+`Made-with: Cursor` trailers — they would credit the tool as a contributor,
+which is the thing this rule exists to prevent.
 
 Enforcement (do not weaken):
 
 1. Run `./scripts/agent-git-identity.sh` before the first commit in a session
    (`.cursor/environment.json` install and `.cursor/hooks.json` also run it).
-2. That script sets `user.name` / `user.email` and replaces Cursor's
-   `commit-msg.cursor.co-author` injector with a no-op.
-3. If a commit still lands wrong, rewrite it (`git commit --amend` /
-   `filter-branch` with `core.hooksPath=/dev/null`) before pushing.
+2. That script resolves the identity — `GIT_AUTHOR_NAME` / `GIT_AUTHOR_EMAIL`,
+   else the existing local or global config, rejecting the Cursor default —
+   sets it on the repo, and replaces Cursor's `commit-msg.cursor.co-author`
+   injector with a no-op. It refuses to guess: pass `--name` / `--email` when
+   the environment cannot tell it who is driving.
+3. If a commit still lands wrong, rewrite it (`git commit --amend
+   --reset-author` / `filter-branch` with `core.hooksPath=/dev/null`) before
+   pushing.
 
 Cursor has no product toggle for Cloud Agent authorship; this repo policy is
 the permanent override.
